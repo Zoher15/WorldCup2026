@@ -125,8 +125,8 @@ Predictions are never lost, and the leaderboard can always be rebuilt:
 - ✅ Prediction flow: enter/save picks, shared across groups, locks at kickoff
 - ✅ Smart polling planner + tests (`src/lib/polling.ts`)
 - ✅ Recompute / recovery engine + tests (`src/lib/recompute.ts`)
+- ✅ Per-group leaderboards (overall / win / scoreline) from confirmed results
 - ⬜ Results entry + live sync (driven by the planner) + scoring run
-- ⬜ Leaderboards (overall / win / scoreline)
 - ⬜ PWA polish
 
 ## Development

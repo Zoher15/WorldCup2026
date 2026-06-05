@@ -1,5 +1,6 @@
 import { createAdminClient } from "./supabase/admin";
 import { generateGroupCode, generateRecoveryCode, normalizeCode } from "./codes";
+import { buildStandings, type Standings } from "./standings";
 import type { LateJoinPolicy } from "./types";
 
 const UNIQUE_VIOLATION = "23505";
@@ -127,5 +128,94 @@ export async function getGroupView(code: string): Promise<GroupView | null> {
       displayName: m.display_name,
       isAdmin: m.is_admin,
     })),
+  };
+}
+
+export interface GroupStandings {
+  group: {
+    code: string;
+    name: string;
+    lateJoinPolicy: LateJoinPolicy;
+    memberCount: number;
+  };
+  standings: Standings;
+}
+
+/** Load a group's live leaderboard, computed from confirmed results. */
+export async function getGroupStandings(
+  code: string,
+): Promise<GroupStandings | null> {
+  const db = createAdminClient();
+  const { data: group } = await db
+    .from("groups")
+    .select("id, code, name, late_join_policy, created_at")
+    .eq("code", normalizeCode(code))
+    .single();
+  if (!group) return null;
+
+  const { data: members } = await db
+    .from("memberships")
+    .select("user_id, display_name, joined_at")
+    .eq("group_id", group.id);
+  const memberList = members ?? [];
+  const userIds = memberList.map((m) => m.user_id);
+
+  // Only confirmed results contribute to scores.
+  const { data: matches } = await db
+    .from("matches")
+    .select("id, kickoff_at, stage, home_goals, away_goals, advanced_code, result_confirmed")
+    .eq("result_confirmed", true);
+  const matchList = matches ?? [];
+
+  let predList: {
+    user_id: string;
+    match_id: string;
+    pred_home: number;
+    pred_away: number;
+    advance_pick: string | null;
+  }[] = [];
+  if (userIds.length && matchList.length) {
+    const { data: preds } = await db
+      .from("predictions")
+      .select("user_id, match_id, pred_home, pred_away, advance_pick")
+      .in("user_id", userIds)
+      .in("match_id", matchList.map((m) => m.id));
+    predList = preds ?? [];
+  }
+
+  const standings = buildStandings({
+    members: memberList.map((m) => ({
+      userId: m.user_id,
+      displayName: m.display_name,
+      joinedAt: m.joined_at,
+    })),
+    matches: matchList.map((m) => ({
+      id: m.id,
+      kickoffAt: m.kickoff_at,
+      stage: m.stage,
+      resultConfirmed: m.result_confirmed,
+      homeGoals: m.home_goals,
+      awayGoals: m.away_goals,
+      advancedCode: m.advanced_code,
+    })),
+    predictions: predList.map((p) => ({
+      userId: p.user_id,
+      matchId: p.match_id,
+      predHome: p.pred_home,
+      predAway: p.pred_away,
+      advancePick: p.advance_pick,
+    })),
+    lateJoinPolicy: group.late_join_policy,
+    groupCreatedAt: group.created_at,
+  });
+
+  return {
+    group: {
+      code: group.code,
+      name: group.name,
+      lateJoinPolicy: group.late_join_policy,
+      memberCount: memberList.length,
+    },
+    standings,
   };
 }
