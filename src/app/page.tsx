@@ -27,6 +27,20 @@ export default function Home() {
         <p className="mt-2 font-medium text-stone-500">
           Call the score, pick the winner, climb the leaderboard with the family.
         </p>
+        <div className="mt-5 flex justify-center gap-3">
+          <a
+            href="/join?mode=create"
+            className="rounded-full bg-pitch px-6 py-3 font-bold text-white shadow transition active:scale-95"
+          >
+            Create a group
+          </a>
+          <a
+            href="/join"
+            className="rounded-full bg-white px-6 py-3 font-bold text-grape shadow ring-1 ring-black/5 transition active:scale-95"
+          >
+            Join a group
+          </a>
+        </div>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
