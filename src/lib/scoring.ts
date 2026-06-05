@@ -46,8 +46,15 @@ export interface MatchScore {
   total: number;
 }
 
-/** Maximum points available for a single match. */
+/** Maximum points available for a single match (scoreline only). */
 export const MAX_MATCH_POINTS = 10;
+
+/**
+ * Bonus for correctly predicting which team advances in a knockout match
+ * (after extra time / penalties). Kept modest relative to the 10 scoreline
+ * points so the scoreline stays the main event.
+ */
+export const ADVANCE_BONUS = 3;
 
 const OUTCOME_FOR_CORRECT_DIRECTION = 6;
 const OUTCOME_PENALTY_PER_STEP = 3;
@@ -110,4 +117,20 @@ export function scoreMatch(prediction: Scoreline, actual: Scoreline): MatchScore
   const outcome = outcomePoints(prediction, actual);
   const closeness = closenessPoints(prediction, actual);
   return { outcome, closeness, total: outcome + closeness };
+}
+
+/**
+ * Bonus points for a knockout "who advances?" pick.
+ *
+ * Returns ADVANCE_BONUS if the picked team matches the team that actually
+ * advanced, otherwise 0. A null/absent pick or unknown result scores 0.
+ * This is added on top of the scoreline points for knockout matches, so a
+ * perfect knockout prediction is worth MAX_MATCH_POINTS + ADVANCE_BONUS.
+ */
+export function advancePoints(
+  pick: string | null | undefined,
+  actualAdvancedCode: string | null | undefined,
+): number {
+  if (!pick || !actualAdvancedCode) return 0;
+  return pick === actualAdvancedCode ? ADVANCE_BONUS : 0;
 }

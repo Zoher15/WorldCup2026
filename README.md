@@ -47,14 +47,35 @@ Because the two parts are independent and additive:
 - **Scoreline predictor** = sum of closeness points
 - **Overall champion** = sum of totals
 
+## Identity & groups
+
+- **Predict once, counts everywhere.** A prediction belongs to the person, not
+  the group — `predictions` is keyed on `(user_id, match_id)` and reused across
+  every group you're in. No re-entering the same score, and no hedging.
+- **Lightweight identity.** Stored on your device, with an optional short
+  recovery code to reclaim it on a new device. No passwords.
+- **Per-group display name.** Be "Dad" in the family group and "Zoher" with
+  friends — same identity underneath.
+- **Late joiners** are handled per group via `late_join_policy`
+  (`carry_over` existing predictions, or `start_even` from the group's start).
+
+## Live scores
+
+A single server-side poller fetches live scores (API-Football free tier) and
+writes them to `matches`; every browser updates via Supabase Realtime, so one
+request feeds the whole family. Polling is throttled on busy match days to stay
+within the free quota, and final results are gated by `result_confirmed` (admin
+override) before points are awarded.
+
 ## Project status
 
 - ✅ Scoring engine + tests (`src/lib/scoring.ts`)
-- ⬜ Database schema + 2026 fixtures
+- ✅ Database schema (`supabase/migrations/0001_init.sql`) + domain types
+- ⬜ Seed the 104 World Cup 2026 fixtures
 - ⬜ Join flow (group code + name)
 - ⬜ Prediction UI (locks at kickoff)
-- ⬜ Results entry + scoring run
-- ⬜ Leaderboards
+- ⬜ Results entry + live sync + scoring run
+- ⬜ Leaderboards (overall / win / scoreline)
 - ⬜ PWA polish
 
 ## Development

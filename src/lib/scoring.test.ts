@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import {
   direction,
   scoreMatch,
+  advancePoints,
+  ADVANCE_BONUS,
   MAX_MATCH_POINTS,
   type Scoreline,
 } from "./scoring.ts";
@@ -127,6 +129,14 @@ test("outcome + closeness always equals total, and total is within 0..10", () =>
       }
     }
   }
+});
+
+test("advance bonus rewards the correct knockout pick", () => {
+  assert.equal(advancePoints("ARG", "ARG"), ADVANCE_BONUS);
+  assert.equal(advancePoints("ARG", "FRA"), 0);
+  assert.equal(advancePoints(null, "FRA"), 0);
+  assert.equal(advancePoints("ARG", null), 0);
+  assert.equal(advancePoints(undefined, undefined), 0);
 });
 
 test("invalid scorelines are rejected", () => {
