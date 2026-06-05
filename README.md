@@ -135,4 +135,10 @@ Predictions are never lost, and the leaderboard can always be rebuilt:
 npm test   # run the scoring engine tests (Node's built-in runner, no install)
 ```
 
-Planned stack: Next.js + Tailwind CSS + Supabase (Postgres) + Vercel.
+Stack: Next.js + Tailwind CSS + Supabase (Postgres) + Vercel.
+
+## Hosting
+
+The app deploys to **Vercel** (free) with data on **Supabase** (free), served at
+**worldcup.kachwalas.com** — a subdomain of the existing Squarespace domain
+(`kachwalas.com` stays as-is). Step-by-step in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
