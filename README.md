@@ -120,7 +120,7 @@ Predictions are never lost, and the leaderboard can always be rebuilt:
 
 - ✅ Scoring engine + tests (`src/lib/scoring.ts`)
 - ✅ Database schema (`supabase/migrations/0001_init.sql`) + domain types
-- ⬜ Seed the 104 World Cup 2026 fixtures
+- ✅ 104 World Cup 2026 fixtures (`src/data/fixtures.ts` + `supabase/seed.sql`)
 - ⬜ Join flow (group code + name)
 - ⬜ Prediction UI (locks at kickoff)
 - ✅ Smart polling planner + tests (`src/lib/polling.ts`)

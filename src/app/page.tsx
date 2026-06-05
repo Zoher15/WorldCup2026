@@ -1,6 +1,18 @@
-import { MatchCard } from "@/components/MatchCard";
+import { MatchCard, type MatchCardData } from "@/components/MatchCard";
 import { Leaderboard } from "@/components/Leaderboard";
-import { DEMO_MATCHES, DEMO_LEADERBOARD } from "@/lib/mock";
+import { DEMO_LEADERBOARD } from "@/lib/mock";
+import { FIXTURES } from "@/data/fixtures";
+
+// The next handful of fixtures by kickoff, shown as upcoming matches to predict.
+const UPCOMING: MatchCardData[] = FIXTURES.slice(0, 6).map((f) => ({
+  homeCode: f.homeCode,
+  awayCode: f.awayCode,
+  homeLabel: f.homeLabel ?? undefined,
+  awayLabel: f.awayLabel ?? undefined,
+  kickoffAt: f.kickoffAt,
+  venue: f.venue,
+  status: "scheduled",
+}));
 
 export default function Home() {
   return (
@@ -20,10 +32,10 @@ export default function Home() {
       <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
         <section>
           <h2 className="mb-3 px-1 text-lg font-black text-stone-700">
-            Today&apos;s matches
+            Upcoming matches
           </h2>
           <div className="grid gap-4 sm:grid-cols-2">
-            {DEMO_MATCHES.map((m, i) => (
+            {UPCOMING.map((m, i) => (
               <MatchCard key={i} data={m} />
             ))}
           </div>
