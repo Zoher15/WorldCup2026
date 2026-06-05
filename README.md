@@ -85,6 +85,21 @@ On the free tier this yields ~90s refresh on single/simultaneous-match days and
 automatically stretches the interval on busy spread-out days (flagged
 `degraded`) — bump `dailyBudget` for a paid month and fast polling returns.
 
+## Visual design
+
+Aim: **festive and colorful**, fun for all ages, friction-free on phones.
+
+- **Crisp SVG flags** for every team (via a flag library + a FIFA→ISO code map,
+  since FIFA codes like `GER`/`NED` differ from ISO `DE`/`NL`). Knockout
+  placeholders ("Winner Group A") get a neutral icon until the team is known.
+- **Match cards**: both flags, team names/codes, kickoff in the viewer's local
+  time, venue, and an animated live pill (`LIVE 67'`, `HT`, `FT`, `ET`, `PENS`).
+  Your prediction and the +/− steppers sit on the card and lock at kickoff.
+- **Leaderboard graphic**: a top-3 podium (gold/silver/bronze), ranked rows with
+  flag/avatar + display name + points + live movement arrows (▲▼), and three
+  tabs — Overall · Win predictor · Scoreline predictor. Points animate as live
+  results come in.
+
 ## Project status
 
 - ✅ Scoring engine + tests (`src/lib/scoring.ts`)
