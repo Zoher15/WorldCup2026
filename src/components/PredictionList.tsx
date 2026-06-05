@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Flag } from "./Flag";
 import { Stepper } from "./Stepper";
+import { Countdown } from "./Countdown";
 import { teamByCode } from "@/lib/fifa";
 import { savePredictionsAction } from "@/app/predict/actions";
 import type { MatchForPrediction, SavedPrediction } from "@/lib/predictions";
@@ -21,6 +23,13 @@ function dateHeading(iso: string): string {
   });
 }
 
+function timeOf(iso: string): string {
+  return new Date(iso).toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export function PredictionList({
   matches,
   initial,
@@ -28,6 +37,7 @@ export function PredictionList({
   matches: MatchForPrediction[];
   initial: Record<string, SavedPrediction>;
 }) {
+  const router = useRouter();
   const [picks, setPicks] = useState<Picks>(() => {
     const p: Picks = {};
     for (const m of matches) {
@@ -47,16 +57,22 @@ export function PredictionList({
   const [pending, startTransition] = useTransition();
   const [flash, setFlash] = useState<string | null>(null);
 
+  const openIds = useMemo(
+    () => new Set(matches.filter((m) => m.state === "open").map((m) => m.id)),
+    [matches],
+  );
+
   const dirtyIds = useMemo(
     () =>
       matches
         .filter((m) => {
+          if (!openIds.has(m.id)) return false;
           const cur = picks[m.id];
           const snap = savedSnapshot[m.id];
           return !snap || snap.home !== cur.home || snap.away !== cur.away;
         })
         .map((m) => m.id),
-    [matches, picks, savedSnapshot],
+    [matches, picks, savedSnapshot, openIds],
   );
 
   const setPick = (id: string, side: "home" | "away", n: number) =>
@@ -80,12 +96,12 @@ export function PredictionList({
         return next;
       });
       setFlash(
-        `Saved ${res.saved}${res.skipped ? ` · ${res.skipped} locked/skipped` : ""} ✓`,
+        `Saved ${res.saved}${res.skipped ? ` · ${res.skipped} skipped` : ""} ✓`,
       );
     });
   }
 
-  // Group matches under date headings.
+  // Group matches under date headings, preserving kickoff order.
   const groups: { date: string; items: MatchForPrediction[] }[] = [];
   for (const m of matches) {
     const date = dateHeading(m.kickoffAt);
@@ -104,23 +120,41 @@ export function PredictionList({
           <div className="space-y-3">
             {g.items.map((m) => {
               const pick = picks[m.id];
+              const open = m.state === "open";
               const isSaved = !dirtyIds.includes(m.id) && savedSnapshot[m.id];
               return (
                 <div
                   key={m.id}
-                  className="rounded-2xl bg-white/85 p-4 shadow ring-1 ring-black/5"
+                  className={`rounded-2xl p-4 shadow ring-1 ring-black/5 ${
+                    open ? "bg-white/90" : "bg-white/60"
+                  }`}
                 >
-                  <div className="mb-1 flex items-center justify-between">
-                    <span className="text-xs font-bold text-stone-400">
-                      {m.groupLabel ? `Group ${m.groupLabel}` : m.stage.replace(/_/g, " ")}
+                  <div className="mb-1 flex items-center justify-between text-xs font-bold">
+                    <span className="text-stone-400">
+                      {m.groupLabel
+                        ? `Group ${m.groupLabel}`
+                        : m.stage.replace(/_/g, " ")}
                       {" · "}
-                      {new Date(m.kickoffAt).toLocaleTimeString(undefined, {
-                        hour: "numeric",
-                        minute: "2-digit",
-                      })}
+                      {timeOf(m.kickoffAt)}
                     </span>
-                    {isSaved && (
-                      <span className="text-xs font-bold text-pitch">Saved ✓</span>
+                    {open ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-flame/15 px-2 py-0.5 text-flame">
+                        ⏳ closes in{" "}
+                        <Countdown
+                          target={m.kickoffAt}
+                          expiredLabel="closed"
+                          onExpire={() => router.refresh()}
+                        />
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-ocean/10 px-2 py-0.5 text-ocean">
+                        🔒 opens in{" "}
+                        <Countdown
+                          target={m.opensAt}
+                          expiredLabel="now open"
+                          onExpire={() => router.refresh()}
+                        />
+                      </span>
                     )}
                   </div>
                   <div className="flex items-center justify-between gap-2">
@@ -133,11 +167,13 @@ export function PredictionList({
                     <Stepper
                       value={pick.home}
                       onChange={(n) => setPick(m.id, "home", n)}
+                      disabled={!open}
                     />
                     <span className="font-black text-stone-300">:</span>
                     <Stepper
                       value={pick.away}
                       onChange={(n) => setPick(m.id, "away", n)}
+                      disabled={!open}
                     />
                     <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
                       <span className="truncate text-right font-bold">
@@ -146,6 +182,11 @@ export function PredictionList({
                       <Flag code={m.awayCode} size="md" />
                     </div>
                   </div>
+                  {open && isSaved && (
+                    <div className="mt-1 text-right text-xs font-bold text-pitch">
+                      Saved ✓
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -161,7 +202,7 @@ export function PredictionList({
               ? flash
               : dirtyIds.length
                 ? `${dirtyIds.length} unsaved`
-                : "All predictions saved"}
+                : "All caught up"}
           </span>
           <button
             onClick={save}

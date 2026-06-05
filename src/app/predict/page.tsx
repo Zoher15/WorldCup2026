@@ -21,8 +21,9 @@ export default async function PredictPage() {
         Your predictions
       </h1>
       <p className="mb-6 text-sm font-medium text-stone-500">
-        Set the score for each match. You can edit any time until kickoff. These
-        picks count in every group you&apos;re in.
+        Score entry opens <strong>24 hours before</strong> each match and closes
+        at kickoff — watch the countdowns. Your picks count in every group
+        you&apos;re in.
       </p>
 
       {matches.length === 0 ? (

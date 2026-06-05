@@ -1,8 +1,12 @@
 import { createAdminClient } from "./supabase/admin";
-import { isLocked, isValidGoals } from "./prediction-rules";
+import {
+  isWindowOpen,
+  isValidGoals,
+  predictionState,
+  windowOpensAt,
+  type PredictionState,
+} from "./prediction-rules";
 import type { Stage } from "./types";
-
-export { isLocked, isValidGoals };
 
 export interface MatchForPrediction {
   id: string;
@@ -14,7 +18,10 @@ export interface MatchForPrediction {
   homeLabel: string | null;
   awayLabel: string | null;
   kickoffAt: string;
-  locked: boolean;
+  /** When the 24h prediction window opens (ISO). */
+  opensAt: string;
+  /** upcoming = not open yet, open = editable, locked = kickoff passed. */
+  state: PredictionState;
 }
 
 export interface SavedPrediction {
@@ -76,7 +83,8 @@ export async function getPredictionBoard(userId: string): Promise<{
       homeLabel: m.home_team,
       awayLabel: m.away_team,
       kickoffAt: m.kickoff_at,
-      locked: isLocked(m.kickoff_at),
+      opensAt: new Date(windowOpensAt(m.kickoff_at)).toISOString(),
+      state: predictionState(m.kickoff_at),
     })),
     predictions,
   };
@@ -84,8 +92,8 @@ export async function getPredictionBoard(userId: string): Promise<{
 
 /**
  * Upsert a batch of predictions for a user. Silently skips matches whose
- * kickoff has passed (also enforced by a DB trigger) and invalid goals.
- * Returns how many were saved vs skipped.
+ * prediction window isn't open (not yet open, or kickoff passed — the latter
+ * also enforced by a DB trigger) and invalid goals. Returns saved vs skipped.
  */
 export async function savePredictions(
   userId: string,
@@ -93,7 +101,7 @@ export async function savePredictions(
 ): Promise<{ saved: number; skipped: number }> {
   const db = createAdminClient();
 
-  // Re-check lock state server-side against the matches we were given.
+  // Re-check the prediction window server-side against the real kickoffs.
   const ids = items.map((i) => i.matchId);
   const { data: rows } = await db
     .from("matches")
@@ -104,7 +112,7 @@ export async function savePredictions(
   const valid = items.filter((i) => {
     const ko = kickoffById.get(i.matchId);
     return (
-      ko != null && !isLocked(ko) && isValidGoals(i.predHome, i.predAway)
+      ko != null && isWindowOpen(ko) && isValidGoals(i.predHome, i.predAway)
     );
   });
 
