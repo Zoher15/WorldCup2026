@@ -100,6 +100,22 @@ Aim: **festive and colorful**, fun for all ages, friction-free on phones.
   tabs — Overall · Win predictor · Scoreline predictor. Points animate as live
   results come in.
 
+## Durability & recovery
+
+Predictions are never lost, and the leaderboard can always be rebuilt:
+
+- **Predictions are the source of truth**, stored in Postgres (Supabase). The
+  app itself is stateless, so relaunching, redeploying, or resetting the website
+  changes nothing — the data lives in the database, not the app.
+- **Everything else is derived.** Points and standings are computed from raw
+  predictions + confirmed results by a pure function, so the cached
+  `match_scores` can be thrown away and **recomputed from scratch** at any time
+  (`src/lib/recompute.ts`) — deterministically and idempotently.
+- **Recompute triggers**: correcting a wrong result, a code change to scoring,
+  or any doubt about the cache. Same inputs always produce the same scores.
+- **Backups**: Supabase takes automatic daily backups (point-in-time recovery on
+  paid tiers); a periodic export of `predictions` is a cheap extra safety net.
+
 ## Project status
 
 - ✅ Scoring engine + tests (`src/lib/scoring.ts`)
@@ -108,6 +124,7 @@ Aim: **festive and colorful**, fun for all ages, friction-free on phones.
 - ⬜ Join flow (group code + name)
 - ⬜ Prediction UI (locks at kickoff)
 - ✅ Smart polling planner + tests (`src/lib/polling.ts`)
+- ✅ Recompute / recovery engine + tests (`src/lib/recompute.ts`)
 - ⬜ Results entry + live sync (driven by the planner) + scoring run
 - ⬜ Leaderboards (overall / win / scoreline)
 - ⬜ PWA polish
