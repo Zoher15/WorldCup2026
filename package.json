@@ -1,0 +1,10 @@
+{
+  "name": "worldcup2026",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Friction-free FIFA World Cup 2026 score & winner prediction game",
+  "scripts": {
+    "test": "node --test --experimental-strip-types \"src/**/*.test.ts\""
+  }
+}
