@@ -37,10 +37,16 @@ export interface PollingConfig {
   preKickoffBufferMin: number;
   /** Keep polling this many minutes after the expected end (long stoppages). */
   postMatchBufferMin: number;
-  /** Expected wall-clock length of a normal match (90' + HT + stoppage). */
+  /** Base wall-clock length of a normal match (90' + HT + stoppage). */
   normalMatchMin: number;
-  /** Expected wall-clock length of a knockout (+ extra time + penalties). */
+  /** Base wall-clock length of a knockout (+ extra time + penalties). */
   knockoutMatchMin: number;
+  /**
+   * Length of a single cooling / water break. In 2026's summer heat these are
+   * likely (one per half when it's hot), so we budget for them as if they
+   * always happen — two in regulation, plus two more across extra time.
+   */
+  coolingBreakMin: number;
   /** Merge live windows separated by a gap no larger than this. */
   gapMergeMin: number;
 }
@@ -51,14 +57,16 @@ export const DEFAULT_POLLING_CONFIG: PollingConfig = {
   minIntervalSec: 30,
   maxIntervalSec: 120, // we'd like to refresh at least every 2 minutes
   preKickoffBufferMin: 5,
-  // A normal match: 90' play + ~15' halftime + ~10' stoppage ≈ 115', round up.
-  normalMatchMin: 120,
+  // A normal match: 90' play + ~15' halftime + ~10' stoppage ≈ 115'.
+  normalMatchMin: 115,
   postMatchBufferMin: 5,
   // A knockout that goes the distance: ~115' + ~5' break + 30' extra time
   // + ~5' ET stoppage/breaks + ~15' penalties ≈ 170'. We always budget for
   // this worst case because we can't know in advance whether ET/pens happen,
   // and we must keep polling to catch the real finish.
   knockoutMatchMin: 170,
+  // ~3' per cooling break (2026 summer heat). Added on top of the base length.
+  coolingBreakMin: 3,
   gapMergeMin: 0,
 };
 
@@ -103,9 +111,11 @@ export function expectedMatchWindow(
   if (Number.isNaN(kickoffMs)) {
     throw new RangeError(`invalid kickoffAt: ${match.kickoffAt}`);
   }
-  const lengthMin = isKnockoutStage(match.stage)
-    ? config.knockoutMatchMin
-    : config.normalMatchMin;
+  const knockout = isKnockoutStage(match.stage);
+  const baseMin = knockout ? config.knockoutMatchMin : config.normalMatchMin;
+  // Two cooling breaks in regulation; two more if the match has extra time.
+  const coolingMin = (knockout ? 4 : 2) * config.coolingBreakMin;
+  const lengthMin = baseMin + coolingMin;
   return {
     startMs: kickoffMs - config.preKickoffBufferMin * 60_000,
     endMs: kickoffMs + (lengthMin + config.postMatchBufferMin) * 60_000,

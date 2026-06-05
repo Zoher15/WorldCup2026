@@ -34,17 +34,28 @@ test("knockout stages are detected", () => {
 });
 
 test("knockout window is longer than a normal match (extra time + penalties)", () => {
+  const buffers = cfg.preKickoffBufferMin + cfg.postMatchBufferMin;
   const normal = expectedMatchWindow(m("2026-06-15T18:00:00Z", "group"));
   const ko = expectedMatchWindow(m("2026-06-15T18:00:00Z", "final"));
+  // 2 cooling breaks in regulation, 4 across a knockout that reaches ET.
   assert.equal(
     minutes(normal),
-    cfg.normalMatchMin + cfg.preKickoffBufferMin + cfg.postMatchBufferMin,
+    cfg.normalMatchMin + 2 * cfg.coolingBreakMin + buffers,
   );
   assert.equal(
     minutes(ko),
-    cfg.knockoutMatchMin + cfg.preKickoffBufferMin + cfg.postMatchBufferMin,
+    cfg.knockoutMatchMin + 4 * cfg.coolingBreakMin + buffers,
   );
   assert.ok(minutes(ko) > minutes(normal));
+});
+
+test("cooling breaks lengthen the window and cost more requests", () => {
+  const noCooling = { ...cfg, coolingBreakMin: 0 };
+  const withCooling = { ...cfg, coolingBreakMin: 3 };
+  const day = [m("2026-06-20T18:00:00Z")];
+  const a = planDay("d", day, noCooling);
+  const b = planDay("d", day, withCooling);
+  assert.ok(b.liveMinutes > a.liveMinutes, "cooling breaks extend live period");
 });
 
 test("invalid kickoff is rejected", () => {
