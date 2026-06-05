@@ -63,9 +63,25 @@ Because the two parts are independent and additive:
 
 A single server-side poller fetches live scores (API-Football free tier) and
 writes them to `matches`; every browser updates via Supabase Realtime, so one
-request feeds the whole family. Polling is throttled on busy match days to stay
-within the free quota, and final results are gated by `result_confirmed` (admin
-override) before points are awarded.
+request feeds the whole family. Final results are gated by `result_confirmed`
+(admin override) before points are awarded.
+
+### Smart polling planner (`src/lib/polling.ts`)
+
+Polling frequency is computed per day, not hard-coded:
+
+1. **Predict the live period.** One API request returns *all* in-play matches,
+   so cost is driven by the **union** of each match's expected live window —
+   simultaneous matches share polls and cost the same as one. Knockout windows
+   include **extra time + penalties** (worst case, since we can't know ahead and
+   must catch the real finish).
+2. **Derive the frequency.** From that period and the day's budget, pick the
+   fastest interval that still fits — never exceeding the quota (which would lock
+   us out mid-match). Days are bucketed by **UTC** to match the quota reset.
+
+On the free tier this yields ~90s refresh on single/simultaneous-match days and
+automatically stretches the interval on busy spread-out days (flagged
+`degraded`) — bump `dailyBudget` for a paid month and fast polling returns.
 
 ## Project status
 
@@ -74,7 +90,8 @@ override) before points are awarded.
 - ⬜ Seed the 104 World Cup 2026 fixtures
 - ⬜ Join flow (group code + name)
 - ⬜ Prediction UI (locks at kickoff)
-- ⬜ Results entry + live sync + scoring run
+- ✅ Smart polling planner + tests (`src/lib/polling.ts`)
+- ⬜ Results entry + live sync (driven by the planner) + scoring run
 - ⬜ Leaderboards (overall / win / scoreline)
 - ⬜ PWA polish
 
