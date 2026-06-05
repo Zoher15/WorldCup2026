@@ -22,6 +22,8 @@ create extension if not exists "pgcrypto"; -- for gen_random_uuid()
 -- ---------------------------------------------------------------------------
 create table users (
   id            uuid primary key default gen_random_uuid(),
+  -- the person's real name: entered once, stays consistent across all groups
+  real_name     text not null,
   -- short code a user can enter to reclaim their identity on a new device
   recovery_code text unique,
   created_at    timestamptz not null default now()
@@ -48,7 +50,9 @@ create table memberships (
   id           uuid primary key default gen_random_uuid(),
   user_id      uuid not null references users(id) on delete cascade,
   group_id     uuid not null references groups(id) on delete cascade,
-  display_name text not null,                   -- "Dad" here, "Zoher" elsewhere
+  -- a fun, per-group alias ("GoalMachine" with friends, "Dad" in the family
+  -- group); defaults to the user's real_name if they don't pick one
+  display_name text not null,
   is_admin     boolean not null default false,
   joined_at    timestamptz not null default now(),
   unique (user_id, group_id)

@@ -24,6 +24,8 @@ export type LateJoinPolicy = "carry_over" | "start_even";
 
 export interface User {
   id: string;
+  /** Real name — consistent across every group. */
+  realName: string;
   recoveryCode: string | null;
   createdAt: string;
 }
@@ -41,6 +43,7 @@ export interface Membership {
   id: string;
   userId: string;
   groupId: string;
+  /** Fun per-group alias shown on that group's leaderboard. */
   displayName: string;
   isAdmin: boolean;
   joinedAt: string;

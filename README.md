@@ -54,8 +54,10 @@ Because the two parts are independent and additive:
   every group you're in. No re-entering the same score, and no hedging.
 - **Lightweight identity.** Stored on your device, with an optional short
   recovery code to reclaim it on a new device. No passwords.
-- **Per-group display name.** Be "Dad" in the family group and "Zoher" with
-  friends — same identity underneath.
+- **Real name vs display name.** Your **real name** lives on your account and
+  stays consistent across every group. Your **display name** is a fun alias you
+  pick per group ("GoalMachine" with friends, "Dad" in the family group) and is
+  what shows on that group's leaderboard.
 - **Late joiners** are handled per group via `late_join_policy`
   (`carry_over` existing predictions, or `start_even` from the group's start).
 
