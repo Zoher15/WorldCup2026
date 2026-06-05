@@ -126,7 +126,8 @@ Predictions are never lost, and the leaderboard can always be rebuilt:
 - ✅ Smart polling planner + tests (`src/lib/polling.ts`)
 - ✅ Recompute / recovery engine + tests (`src/lib/recompute.ts`)
 - ✅ Per-group leaderboards (overall / win / scoreline) from confirmed results
-- ⬜ Results entry + live sync (driven by the planner) + scoring run
+- ✅ Admin results entry (`/admin`, passcode-gated) feeding the leaderboard
+- ⬜ Live score sync (driven by the planner) to auto-fill results
 - ⬜ PWA polish
 
 ## Development

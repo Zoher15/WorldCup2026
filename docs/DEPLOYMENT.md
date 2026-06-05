@@ -22,7 +22,8 @@ worldcup.kachwalas.com  → Vercel (this app)  ──>  Supabase (Postgres)
    Vercel auto-detects Next.js — no build config needed.
 2. Under **Settings → Environment Variables**, add the values from
    `.env.example` (Supabase URL/keys, `FOOTBALL_API_KEY`, `CRON_SECRET`,
-   `NEXT_PUBLIC_APP_URL`).
+   `ADMIN_PASSCODE`, `NEXT_PUBLIC_APP_URL`). `ADMIN_PASSCODE` gates the
+   `/admin` results page — until it's set, admin access is disabled.
 3. Deploy. You'll get a temporary `*.vercel.app` URL to test.
 
 ## 3. Custom domain (worldcup.kachwalas.com)
