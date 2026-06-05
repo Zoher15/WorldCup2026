@@ -44,6 +44,12 @@ export default async function GroupPage({
             ? "late joiners keep earlier predictions"
             : "everyone starts even"}
         </p>
+        <Link
+          href="/predict"
+          className="mt-4 inline-block rounded-full bg-pitch px-6 py-3 font-bold text-white shadow transition active:scale-95"
+        >
+          ⚽ Make your predictions
+        </Link>
       </header>
 
       <Leaderboard data={board} />
