@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { Flag } from "./Flag";
 import { teamLabel } from "@/lib/fifa";
-import { formatKickoffDateTime } from "@/lib/format";
+import { formatKickoffDateTime, formatStageLabel } from "@/lib/format";
 import {
   setResultAction,
   clearResultAction,
@@ -60,8 +60,7 @@ function Row({ m }: { m: AdminMatch }) {
     >
       <div className="mb-1 flex items-center justify-between text-xs font-bold text-stone-400">
         <span>
-          #{m.matchNumber} ·{" "}
-          {m.groupLabel ? `Group ${m.groupLabel}` : m.stage.replace(/_/g, " ")}
+          #{m.matchNumber} · {formatStageLabel(m.groupLabel, m.stage)}
         </span>
         <span>
           {formatKickoffDateTime(m.kickoffAt)}

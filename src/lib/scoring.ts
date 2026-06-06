@@ -93,13 +93,13 @@ function directionSteps(a: Direction, b: Direction): 0 | 1 | 2 {
 }
 
 /** Outcome points (0, 3, or 6) for a prediction vs the actual result. */
-export function outcomePoints(prediction: Scoreline, actual: Scoreline): number {
+function outcomePoints(prediction: Scoreline, actual: Scoreline): number {
   const steps = directionSteps(direction(prediction), direction(actual));
   return Math.max(0, OUTCOME_FOR_CORRECT_DIRECTION - OUTCOME_PENALTY_PER_STEP * steps);
 }
 
 /** Closeness points (0–4) for a prediction vs the actual result. */
-export function closenessPoints(prediction: Scoreline, actual: Scoreline): number {
+function closenessPoints(prediction: Scoreline, actual: Scoreline): number {
   const goalError =
     Math.abs(prediction.homeGoals - actual.homeGoals) +
     Math.abs(prediction.awayGoals - actual.awayGoals);

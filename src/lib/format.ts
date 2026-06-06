@@ -1,5 +1,18 @@
 /** Shared kickoff date/time formatting (viewer's local timezone). */
 
+import type { Stage } from "./types";
+
+/**
+ * Human label for a match's place in the tournament: "Group A" for group-stage
+ * matches, else the stage name with underscores spaced out (e.g. "round of 32").
+ */
+export function formatStageLabel(
+  groupLabel: string | null | undefined,
+  stage: Stage,
+): string {
+  return groupLabel ? `Group ${groupLabel}` : stage.replace(/_/g, " ");
+}
+
 export function formatKickoffTime(iso: string): string {
   return new Date(iso).toLocaleTimeString(undefined, {
     hour: "numeric",

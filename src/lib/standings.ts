@@ -88,16 +88,21 @@ export function buildStandings(input: {
     });
   }
 
-  const matchById = new Map(matches.map((m) => [m.id, m]));
+  // Pair each match with its parsed kickoff so start_even filtering doesn't
+  // re-parse the same date once per prediction.
+  const matchById = new Map(
+    matches.map((m) => [m.id, { match: m, kickoffMs: Date.parse(m.kickoffAt) }]),
+  );
   const lowerBound =
     lateJoinPolicy === "start_even" ? Date.parse(groupCreatedAt) : null;
 
   for (const p of predictions) {
     const agg = totals.get(p.userId);
     if (!agg) continue; // prediction by a non-member of this group
-    const match = matchById.get(p.matchId);
-    if (!match) continue;
-    if (lowerBound != null && Date.parse(match.kickoffAt) < lowerBound) continue;
+    const entry = matchById.get(p.matchId);
+    if (!entry) continue;
+    const { match, kickoffMs } = entry;
+    if (lowerBound != null && kickoffMs < lowerBound) continue;
 
     const score = scorePrediction(
       {

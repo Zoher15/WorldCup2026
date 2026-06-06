@@ -1,7 +1,7 @@
 import { createAdminClient } from "./supabase/admin";
 import { fetchWorldCupMatches } from "./footballdata";
 import { resolveFdTeam } from "./fifa";
-import { expectedMatchWindow, mergeWindows } from "./polling";
+import { expectedMatchWindow, isKnockoutStage, mergeWindows } from "./polling";
 import {
   deriveFdUpdate,
   fdStatusToOurs,
@@ -78,7 +78,7 @@ export async function syncDay(_date?: string): Promise<SyncSummary> {
     // Respect manual/earlier confirmations — never clobber a final result.
     if (local.result_confirmed) continue;
 
-    const isKnockout = local.stage !== "group";
+    const isKnockout = isKnockoutStage(local.stage);
     const u = deriveFdUpdate(fx, { isKnockout, resolveTeam: resolveFdTeam });
 
     const patch: Record<string, unknown> = {

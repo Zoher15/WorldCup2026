@@ -179,18 +179,29 @@ function normalizeName(name: string): string {
     .trim();
 }
 
+/**
+ * normalized team name -> FIFA code, built once. Covers display names (TEAMS),
+ * the openfootball spellings (NAME_TO_CODE), and provider aliases. NAME_TO_CODE
+ * and aliases are applied last so they win any normalized-key collisions.
+ */
+const NORMALIZED_TO_CODE: Record<string, string> = (() => {
+  const map: Record<string, string> = {};
+  for (const [code, info] of Object.entries(TEAMS)) {
+    map[normalizeName(info.name)] = code;
+  }
+  for (const [name, code] of Object.entries(NAME_TO_CODE)) {
+    map[normalizeName(name)] = code;
+  }
+  for (const [name, code] of Object.entries(PROVIDER_ALIASES)) {
+    map[name] = code; // alias keys are already normalized
+  }
+  return map;
+})();
+
 /** Resolve any provider's team name to our FIFA code, or null if unknown. */
 function resolveTeamName(name: string | null | undefined): string | null {
   if (!name) return null;
-  const n = normalizeName(name);
-  if (PROVIDER_ALIASES[n]) return PROVIDER_ALIASES[n];
-  for (const [fifaName, code] of Object.entries(NAME_TO_CODE)) {
-    if (normalizeName(fifaName) === n) return code;
-  }
-  for (const [code, info] of Object.entries(TEAMS)) {
-    if (normalizeName(info.name) === n) return code;
-  }
-  return null;
+  return NORMALIZED_TO_CODE[normalizeName(name)] ?? null;
 }
 
 /**

@@ -6,7 +6,11 @@ import { Flag } from "./Flag";
 import { Stepper } from "./Stepper";
 import { Countdown } from "./Countdown";
 import { teamLabel } from "@/lib/fifa";
-import { formatKickoffDate, formatKickoffTime } from "@/lib/format";
+import {
+  formatKickoffDate,
+  formatKickoffTime,
+  formatStageLabel,
+} from "@/lib/format";
 import { savePredictionsAction } from "@/app/predict/actions";
 import type { MatchForPrediction, SavedPrediction } from "@/lib/predictions";
 
@@ -113,9 +117,7 @@ export function PredictionList({
                 >
                   <div className="mb-1 flex items-center justify-between text-xs font-bold">
                     <span className="text-stone-400">
-                      {m.groupLabel
-                        ? `Group ${m.groupLabel}`
-                        : m.stage.replace(/_/g, " ")}
+                      {formatStageLabel(m.groupLabel, m.stage)}
                       {" · "}
                       {formatKickoffTime(m.kickoffAt)}
                     </span>
