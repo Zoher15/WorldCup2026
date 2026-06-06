@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { Flag } from "./Flag";
-import { teamByCode } from "@/lib/fifa";
+import { Stepper } from "./Stepper";
+import { teamLabel } from "@/lib/fifa";
+import { formatKickoffDateTime } from "@/lib/format";
 import type { MatchStatus } from "@/lib/types";
 
 export interface MatchCardData {
@@ -35,54 +37,10 @@ function StatusPill({ data }: { data: MatchCardData }) {
       </span>
     );
   }
-  const ko = new Date(data.kickoffAt);
-  const time = ko.toLocaleString(undefined, {
-    weekday: "short",
-    hour: "numeric",
-    minute: "2-digit",
-  });
   return (
     <span className="rounded-full bg-ocean/15 px-2.5 py-1 text-xs font-bold text-ocean">
-      {time}
+      {formatKickoffDateTime(data.kickoffAt)}
     </span>
-  );
-}
-
-function Stepper({
-  value,
-  onChange,
-  disabled,
-}: {
-  value: number;
-  onChange: (n: number) => void;
-  disabled?: boolean;
-}) {
-  const btn =
-    "h-9 w-9 rounded-full text-lg font-bold grid place-items-center transition active:scale-90 disabled:opacity-40";
-  return (
-    <div className="flex items-center gap-2">
-      <button
-        type="button"
-        aria-label="decrease"
-        disabled={disabled || value <= 0}
-        onClick={() => onChange(Math.max(0, value - 1))}
-        className={`${btn} bg-stone-200 text-stone-700`}
-      >
-        −
-      </button>
-      <span className="w-7 text-center text-2xl font-extrabold tabular-nums">
-        {value}
-      </span>
-      <button
-        type="button"
-        aria-label="increase"
-        disabled={disabled}
-        onClick={() => onChange(value + 1)}
-        className={`${btn} bg-pitch text-white`}
-      >
-        +
-      </button>
-    </div>
   );
 }
 
@@ -95,11 +53,12 @@ function TeamRow({
   label?: string;
   goals?: number | null;
 }) {
-  const name = teamByCode(code)?.name ?? label ?? "To be decided";
   return (
     <div className="flex items-center gap-3">
       <Flag code={code} size="lg" />
-      <span className="flex-1 truncate text-lg font-bold">{name}</span>
+      <span className="flex-1 truncate text-lg font-bold">
+        {teamLabel(code, label)}
+      </span>
       {goals != null && (
         <span className="text-2xl font-extrabold tabular-nums">{goals}</span>
       )}
@@ -135,9 +94,9 @@ export function MatchCard({ data }: { data: MatchCardData }) {
             {locked ? "Prediction locked" : "Your prediction"}
           </div>
           <div className="flex items-center justify-center gap-5">
-            <Stepper value={home} onChange={setHome} disabled={locked} />
+            <Stepper value={home} onChange={setHome} disabled={locked} size="sm" />
             <span className="text-xl font-black text-stone-300">:</span>
-            <Stepper value={away} onChange={setAway} disabled={locked} />
+            <Stepper value={away} onChange={setAway} disabled={locked} size="sm" />
           </div>
         </div>
       )}

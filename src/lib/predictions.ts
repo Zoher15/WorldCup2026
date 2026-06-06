@@ -48,19 +48,23 @@ export async function getPredictionBoard(userId: string): Promise<{
   const db = createAdminClient();
   const nowIso = new Date().toISOString();
 
-  const { data: matches, error } = await db
-    .from("matches")
-    .select(
-      "id, match_number, stage, group_label, home_code, away_code, home_team, away_team, kickoff_at",
-    )
-    .gte("kickoff_at", nowIso)
-    .order("kickoff_at", { ascending: true });
+  // Upcoming matches and the user's existing predictions are independent.
+  const [matchesRes, predsRes] = await Promise.all([
+    db
+      .from("matches")
+      .select(
+        "id, match_number, stage, group_label, home_code, away_code, home_team, away_team, kickoff_at",
+      )
+      .gte("kickoff_at", nowIso)
+      .order("kickoff_at", { ascending: true }),
+    db
+      .from("predictions")
+      .select("match_id, pred_home, pred_away, advance_pick")
+      .eq("user_id", userId),
+  ]);
+  const { data: matches, error } = matchesRes;
   if (error) throw new Error(`Could not load matches: ${error.message}`);
-
-  const { data: preds, error: pErr } = await db
-    .from("predictions")
-    .select("match_id, pred_home, pred_away, advance_pick")
-    .eq("user_id", userId);
+  const { data: preds, error: pErr } = predsRes;
   if (pErr) throw new Error(`Could not load your predictions: ${pErr.message}`);
 
   const predictions: Record<string, SavedPrediction> = {};

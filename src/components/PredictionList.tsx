@@ -5,30 +5,12 @@ import { useRouter } from "next/navigation";
 import { Flag } from "./Flag";
 import { Stepper } from "./Stepper";
 import { Countdown } from "./Countdown";
-import { teamByCode } from "@/lib/fifa";
+import { teamLabel } from "@/lib/fifa";
+import { formatKickoffDate, formatKickoffTime } from "@/lib/format";
 import { savePredictionsAction } from "@/app/predict/actions";
 import type { MatchForPrediction, SavedPrediction } from "@/lib/predictions";
 
 type Picks = Record<string, { home: number; away: number }>;
-
-function teamName(code: string | null, label: string | null): string {
-  return teamByCode(code)?.name ?? label ?? "To be decided";
-}
-
-function dateHeading(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, {
-    weekday: "long",
-    month: "short",
-    day: "numeric",
-  });
-}
-
-function timeOf(iso: string): string {
-  return new Date(iso).toLocaleTimeString(undefined, {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
 
 export function PredictionList({
   matches,
@@ -104,7 +86,7 @@ export function PredictionList({
   // Group matches under date headings, preserving kickoff order.
   const groups: { date: string; items: MatchForPrediction[] }[] = [];
   for (const m of matches) {
-    const date = dateHeading(m.kickoffAt);
+    const date = formatKickoffDate(m.kickoffAt);
     const last = groups[groups.length - 1];
     if (last && last.date === date) last.items.push(m);
     else groups.push({ date, items: [m] });
@@ -135,7 +117,7 @@ export function PredictionList({
                         ? `Group ${m.groupLabel}`
                         : m.stage.replace(/_/g, " ")}
                       {" · "}
-                      {timeOf(m.kickoffAt)}
+                      {formatKickoffTime(m.kickoffAt)}
                     </span>
                     {open ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-flame/15 px-2 py-0.5 text-flame">
@@ -161,7 +143,7 @@ export function PredictionList({
                     <div className="flex min-w-0 flex-1 items-center gap-2">
                       <Flag code={m.homeCode} size="md" />
                       <span className="truncate font-bold">
-                        {teamName(m.homeCode, m.homeLabel)}
+                        {teamLabel(m.homeCode, m.homeLabel)}
                       </span>
                     </div>
                     <Stepper
@@ -177,7 +159,7 @@ export function PredictionList({
                     />
                     <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
                       <span className="truncate text-right font-bold">
-                        {teamName(m.awayCode, m.awayLabel)}
+                        {teamLabel(m.awayCode, m.awayLabel)}
                       </span>
                       <Flag code={m.awayCode} size="md" />
                     </div>

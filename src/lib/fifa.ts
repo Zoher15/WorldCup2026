@@ -126,19 +126,25 @@ export function teamByCode(code: string | null | undefined): TeamInfo | null {
   return TEAMS[code.toUpperCase()] ?? null;
 }
 
-/** Resolve a source team name to its FIFA code, or null if not a real team. */
-export function codeByName(name: string | null | undefined): string | null {
-  if (!name) return null;
-  return NAME_TO_CODE[name] ?? null;
+/**
+ * Display name for a team slot: the known team's name, else a provided label
+ * (e.g. a knockout placeholder like "Winner Group A"), else a fallback.
+ */
+export function teamLabel(
+  code: string | null | undefined,
+  label?: string | null,
+  fallback = "To be decided",
+): string {
+  return teamByCode(code)?.name ?? label ?? fallback;
 }
 
 /**
- * API-Football uses its own team-name spellings, different from both FIFA codes
- * and the openfootball names (e.g. "Korea Republic", "IR Iran",
+ * Score providers use their own team-name spellings, different from both FIFA
+ * codes and the openfootball names (e.g. "Korea Republic", "IR Iran",
  * "Czech Republic"). These aliases (normalized: lowercase, accent-free) map
  * those to our FIFA codes.
  */
-const API_ALIASES: Record<string, string> = {
+const PROVIDER_ALIASES: Record<string, string> = {
   "korea republic": "KOR",
   "south korea": "KOR",
   usa: "USA",
@@ -173,11 +179,11 @@ function normalizeName(name: string): string {
     .trim();
 }
 
-/** Resolve an API-Football team name to our FIFA code, or null if unknown. */
-export function resolveApiTeam(name: string | null | undefined): string | null {
+/** Resolve any provider's team name to our FIFA code, or null if unknown. */
+function resolveTeamName(name: string | null | undefined): string | null {
   if (!name) return null;
   const n = normalizeName(name);
-  if (API_ALIASES[n]) return API_ALIASES[n];
+  if (PROVIDER_ALIASES[n]) return PROVIDER_ALIASES[n];
   for (const [fifaName, code] of Object.entries(NAME_TO_CODE)) {
     if (normalizeName(fifaName) === n) return code;
   }
@@ -196,5 +202,5 @@ export function resolveFdTeam(
   name: string | null | undefined,
 ): string | null {
   if (tla && teamByCode(tla)) return tla.toUpperCase();
-  return resolveApiTeam(name);
+  return resolveTeamName(name);
 }

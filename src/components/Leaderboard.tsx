@@ -1,18 +1,7 @@
 "use client";
 
 import { useState } from "react";
-
-export interface LeaderRow {
-  displayName: string;
-  points: number;
-  movement: number; // +up / -down / 0
-}
-
-export interface LeaderboardData {
-  overall: LeaderRow[];
-  win: LeaderRow[];
-  scoreline: LeaderRow[];
-}
+import type { Standings } from "@/lib/standings";
 
 const TABS = [
   { key: "overall", label: "Overall" },
@@ -44,7 +33,7 @@ function Movement({ value }: { value: number }) {
   );
 }
 
-export function Leaderboard({ data }: { data: LeaderboardData }) {
+export function Leaderboard({ data }: { data: Standings }) {
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("overall");
   const rows = data[tab];
   const top3 = rows.slice(0, 3);

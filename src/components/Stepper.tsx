@@ -1,17 +1,24 @@
 "use client";
 
+const SIZES = {
+  sm: { btn: "h-9 w-9 text-lg", value: "w-7 text-2xl" },
+  md: { btn: "h-11 w-11 text-xl", value: "w-8 text-2xl" },
+} as const;
+
 /** A big, thumb-friendly +/- goal stepper used for entering predictions. */
 export function Stepper({
   value,
   onChange,
   disabled,
+  size = "md",
 }: {
   value: number;
   onChange: (n: number) => void;
   disabled?: boolean;
+  size?: keyof typeof SIZES;
 }) {
-  const btn =
-    "h-11 w-11 rounded-full text-xl font-bold grid place-items-center transition active:scale-90 disabled:opacity-40";
+  const s = SIZES[size];
+  const btn = `${s.btn} rounded-full font-bold grid place-items-center transition active:scale-90 disabled:opacity-40`;
   return (
     <div className="flex items-center gap-2">
       <button
@@ -23,7 +30,7 @@ export function Stepper({
       >
         −
       </button>
-      <span className="w-8 text-center text-2xl font-extrabold tabular-nums">
+      <span className={`${s.value} text-center font-extrabold tabular-nums`}>
         {value}
       </span>
       <button

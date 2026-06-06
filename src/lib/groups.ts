@@ -98,39 +98,6 @@ export async function joinGroupByCode(opts: {
   return { code: group.code };
 }
 
-export interface GroupView {
-  group: { id: string; code: string; name: string; lateJoinPolicy: LateJoinPolicy };
-  members: { displayName: string; isAdmin: boolean }[];
-}
-
-/** Read a group and its members for display. Returns null if no such code. */
-export async function getGroupView(code: string): Promise<GroupView | null> {
-  const db = createAdminClient();
-  const { data: group } = await db
-    .from("groups")
-    .select("id, code, name, late_join_policy")
-    .eq("code", normalizeCode(code))
-    .single();
-  if (!group) return null;
-  const { data: members } = await db
-    .from("memberships")
-    .select("display_name, is_admin, joined_at")
-    .eq("group_id", group.id)
-    .order("joined_at", { ascending: true });
-  return {
-    group: {
-      id: group.id,
-      code: group.code,
-      name: group.name,
-      lateJoinPolicy: group.late_join_policy,
-    },
-    members: (members ?? []).map((m) => ({
-      displayName: m.display_name,
-      isAdmin: m.is_admin,
-    })),
-  };
-}
-
 export interface GroupStandings {
   group: {
     code: string;
@@ -153,19 +120,20 @@ export async function getGroupStandings(
     .single();
   if (!group) return null;
 
-  const { data: members } = await db
-    .from("memberships")
-    .select("user_id, display_name, joined_at")
-    .eq("group_id", group.id);
-  const memberList = members ?? [];
+  // Members and confirmed results are independent — fetch them in parallel.
+  const [membersRes, matchesRes] = await Promise.all([
+    db
+      .from("memberships")
+      .select("user_id, display_name, joined_at")
+      .eq("group_id", group.id),
+    db
+      .from("matches")
+      .select("id, kickoff_at, stage, home_goals, away_goals, advanced_code, result_confirmed")
+      .eq("result_confirmed", true),
+  ]);
+  const memberList = membersRes.data ?? [];
   const userIds = memberList.map((m) => m.user_id);
-
-  // Only confirmed results contribute to scores.
-  const { data: matches } = await db
-    .from("matches")
-    .select("id, kickoff_at, stage, home_goals, away_goals, advanced_code, result_confirmed")
-    .eq("result_confirmed", true);
-  const matchList = matches ?? [];
+  const matchList = matchesRes.data ?? [];
 
   let predList: {
     user_id: string;

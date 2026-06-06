@@ -2,7 +2,8 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { Flag } from "./Flag";
-import { teamByCode } from "@/lib/fifa";
+import { teamLabel } from "@/lib/fifa";
+import { formatKickoffDateTime } from "@/lib/format";
 import {
   setResultAction,
   clearResultAction,
@@ -10,10 +11,6 @@ import {
   syncNowAction,
 } from "@/app/admin/actions";
 import type { AdminMatch } from "@/lib/results";
-
-function name(code: string | null, label: string | null): string {
-  return teamByCode(code)?.name ?? label ?? "TBD";
-}
 
 function Row({ m }: { m: AdminMatch }) {
   const [home, setHome] = useState(m.homeGoals != null ? String(m.homeGoals) : "");
@@ -67,19 +64,14 @@ function Row({ m }: { m: AdminMatch }) {
           {m.groupLabel ? `Group ${m.groupLabel}` : m.stage.replace(/_/g, " ")}
         </span>
         <span>
-          {new Date(m.kickoffAt).toLocaleString(undefined, {
-            month: "short",
-            day: "numeric",
-            hour: "numeric",
-            minute: "2-digit",
-          })}
+          {formatKickoffDateTime(m.kickoffAt)}
         </span>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <Flag code={m.homeCode} size="sm" />
           <span className="truncate text-sm font-bold">
-            {name(m.homeCode, m.homeLabel)}
+            {teamLabel(m.homeCode, m.homeLabel)}
           </span>
         </div>
         <input
@@ -101,7 +93,7 @@ function Row({ m }: { m: AdminMatch }) {
         />
         <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
           <span className="truncate text-right text-sm font-bold">
-            {name(m.awayCode, m.awayLabel)}
+            {teamLabel(m.awayCode, m.awayLabel)}
           </span>
           <Flag code={m.awayCode} size="sm" />
         </div>
@@ -144,8 +136,8 @@ export function AdminResults({ matches }: { matches: AdminMatch[] }) {
     if (!s) return matches;
     return matches.filter(
       (m) =>
-        name(m.homeCode, m.homeLabel).toLowerCase().includes(s) ||
-        name(m.awayCode, m.awayLabel).toLowerCase().includes(s) ||
+        teamLabel(m.homeCode, m.homeLabel).toLowerCase().includes(s) ||
+        teamLabel(m.awayCode, m.awayLabel).toLowerCase().includes(s) ||
         String(m.matchNumber ?? "").includes(s),
     );
   }, [matches, q]);

@@ -1,46 +1,7 @@
-import type { MatchCardData } from "@/components/MatchCard";
-import type { LeaderboardData } from "@/components/Leaderboard";
+import type { Standings } from "@/lib/standings";
 
-/** Sample matches for the visual demo only (real data comes from the DB). */
-export const DEMO_MATCHES: MatchCardData[] = [
-  {
-    homeCode: "ARG",
-    awayCode: "BRA",
-    kickoffAt: "2026-06-20T19:00:00Z",
-    venue: "MetLife Stadium",
-    status: "live",
-    minute: 67,
-    homeGoals: 1,
-    awayGoals: 1,
-  },
-  {
-    homeCode: "FRA",
-    awayCode: "ENG",
-    kickoffAt: "2026-06-21T16:00:00Z",
-    venue: "SoFi Stadium",
-    status: "scheduled",
-  },
-  {
-    homeCode: "USA",
-    awayCode: "MEX",
-    kickoffAt: "2026-06-19T23:00:00Z",
-    venue: "Estadio Azteca",
-    status: "finished",
-    homeGoals: 2,
-    awayGoals: 2,
-  },
-  {
-    homeCode: null,
-    awayCode: null,
-    homeLabel: "Winner Group A",
-    awayLabel: "Runner-up Group B",
-    kickoffAt: "2026-07-04T20:00:00Z",
-    venue: "AT&T Stadium",
-    status: "scheduled",
-  },
-];
-
-export const DEMO_LEADERBOARD: LeaderboardData = {
+/** Sample leaderboard for the home-page visual demo (real data comes from the DB). */
+export const DEMO_LEADERBOARD: Standings = {
   overall: [
     { displayName: "GoalMachine", points: 142, movement: 1 },
     { displayName: "Dad", points: 138, movement: -1 },
