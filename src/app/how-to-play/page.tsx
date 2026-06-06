@@ -1,74 +1,10 @@
 import Link from "next/link";
-import { Flag } from "@/components/Flag";
-import { teamLabel } from "@/lib/fifa";
-import { scoreMatch, ADVANCE_BONUS, MAX_MATCH_POINTS } from "@/lib/scoring";
+import { HowToPlayDemo } from "@/components/HowToPlayDemo";
+import { ADVANCE_BONUS, MAX_MATCH_POINTS } from "@/lib/scoring";
 
 export const metadata = {
   title: "How to play · World Cup 2026 Predictions",
 };
-
-/** A worked example: a pick vs a result, with points from the real engine. */
-function Example({
-  home,
-  away,
-  pick,
-  result,
-  tag,
-}: {
-  home: string;
-  away: string;
-  pick: [number, number];
-  result: [number, number];
-  tag: string;
-}) {
-  const s = scoreMatch(
-    { homeGoals: pick[0], awayGoals: pick[1] },
-    { homeGoals: result[0], awayGoals: result[1] },
-  );
-  const tone =
-    s.total === MAX_MATCH_POINTS
-      ? "bg-pitch text-white"
-      : s.total === 0
-        ? "bg-stone-300 text-stone-700"
-        : "bg-sunburst text-stone-800";
-
-  return (
-    <div className="rounded-2xl bg-white/85 p-4 shadow ring-1 ring-black/5">
-      <div className="mb-3 flex items-center justify-center gap-2 text-sm font-bold">
-        <Flag code={home} size="sm" />
-        <span className="truncate">{teamLabel(home)}</span>
-        <span className="text-stone-300">v</span>
-        <span className="truncate">{teamLabel(away)}</span>
-        <Flag code={away} size="sm" />
-      </div>
-      <div className="flex items-center justify-center gap-4 text-sm font-bold">
-        <span className="text-stone-500">
-          You said{" "}
-          <span className="text-grape">
-            {pick[0]}–{pick[1]}
-          </span>
-        </span>
-        <span className="text-stone-500">
-          Result{" "}
-          <span className="text-ocean">
-            {result[0]}–{result[1]}
-          </span>
-        </span>
-      </div>
-      <div className="mt-3 flex items-center justify-between gap-2">
-        <span className="text-xs font-bold text-stone-400">{tag}</span>
-        <span className="text-xs font-medium text-stone-500">
-          {s.outcome} outcome + {s.closeness} closeness
-        </span>
-        <span
-          className={`rounded-full px-3 py-1 text-sm font-black ${tone}`}
-        >
-          {s.total} pts
-        </span>
-      </div>
-    </div>
-  );
-}
 
 function Step({
   n,
@@ -158,41 +94,16 @@ export default function HowToPlayPage() {
         </div>
       </section>
 
-      {/* Worked examples */}
+      {/* Interactive walkthrough */}
       <section className="mb-10">
-        <h2 className="mb-3 text-center text-xl font-black text-grape">
-          See it in action
+        <h2 className="mb-1 text-center text-xl font-black text-grape">
+          Try it yourself
         </h2>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Example
-            home="BRA"
-            away="ESP"
-            pick={[2, 1]}
-            result={[2, 1]}
-            tag="Spot on 🎯"
-          />
-          <Example
-            home="FRA"
-            away="ENG"
-            pick={[2, 0]}
-            result={[2, 1]}
-            tag="Right winner, one goal off"
-          />
-          <Example
-            home="ARG"
-            away="MEX"
-            pick={[1, 1]}
-            result={[2, 1]}
-            tag="Called a draw, was a win"
-          />
-          <Example
-            home="GER"
-            away="USA"
-            pick={[0, 2]}
-            result={[2, 0]}
-            tag="Wrong winner — ouch"
-          />
-        </div>
+        <p className="mx-auto mb-4 max-w-md text-center text-sm font-medium text-stone-500">
+          Call the score for this match, lock it in, and see how you&apos;d stack
+          up against the family.
+        </p>
+        <HowToPlayDemo />
       </section>
 
       {/* Knockouts */}
