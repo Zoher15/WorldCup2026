@@ -39,17 +39,22 @@ worldcup.kachwalas.com  → Vercel (this app)  ──>  Supabase (Postgres)
 
 ## 4. Live-score poller (free)
 
-Vercel's free plan limits cron frequency, so the ~90s poller does **not** run on
-Vercel cron. Instead, schedule it close to the data:
+Vercel's free plan caps cron at **once per day**, so the poller is scheduled in
+**Supabase** instead (`pg_cron`, every minute, free). The `/api/poll` endpoint is
+budget-aware — it only spends an API-Football request when a match is live and
+the planner's interval (`src/lib/polling.ts`) has elapsed — so an every-minute
+cron stays within the free 100/day quota.
 
-- **Supabase scheduled function** (recommended): a tiny Edge Function that calls
-  API-Football, writes scores to `matches`, and is triggered by Supabase Cron
-  (pg_cron) on the interval chosen by `src/lib/polling.ts`. Free.
-- **or external cron** (e.g. cron-job.org, free): pings an authenticated Vercel
-  API route (`/api/poll`, protected by `CRON_SECRET`) on the same interval.
+1. Set `FOOTBALL_API_KEY` and `CRON_SECRET` in Vercel and redeploy.
+2. In the Supabase SQL Editor, run `supabase/cron.sql`, replacing
+   `YOUR_CRON_SECRET` with the same value.
+3. Verify with `select * from cron.job_run_details order by start_time desc;`.
 
-Either way the poller runs server-side, so the `FOOTBALL_API_KEY` stays secret
-and one request fans out to every viewer via Supabase Realtime.
+To test before the tournament, force a sync of a specific day (bypasses the
+guard): `GET /api/poll?secret=...&date=2026-06-11&force=1`.
+
+The poller runs server-side, so `FOOTBALL_API_KEY` stays secret and one request
+covers every viewer.
 
 ## Recovery
 

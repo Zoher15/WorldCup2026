@@ -128,7 +128,7 @@ Predictions are never lost, and the leaderboard can always be rebuilt:
 - ✅ Per-group leaderboards (overall / win / scoreline) from confirmed results
 - ✅ Admin results entry (`/admin`, passcode-gated) feeding the leaderboard
 - ✅ Live score sync (API-Football → `/api/poll`, auto-confirms on FT/AET/PEN)
-- ⬜ Schedule the poller (Supabase cron) + validate against the live API
+- ✅ Budget-aware polling + Supabase cron setup (`supabase/cron.sql`)
 - ⬜ PWA polish
 
 ## Development

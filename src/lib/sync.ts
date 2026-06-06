@@ -1,6 +1,7 @@
 import { createAdminClient } from "./supabase/admin";
 import { fetchFixturesByDate } from "./football-api";
 import { resolveApiTeam } from "./fifa";
+import { planDay, isWithinLiveWindows } from "./polling";
 import {
   deriveMatchUpdate,
   matchApiFixtureToLocal,
@@ -91,4 +92,49 @@ export async function syncDay(date: string): Promise<SyncSummary> {
   }
 
   return summary;
+}
+
+export interface PollResult {
+  synced: boolean;
+  reason?: string;
+  summary?: SyncSummary;
+}
+
+/**
+ * Budget-aware poll, meant to be called frequently (e.g. a once-a-minute cron).
+ * It only spends an API request when there's actually a match live AND enough
+ * time has passed since the last sync (the interval the planner computed for
+ * the day). Outside live windows it returns immediately without touching the
+ * API, so frequent cron ticks stay well within the free quota.
+ */
+export async function pollIfDue(now: Date = new Date()): Promise<PollResult> {
+  const db = createAdminClient();
+  const dateKey = now.toISOString().slice(0, 10);
+  const nowMs = now.getTime();
+
+  const { data } = await db
+    .from("matches")
+    .select("kickoff_at, stage, last_synced_at");
+  const rows = data ?? [];
+  const todays = rows.filter((r) => String(r.kickoff_at).slice(0, 10) === dateKey);
+
+  const plan = planDay(
+    dateKey,
+    todays.map((r) => ({ kickoffAt: r.kickoff_at, stage: r.stage })),
+  );
+
+  if (!isWithinLiveWindows(nowMs, plan)) {
+    return { synced: false, reason: "no live window" };
+  }
+
+  const lastSynced = todays.reduce((max, r) => {
+    const t = r.last_synced_at ? Date.parse(r.last_synced_at) : 0;
+    return t > max ? t : max;
+  }, 0);
+  if (lastSynced && nowMs - lastSynced < plan.intervalSec * 1000) {
+    return { synced: false, reason: "paced" };
+  }
+
+  const summary = await syncDay(dateKey);
+  return { synced: true, summary };
 }
