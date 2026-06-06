@@ -4,11 +4,24 @@
  */
 
 /**
- * How long before kickoff the prediction window opens. A single dial: bump to
- * 48 for a gentler window, or a very large number to make predictions always
- * open. Drives both the lock logic and the on-screen countdowns.
+ * How long before kickoff the prediction window opens, in hours. Defaults to 24
+ * and is overridable per deployment via NEXT_PUBLIC_PREDICTION_WINDOW_HOURS
+ * (e.g. 48 for a gentler window, or a very large number to keep predictions
+ * always open). One global dial for the whole game — it applies to every group,
+ * which is why predictions can stay shared across groups.
+ *
+ * Must be NEXT_PUBLIC_ because it also drives the on-screen countdowns, so the
+ * client and server have to agree on the same value.
  */
-export const PREDICTION_WINDOW_HOURS = 24;
+const DEFAULT_WINDOW_HOURS = 24;
+
+function resolveWindowHours(): number {
+  const raw = process.env.NEXT_PUBLIC_PREDICTION_WINDOW_HOURS;
+  const n = raw == null ? NaN : Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : DEFAULT_WINDOW_HOURS;
+}
+
+export const PREDICTION_WINDOW_HOURS = resolveWindowHours();
 
 const WINDOW_MS = PREDICTION_WINDOW_HOURS * 60 * 60 * 1000;
 

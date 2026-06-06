@@ -18,7 +18,7 @@ export interface MatchForPrediction {
   homeLabel: string | null;
   awayLabel: string | null;
   kickoffAt: string;
-  /** When the 24h prediction window opens (ISO). */
+  /** When the prediction window opens (ISO). */
   opensAt: string;
   /** upcoming = not open yet, open = editable, locked = kickoff passed. */
   state: PredictionState;
