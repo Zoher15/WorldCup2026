@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { Standings } from "@/lib/standings";
+import Link from "next/link";
+import type { Standings, StandingsRow } from "@/lib/standings";
 
 const TABS = [
   { key: "overall", label: "Overall" },
@@ -33,7 +34,28 @@ function Movement({ value }: { value: number }) {
   );
 }
 
-export function Leaderboard({ data }: { data: Standings }) {
+/** A player's name, linked to their in-group profile when a group code is set. */
+function PlayerName({
+  row,
+  code,
+  className,
+}: {
+  row: StandingsRow;
+  code?: string;
+  className?: string;
+}) {
+  if (!code) return <span className={className}>{row.displayName}</span>;
+  return (
+    <Link
+      href={`/g/${code}/p/${row.userId}`}
+      className={`${className ?? ""} hover:underline`}
+    >
+      {row.displayName}
+    </Link>
+  );
+}
+
+export function Leaderboard({ data, code }: { data: Standings; code?: string }) {
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("overall");
   const rows = data[tab];
   const top3 = rows.slice(0, 3);
@@ -70,9 +92,11 @@ export function Leaderboard({ data }: { data: Standings }) {
           return (
             <div key={slot} className="flex w-20 flex-col items-center">
               <div className="text-2xl">{MEDALS[idx]}</div>
-              <div className="mb-1 max-w-full truncate text-xs font-bold">
-                {r.displayName}
-              </div>
+              <PlayerName
+                row={r}
+                code={code}
+                className="mb-1 max-w-full truncate text-xs font-bold"
+              />
               <div
                 className={`flex w-full ${PODIUM_HEIGHT[idx]} items-start justify-center rounded-t-xl bg-gradient-to-b ${PODIUM_BG[idx]} pt-1 font-black text-white shadow-inner`}
               >
@@ -87,13 +111,13 @@ export function Leaderboard({ data }: { data: Standings }) {
       <ol className="space-y-2">
         {rest.map((r, i) => (
           <li
-            key={r.displayName}
+            key={r.userId}
             className="flex items-center gap-3 rounded-2xl bg-stone-50 px-4 py-2.5"
           >
             <span className="w-6 text-center font-black text-stone-400">
               {i + 4}
             </span>
-            <span className="flex-1 truncate font-bold">{r.displayName}</span>
+            <PlayerName row={r} code={code} className="flex-1 truncate font-bold" />
             <Movement value={r.movement} />
             <span className="w-10 text-right text-lg font-extrabold tabular-nums">
               {r.points}

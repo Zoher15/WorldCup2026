@@ -63,8 +63,8 @@ test("carry_over counts every locked prediction", () => {
   // Alice: m1 exact = 10, m2 (1-1 vs 2-2) = outcome 6 + closeness 2 = 8 -> 18
   // Bob: m2 exact = 10
   assert.deepEqual(s.overall, [
-    { displayName: "Alice", points: 18, movement: 0 },
-    { displayName: "Bob", points: 10, movement: 0 },
+    { userId: "u1", displayName: "Alice", points: 18, movement: 0 },
+    { userId: "u2", displayName: "Bob", points: 10, movement: 0 },
   ]);
 });
 
@@ -90,8 +90,8 @@ test("start_even ignores matches before the group was created", () => {
   // m1 excluded for everyone; only m2 counts.
   // Alice m2 = 8, Bob m2 = 10 -> Bob leads
   assert.deepEqual(s.overall, [
-    { displayName: "Bob", points: 10, movement: 0 },
-    { displayName: "Alice", points: 8, movement: 0 },
+    { userId: "u2", displayName: "Bob", points: 10, movement: 0 },
+    { userId: "u1", displayName: "Alice", points: 8, movement: 0 },
   ]);
 });
 
@@ -105,13 +105,13 @@ test("win and scoreline boards split the score components", () => {
   });
   // Alice outcome: m1=6, m2=6 -> 12 ; Bob outcome: m2=6
   assert.deepEqual(s.win, [
-    { displayName: "Alice", points: 12, movement: 0 },
-    { displayName: "Bob", points: 6, movement: 0 },
+    { userId: "u1", displayName: "Alice", points: 12, movement: 0 },
+    { userId: "u2", displayName: "Bob", points: 6, movement: 0 },
   ]);
   // Alice closeness: m1=4, m2=2 -> 6 ; Bob closeness: m2=4
   assert.deepEqual(s.scoreline, [
-    { displayName: "Alice", points: 6, movement: 0 },
-    { displayName: "Bob", points: 4, movement: 0 },
+    { userId: "u1", displayName: "Alice", points: 6, movement: 0 },
+    { userId: "u2", displayName: "Bob", points: 4, movement: 0 },
   ]);
 });
 

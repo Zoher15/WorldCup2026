@@ -44,7 +44,7 @@ export default async function GroupPage({
         </Link>
       </header>
 
-      <Leaderboard data={standings} />
+      <Leaderboard data={standings} code={group.code} />
 
       <p className="mt-8 text-center text-xs text-stone-400">
         Standings update as match results are confirmed.

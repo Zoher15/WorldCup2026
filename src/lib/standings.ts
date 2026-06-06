@@ -39,6 +39,7 @@ export interface StandingPrediction {
 }
 
 export interface StandingsRow {
+  userId: string;
   displayName: string;
   points: number;
   movement: number;
@@ -51,6 +52,7 @@ export interface Standings {
 }
 
 interface Totals {
+  userId: string;
   displayName: string;
   total: number;
   outcome: number;
@@ -62,7 +64,12 @@ function rank(
   pick: (t: Totals) => number,
 ): StandingsRow[] {
   return totals
-    .map((t) => ({ displayName: t.displayName, points: pick(t), movement: 0 }))
+    .map((t) => ({
+      userId: t.userId,
+      displayName: t.displayName,
+      points: pick(t),
+      movement: 0,
+    }))
     .sort(
       (a, b) =>
         b.points - a.points || a.displayName.localeCompare(b.displayName),
@@ -81,6 +88,7 @@ export function buildStandings(input: {
   const totals = new Map<string, Totals>();
   for (const m of members) {
     totals.set(m.userId, {
+      userId: m.userId,
       displayName: m.displayName,
       total: 0,
       outcome: 0,
