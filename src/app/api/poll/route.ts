@@ -1,6 +1,7 @@
 import { pollIfDue, syncDay } from "@/lib/sync";
 import { fetchFixturesDiagnostics } from "@/lib/football-api";
 import { balldontlieDiagnostics } from "@/lib/balldontlie";
+import { footballDataDiagnostics } from "@/lib/footballdata";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +34,9 @@ async function handle(req: Request): Promise<Response> {
     const debug = url.searchParams.get("debug");
     if (debug === "bdl") {
       return Response.json({ ok: true, debug: "balldontlie", probes: await balldontlieDiagnostics() });
+    }
+    if (debug === "fd") {
+      return Response.json({ ok: true, debug: "football-data", probes: await footballDataDiagnostics() });
     }
     if (debug) {
       const probes = await fetchFixturesDiagnostics(date ?? "2026-06-11");
