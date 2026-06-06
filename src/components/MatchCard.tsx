@@ -3,7 +3,7 @@
 import { Flag } from "./Flag";
 import { Stepper } from "./Stepper";
 import { Countdown } from "./Countdown";
-import { teamLabel } from "@/lib/fifa";
+import { teamColor, teamLabel } from "@/lib/fifa";
 import { formatKickoffTime, formatStageLabel } from "@/lib/format";
 import type { Stage } from "@/lib/types";
 
@@ -206,50 +206,72 @@ export function MatchCard({
     );
   }
 
+  // Open cards "go live" with a soft ombre of the two flags — home colour on the
+  // left half, away colour on the right. Every other state stays plain.
+  const ombre = data.state === "open";
+
   return (
     <div
-      className={`animate-pop-in overflow-hidden rounded-3xl bg-white/90 shadow-lg ring-1 ${theme.ring} backdrop-blur`}
+      className={`relative animate-pop-in overflow-hidden rounded-3xl bg-white/90 shadow-lg ring-1 ${theme.ring} backdrop-blur`}
     >
-      <div
-        className={`flex items-center justify-between gap-2 px-4 py-2 text-xs font-bold ${theme.header}`}
-      >
-        <span className="truncate">
-          {data.matchNumber ? `#${data.matchNumber} · ` : ""}
-          {formatStageLabel(data.groupLabel, data.stage ?? "group")}
-          {data.venue ? ` · ${data.venue}` : ""}
-        </span>
-        <StatusPill data={data} opensAt={opensAt} onExpire={onExpire} />
-      </div>
+      {ombre && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-25"
+          style={{
+            background: `linear-gradient(100deg, ${teamColor(data.homeCode)} 0%, ${teamColor(data.homeCode)} 35%, ${teamColor(data.awayCode)} 65%, ${teamColor(data.awayCode)} 100%)`,
+          }}
+        />
+      )}
 
-      <div className="px-4 py-4">
-        <div className="flex items-center justify-between gap-3">
-          <TeamSide code={data.homeCode} label={data.homeLabel} />
-          <div className="flex shrink-0 items-center justify-center">{center}</div>
-          <TeamSide code={data.awayCode} label={data.awayLabel} />
+      <div className="relative">
+        <div
+          className={`flex items-center justify-between gap-2 px-4 py-2 text-xs font-bold ${theme.header}`}
+        >
+          <span className="truncate">
+            {data.matchNumber ? `#${data.matchNumber} · ` : ""}
+            {formatStageLabel(data.groupLabel, data.stage ?? "group")}
+            {data.venue ? ` · ${data.venue}` : ""}
+          </span>
+          <StatusPill data={data} opensAt={opensAt} onExpire={onExpire} />
         </div>
 
-        {editing && (
-          <div className="mt-3 flex items-center justify-center gap-4 rounded-2xl bg-cream/80 py-2">
-            <Stepper
-              size="sm"
-              value={entry!.home}
-              onChange={(n) => entry!.onChange("home", n)}
-            />
-            <span className="text-xl font-black text-stone-300">:</span>
-            <Stepper
-              size="sm"
-              value={entry!.away}
-              onChange={(n) => entry!.onChange("away", n)}
-            />
+        <div className="px-4 py-4">
+          <div className="flex items-center justify-between gap-3">
+            <TeamSide code={data.homeCode} label={data.homeLabel} />
+            <div className="flex shrink-0 items-center justify-center">{center}</div>
+            <TeamSide code={data.awayCode} label={data.awayLabel} />
+          </div>
+
+          {entry && (
+            <div
+              className={`mt-3 flex items-center justify-center gap-4 rounded-2xl py-2 ${
+                editing ? "bg-cream/80" : "bg-stone-100/80"
+              }`}
+            >
+              <Stepper
+                size="sm"
+                value={entry.home}
+                disabled={!editing}
+                onChange={(n) => entry.onChange("home", n)}
+              />
+              <span className="text-xl font-black text-stone-300">:</span>
+              <Stepper
+                size="sm"
+                value={entry.away}
+                disabled={!editing}
+                onChange={(n) => entry.onChange("away", n)}
+              />
+            </div>
+          )}
+        </div>
+
+        {footer && (
+          <div className="border-t border-black/5 bg-cream/60 px-4 py-2 text-xs font-bold">
+            {footer}
           </div>
         )}
       </div>
-
-      {footer && (
-        <div className="border-t border-black/5 bg-cream/60 px-4 py-2 text-xs font-bold">
-          {footer}
-        </div>
-      )}
     </div>
   );
 }

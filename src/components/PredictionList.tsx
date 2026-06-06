@@ -116,15 +116,11 @@ export function PredictionList({
                     state: m.state,
                   }}
                   opensAt={m.opensAt}
-                  entry={
-                    open
-                      ? {
-                          home: pick.home,
-                          away: pick.away,
-                          onChange: (side, n) => setPick(m.id, side, n),
-                        }
-                      : undefined
-                  }
+                  entry={{
+                    home: pick.home,
+                    away: pick.away,
+                    onChange: (side, n) => setPick(m.id, side, n),
+                  }}
                   onExpire={() => router.refresh()}
                   footer={
                     open && isSaved ? (
