@@ -22,6 +22,29 @@ export type MatchStatus =
 
 export type LateJoinPolicy = "carry_over" | "start_even";
 
+/** A local match referenced when matching an external provider's fixture. */
+export interface LocalMatchRef {
+  id: string;
+  kickoffAt: string;
+  homeCode: string | null;
+  awayCode: string | null;
+}
+
+/** Provider-agnostic, normalized fields a sync writes to a match. */
+export interface MatchUpdate {
+  status: MatchStatus;
+  minute: number | null;
+  homeGoals: number | null;
+  awayGoals: number | null;
+  /** Resolved team codes (used to fill in knockout teams once known). */
+  homeCode: string | null;
+  awayCode: string | null;
+  /** True only on a final result — the gate that lets points be awarded. */
+  resultConfirmed: boolean;
+  /** For knockouts: code of the team that advanced. */
+  advancedCode: string | null;
+}
+
 export interface User {
   id: string;
   /** Real name — consistent across every group. */

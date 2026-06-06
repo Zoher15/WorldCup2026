@@ -8,7 +8,7 @@ import {
 } from "./fd-core.ts";
 import { resolveFdTeam } from "./fifa.ts";
 import type { FdMatch } from "./footballdata.ts";
-import type { LocalMatchRef } from "./sync-core.ts";
+import type { LocalMatchRef } from "./types.ts";
 
 const resolve = resolveFdTeam;
 

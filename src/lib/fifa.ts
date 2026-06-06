@@ -195,6 +195,6 @@ export function resolveFdTeam(
   tla: string | null | undefined,
   name: string | null | undefined,
 ): string | null {
-  if (tla && TEAMS[tla.toUpperCase()]) return tla.toUpperCase();
+  if (tla && teamByCode(tla)) return tla.toUpperCase();
   return resolveApiTeam(name);
 }

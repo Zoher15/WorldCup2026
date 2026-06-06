@@ -1,13 +1,13 @@
 import { createAdminClient } from "./supabase/admin";
 import { fetchWorldCupMatches } from "./footballdata";
 import { resolveFdTeam } from "./fifa";
-import { planDay, isWithinLiveWindows } from "./polling";
+import { expectedMatchWindow, mergeWindows } from "./polling";
 import {
   deriveFdUpdate,
   fdStatusToOurs,
   matchFdToLocal,
 } from "./fd-core";
-import type { LocalMatchRef } from "./sync-core";
+import type { LocalMatchRef } from "./types";
 
 export interface SyncSummary {
   fetched: number;
@@ -43,6 +43,7 @@ export async function syncDay(_date?: string): Promise<SyncSummary> {
     .from("matches")
     .select("id, external_ref, kickoff_at, stage, home_code, away_code, result_confirmed");
   const locals = localRows ?? [];
+  const byId = new Map(locals.map((l) => [l.id, l]));
   const byRef = new Map(
     locals.filter((l) => l.external_ref).map((l) => [l.external_ref, l]),
   );
@@ -59,13 +60,16 @@ export async function syncDay(_date?: string): Promise<SyncSummary> {
     confirmed: 0,
     unmatched: 0,
   };
+  const syncedAt = new Date().toISOString();
 
+  // Build one patch per matched fixture, then write them concurrently.
+  const patches: { id: string; patch: Record<string, unknown> }[] = [];
   for (const fx of fixtures) {
     const refId = String(fx.id);
-    let local = byRef.get(refId) ?? null;
+    let local = byRef.get(refId);
     if (!local) {
       const matchedId = matchFdToLocal(fx, refs, resolveFdTeam);
-      local = matchedId ? locals.find((l) => l.id === matchedId) ?? null : null;
+      local = matchedId ? byId.get(matchedId) : undefined;
     }
     if (!local) {
       summary.unmatched++;
@@ -83,7 +87,7 @@ export async function syncDay(_date?: string): Promise<SyncSummary> {
       minute: u.minute,
       home_goals: u.homeGoals,
       away_goals: u.awayGoals,
-      last_synced_at: new Date().toISOString(),
+      last_synced_at: syncedAt,
     };
     if (isKnockout) {
       if (!local.home_code && u.homeCode) patch.home_code = u.homeCode;
@@ -95,10 +99,13 @@ export async function syncDay(_date?: string): Promise<SyncSummary> {
       summary.confirmed++;
     }
 
-    const { error } = await db.from("matches").update(patch).eq("id", local.id);
-    if (!error) summary.updated++;
+    patches.push({ id: local.id, patch });
   }
 
+  const results = await Promise.all(
+    patches.map((p) => db.from("matches").update(p.patch).eq("id", p.id)),
+  );
+  summary.updated = results.filter((r) => !r.error).length;
   return summary;
 }
 
@@ -118,8 +125,8 @@ const MIN_POLL_INTERVAL_SEC = 30;
 
 /**
  * Poll guard, meant to be called frequently (e.g. a once-a-minute cron). It
- * only calls football-data when a match is actually live (using the planner's
- * match windows, which cover stoppage/extra time/penalties), and de-dupes
+ * only calls football-data when a match is actually live — using each match's
+ * expected window, which covers stoppage/extra time/penalties — and de-dupes
  * polls closer than MIN_POLL_INTERVAL_SEC. Outside live windows it returns
  * immediately without touching the API.
  */
@@ -134,12 +141,11 @@ export async function pollIfDue(now: Date = new Date()): Promise<PollResult> {
   const rows = data ?? [];
   const todays = rows.filter((r) => String(r.kickoff_at).slice(0, 10) === dateKey);
 
-  const plan = planDay(
-    dateKey,
-    todays.map((r) => ({ kickoffAt: r.kickoff_at, stage: r.stage })),
+  const windows = mergeWindows(
+    todays.map((r) => expectedMatchWindow({ kickoffAt: r.kickoff_at, stage: r.stage })),
   );
-
-  if (!isWithinLiveWindows(nowMs, plan)) {
+  const live = windows.some((w) => nowMs >= w.startMs && nowMs < w.endMs);
+  if (!live) {
     return { synced: false, reason: "no live window" };
   }
 

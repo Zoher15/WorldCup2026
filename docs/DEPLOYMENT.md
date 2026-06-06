@@ -40,8 +40,7 @@ worldcup.kachwalas.com  → Vercel (this app)  ──>  Supabase (Postgres)
 ## 4. Live-score poller (free)
 
 Scores come from **football-data.org** (free tier — covers the 2026 World Cup,
-final scores, slightly delayed; not a live in-play clock). API-Football's free
-tier does **not** cover 2026, so it's only kept for the optional paid upgrade.
+final scores, slightly delayed; not a live in-play clock).
 
 Vercel's free plan caps cron at **once per day**, so the poller is scheduled in
 **Supabase** instead (`pg_cron`, every minute, free). The `/api/poll` endpoint is

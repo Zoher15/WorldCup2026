@@ -1,18 +1,16 @@
 import { pollIfDue, syncDay } from "@/lib/sync";
-import { fetchFixturesDiagnostics } from "@/lib/football-api";
-import { balldontlieDiagnostics } from "@/lib/balldontlie";
 import { footballDataDiagnostics } from "@/lib/footballdata";
 
 export const dynamic = "force-dynamic";
 
 /**
  * Live-score poll endpoint, meant to be hit frequently (e.g. an every-minute
- * Supabase cron). It self-throttles: it only spends an API request when a match
- * is live and the planner's interval has elapsed. Protected by CRON_SECRET.
+ * Supabase cron). It self-throttles: it only calls football-data when a match
+ * is live and a short de-dupe interval has elapsed. Protected by CRON_SECRET.
  *
- *   GET /api/poll?secret=...            budget-aware poll (use this for cron)
- *   GET /api/poll?secret=...&date=YYYY-MM-DD&force=1   force a full sync of a day
- *   GET /api/poll?secret=...&debug=1&date=YYYY-MM-DD   probe the raw API response
+ *   GET /api/poll?secret=...                  guarded poll (use this for cron)
+ *   GET /api/poll?secret=...&date=YYYY-MM-DD&force=1   force a sync, bypassing the guard
+ *   GET /api/poll?secret=...&debug=1          probe football-data's raw response
  *   or send the secret as `Authorization: Bearer <CRON_SECRET>`
  */
 async function handle(req: Request): Promise<Response> {
@@ -28,25 +26,15 @@ async function handle(req: Request): Promise<Response> {
   }
 
   try {
-    const date = url.searchParams.get("date");
-
-    // Diagnostics: show a provider's raw responses, write nothing.
-    const debug = url.searchParams.get("debug");
-    if (debug === "bdl") {
-      return Response.json({ ok: true, debug: "balldontlie", probes: await balldontlieDiagnostics() });
-    }
-    if (debug === "fd") {
-      return Response.json({ ok: true, debug: "football-data", probes: await footballDataDiagnostics() });
-    }
-    if (debug) {
-      const probes = await fetchFixturesDiagnostics(date ?? "2026-06-11");
-      return Response.json({ ok: true, debug: "api-football", probes });
+    // Diagnostics: show football-data's raw responses, write nothing.
+    if (url.searchParams.get("debug")) {
+      return Response.json({ ok: true, debug: true, probes: await footballDataDiagnostics() });
     }
 
-    // Forced sync of a specific date (manual / backfill), bypassing the guard.
-    if (url.searchParams.get("force") && date) {
-      const summary = await syncDay(date);
-      return Response.json({ ok: true, forced: true, date, ...summary });
+    // Forced sync (manual / backfill), bypassing the live-window guard.
+    if (url.searchParams.get("force")) {
+      const summary = await syncDay();
+      return Response.json({ ok: true, forced: true, ...summary });
     }
 
     const result = await pollIfDue();

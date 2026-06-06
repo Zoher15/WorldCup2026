@@ -5,8 +5,7 @@
  */
 
 import type { FdMatch } from "./footballdata.ts";
-import type { LocalMatchRef, MatchUpdate } from "./sync-core.ts";
-import type { MatchStatus } from "./types.ts";
+import type { LocalMatchRef, MatchStatus, MatchUpdate } from "./types.ts";
 
 const FINAL = new Set(["FINISHED", "AWARDED"]);
 const LIVE = new Set(["IN_PLAY", "PAUSED"]);
