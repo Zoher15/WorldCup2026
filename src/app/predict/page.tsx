@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getUserId } from "@/lib/identity";
 import { getPredictionBoard } from "@/lib/predictions";
-import { PREDICTION_WINDOW_HOURS } from "@/lib/prediction-rules";
 import { PredictionList } from "@/components/PredictionList";
 
 export const dynamic = "force-dynamic";
@@ -22,10 +21,9 @@ export default async function PredictPage() {
         Your predictions
       </h1>
       <p className="mb-6 text-sm font-medium text-stone-500">
-        Score entry opens{" "}
-        <strong>{PREDICTION_WINDOW_HOURS} hours before</strong> each match and
-        closes at kickoff — watch the countdowns. Your picks count in every
-        group you&apos;re in.
+        A day&apos;s games all open for prediction{" "}
+        <strong>the day before</strong>, and each match closes at kickoff — watch
+        the countdowns. Your picks count in every group you&apos;re in.
       </p>
 
       {matches.length === 0 ? (

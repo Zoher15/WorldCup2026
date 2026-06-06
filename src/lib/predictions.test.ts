@@ -6,7 +6,6 @@ import {
   isWindowOpen,
   windowOpensAt,
   predictionState,
-  PREDICTION_WINDOW_HOURS,
 } from "./prediction-rules.ts";
 
 test("isLocked flips at kickoff", () => {
@@ -16,28 +15,37 @@ test("isLocked flips at kickoff", () => {
   assert.equal(isLocked(kickoff, new Date("2026-06-11T20:00:00Z")), true);
 });
 
-test("the window opens exactly PREDICTION_WINDOW_HOURS before kickoff", () => {
+test("window opens at 00:00 UTC+14 the day before (anywhere on earth)", () => {
+  // Kickoff 19:00Z shifts to June 12 in UTC+14; the day before is June 11, whose
+  // midnight in UTC+14 is 2026-06-10T10:00Z — the moment the window opens.
   const kickoff = "2026-06-11T19:00:00Z";
-  const opens = windowOpensAt(kickoff);
-  assert.equal(Date.parse(kickoff) - opens, PREDICTION_WINDOW_HOURS * 3600_000);
+  assert.equal(windowOpensAt(kickoff), Date.parse("2026-06-10T10:00:00Z"));
 });
 
-test("isWindowOpen is true only within the 24h pre-kickoff window", () => {
-  const kickoff = "2026-06-11T19:00:00Z";
-  // 25h before -> not yet open
-  assert.equal(isWindowOpen(kickoff, new Date("2026-06-10T18:00:00Z")), false);
-  // exactly 24h before -> opens
-  assert.equal(isWindowOpen(kickoff, new Date("2026-06-10T19:00:00Z")), true);
-  // 1h before -> open
+test("every game on the same match-day shares one open time", () => {
+  // A late kickoff that rolls past UTC midnight is the same Americas match-day
+  // as an afternoon kickoff, so both must open together.
+  const afternoon = "2026-06-11T19:00:00Z";
+  const lateNight = "2026-06-12T02:00:00Z"; // ~22:00 ET, still June 11 locally
+  assert.equal(windowOpensAt(afternoon), windowOpensAt(lateNight));
+});
+
+test("isWindowOpen runs from that open time until kickoff", () => {
+  const kickoff = "2026-06-11T19:00:00Z"; // opens 2026-06-10T10:00Z
+  // just before the open
+  assert.equal(isWindowOpen(kickoff, new Date("2026-06-10T09:59:00Z")), false);
+  // at the open
+  assert.equal(isWindowOpen(kickoff, new Date("2026-06-10T10:00:00Z")), true);
+  // 1h before kickoff -> open
   assert.equal(isWindowOpen(kickoff, new Date("2026-06-11T18:00:00Z")), true);
   // at kickoff -> closed
   assert.equal(isWindowOpen(kickoff, new Date("2026-06-11T19:00:00Z")), false);
 });
 
 test("predictionState reports upcoming / open / locked", () => {
-  const kickoff = "2026-06-11T19:00:00Z";
-  assert.equal(predictionState(kickoff, new Date("2026-06-10T12:00:00Z")), "upcoming");
-  assert.equal(predictionState(kickoff, new Date("2026-06-11T12:00:00Z")), "open");
+  const kickoff = "2026-06-11T19:00:00Z"; // opens 2026-06-10T10:00Z
+  assert.equal(predictionState(kickoff, new Date("2026-06-10T08:00:00Z")), "upcoming");
+  assert.equal(predictionState(kickoff, new Date("2026-06-10T12:00:00Z")), "open");
   assert.equal(predictionState(kickoff, new Date("2026-06-11T19:30:00Z")), "locked");
 });
 

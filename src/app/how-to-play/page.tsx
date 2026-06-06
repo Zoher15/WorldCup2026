@@ -2,7 +2,6 @@ import Link from "next/link";
 import { Flag } from "@/components/Flag";
 import { teamLabel } from "@/lib/fifa";
 import { scoreMatch, ADVANCE_BONUS, MAX_MATCH_POINTS } from "@/lib/scoring";
-import { PREDICTION_WINDOW_HOURS } from "@/lib/prediction-rules";
 
 export const metadata = {
   title: "How to play · World Cup 2026 Predictions",
@@ -245,9 +244,9 @@ export default function HowToPlayPage() {
         </h2>
         <ul className="mx-auto max-w-md space-y-2 text-sm font-medium text-stone-600">
           <li className="rounded-2xl bg-white/70 px-4 py-3">
-            ⏱️ You can predict from{" "}
-            <strong>{PREDICTION_WINDOW_HOURS} hours before</strong> kickoff until
-            the whistle — a countdown shows the time left.
+            ⏱️ Each day&apos;s games open for prediction{" "}
+            <strong>the day before</strong> and close at kickoff — a countdown
+            shows the time left.
           </li>
           <li className="rounded-2xl bg-white/70 px-4 py-3">
             🔒 Everyone&apos;s picks stay hidden until kickoff, so there&apos;s no

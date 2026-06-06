@@ -1,35 +1,39 @@
 /**
  * Pure prediction rules — no database imports, so they're cheap to unit-test
  * and safe to use on both server and client.
- */
-
-/**
- * How long before kickoff the prediction window opens, in hours. Defaults to 24
- * and is overridable per deployment via NEXT_PUBLIC_PREDICTION_WINDOW_HOURS
- * (e.g. 48 for a gentler window, or a very large number to keep predictions
- * always open). One global dial for the whole game — it applies to every group,
- * which is why predictions can stay shared across groups.
  *
- * Must be NEXT_PUBLIC_ because it also drives the on-screen countdowns, so the
- * client and server have to agree on the same value.
+ * A whole match-day's games open for prediction at the SAME instant: 00:00 on
+ * the day BEFORE the match day, measured "anywhere on earth" — i.e. in the
+ * earliest timezone on the planet (UTC+14). So the window is open for everyone,
+ * everywhere, well ahead of kickoff. Each match still LOCKS individually at its
+ * own kickoff.
+ *
+ * Why UTC+14 anchors the grouping too: the 2026 fixtures kick off between 16:00
+ * and 04:00 UTC, with no matches between 04:00 and 16:00 UTC. Shifting a kickoff
+ * by +14h lands every game of one local (Americas) match-day on the same
+ * calendar date and puts the day boundary squarely inside that empty UTC window
+ * — so "the games on that day" group cleanly and share one open time.
  */
-const DEFAULT_WINDOW_HOURS = 24;
 
-function resolveWindowHours(): number {
-  const raw = process.env.NEXT_PUBLIC_PREDICTION_WINDOW_HOURS;
-  const n = raw == null ? NaN : Number(raw);
-  return Number.isFinite(n) && n > 0 ? n : DEFAULT_WINDOW_HOURS;
-}
-
-export const PREDICTION_WINDOW_HOURS = resolveWindowHours();
-
-const WINDOW_MS = PREDICTION_WINDOW_HOURS * 60 * 60 * 1000;
+/** Earliest timezone on earth (UTC+14) — the "anywhere on earth" reference. */
+const AOE_OFFSET_MS = 14 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 export type PredictionState = "upcoming" | "open" | "locked";
 
-/** Epoch ms when the prediction window opens (kickoff − window). */
+/**
+ * Epoch ms when a match's day opens for prediction: midnight (UTC+14) of the
+ * day before the match day. Every game on the same match-day returns the same
+ * value, so they all open together.
+ */
 export function windowOpensAt(kickoffAt: string): number {
-  return Date.parse(kickoffAt) - WINDOW_MS;
+  // Shift into the UTC+14 clock, then read off that day's calendar date.
+  const local = new Date(Date.parse(kickoffAt) + AOE_OFFSET_MS);
+  const matchDayMidnight =
+    Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate()) -
+    AOE_OFFSET_MS;
+  // Back up one day: the window opens at the start of the day before.
+  return matchDayMidnight - DAY_MS;
 }
 
 /** A match locks for predictions once kickoff has passed. */
@@ -37,7 +41,7 @@ export function isLocked(kickoffAt: string, now: Date = new Date()): boolean {
   return now.getTime() >= Date.parse(kickoffAt);
 }
 
-/** The window is open from (kickoff − window) until kickoff. */
+/** The window is open from (the day before, 00:00 UTC+14) until kickoff. */
 export function isWindowOpen(kickoffAt: string, now: Date = new Date()): boolean {
   const t = now.getTime();
   return t >= windowOpensAt(kickoffAt) && t < Date.parse(kickoffAt);
