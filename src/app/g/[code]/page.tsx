@@ -21,12 +21,12 @@ export default async function GroupPage({
         ← Home
       </Link>
 
-      <header className="mt-3 mb-6 rounded-3xl bg-white/85 p-6 text-center shadow-lg ring-1 ring-black/5">
-        <h1 className="text-3xl font-black text-grape">{group.name}</h1>
-        <p className="mt-1 text-sm font-medium text-stone-500">
+      <header className="mt-3 mb-6 rounded-3xl bg-white/85 p-6 text-center shadow-lg ring-1 ring-black/5 dark:bg-stone-800/85 dark:ring-white/10">
+        <h1 className="text-3xl font-black text-grape dark:text-violet-300">{group.name}</h1>
+        <p className="mt-1 text-sm font-medium text-stone-500 dark:text-stone-300">
           Invite others with the code
         </p>
-        <div className="mt-2 inline-block rounded-2xl bg-cream px-6 py-2 text-2xl font-black tracking-[0.25em] text-flame">
+        <div className="mt-2 inline-block rounded-2xl bg-cream px-6 py-2 text-2xl font-black tracking-[0.25em] text-flame dark:bg-stone-700">
           {group.code}
         </div>
         <p className="mt-3 text-xs text-stone-400">

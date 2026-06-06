@@ -21,7 +21,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="text-stone-800 antialiased">{children}</body>
+      <body className="text-stone-800 antialiased dark:text-stone-100">
+        {children}
+      </body>
     </html>
   );
 }

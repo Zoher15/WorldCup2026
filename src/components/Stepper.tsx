@@ -22,11 +22,11 @@ export function Stepper({
   // When the whole stepper is disabled it greys out entirely (a "not open" card);
   // when only "−" is disabled at zero it just dims.
   const plus = disabled
-    ? `${btn} bg-stone-200 text-stone-400`
+    ? `${btn} bg-stone-200 text-stone-400 dark:bg-stone-700 dark:text-stone-500`
     : `${btn} bg-pitch text-white`;
   const minus = disabled
-    ? `${btn} bg-stone-200 text-stone-400`
-    : `${btn} bg-stone-200 text-stone-700 disabled:opacity-40`;
+    ? `${btn} bg-stone-200 text-stone-400 dark:bg-stone-700 dark:text-stone-500`
+    : `${btn} bg-stone-200 text-stone-700 disabled:opacity-40 dark:bg-stone-700 dark:text-stone-200`;
   return (
     <div className="flex items-center gap-2">
       <button

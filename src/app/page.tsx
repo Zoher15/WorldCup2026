@@ -27,7 +27,7 @@ export default function Home() {
         <h1 className="mt-3 bg-gradient-to-r from-flame via-grape to-ocean bg-clip-text text-4xl font-black tracking-tight text-transparent sm:text-5xl">
           Predict. Compete. Celebrate.
         </h1>
-        <p className="mt-2 font-medium text-stone-500">
+        <p className="mt-2 font-medium text-stone-500 dark:text-stone-300">
           Call the score, pick the winner, climb the leaderboard with the family.
         </p>
         <div className="mt-5 flex justify-center gap-3">
@@ -39,14 +39,14 @@ export default function Home() {
           </a>
           <a
             href="/join"
-            className="rounded-full bg-white px-6 py-3 font-bold text-grape shadow ring-1 ring-black/5 transition active:scale-95"
+            className="rounded-full bg-white px-6 py-3 font-bold text-grape shadow ring-1 ring-black/5 transition active:scale-95 dark:bg-stone-800 dark:text-violet-300 dark:ring-white/10"
           >
             Join a group
           </a>
         </div>
         <a
           href="/how-to-play"
-          className="mt-3 inline-block text-sm font-bold text-grape hover:underline"
+          className="mt-3 inline-block text-sm font-bold text-grape hover:underline dark:text-violet-300"
         >
           New here? How to play →
         </a>
@@ -54,12 +54,12 @@ export default function Home() {
 
       <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
         <section>
-          <h2 className="mb-3 px-1 text-lg font-black text-stone-700">
+          <h2 className="mb-3 px-1 text-lg font-black text-stone-700 dark:text-stone-100">
             Upcoming matches
           </h2>
           <div className="grid gap-4 sm:grid-cols-2">
             {UPCOMING.map((m, i) => (
-              <MatchCard key={i} data={m} ombre />
+              <MatchCard key={i} data={m} />
             ))}
           </div>
         </section>

@@ -87,7 +87,7 @@ export function HowToPlayDemo() {
 
       {!locked ? (
         <div className="mt-4 text-center">
-          <p className="mb-3 text-sm font-medium text-stone-500">
+          <p className="mb-3 text-sm font-medium text-stone-500 dark:text-stone-300">
             Tap the <strong>+/−</strong> to call the score, then lock it in.
           </p>
           <button
@@ -99,8 +99,8 @@ export function HowToPlayDemo() {
         </div>
       ) : (
         <div className="mt-4">
-          <div className="rounded-2xl bg-grape/10 p-4 text-center">
-            <p className="text-sm font-medium text-stone-600">
+          <div className="rounded-2xl bg-grape/10 p-4 text-center dark:bg-grape/20">
+            <p className="text-sm font-medium text-stone-600 dark:text-stone-200">
               Final score <strong className="text-ocean">{RESULT.home}–{RESULT.away}</strong>. You
               scored{" "}
               <strong className="text-pitch">{you.total} points</strong> —{" "}
@@ -115,14 +115,16 @@ export function HowToPlayDemo() {
             {board.map((r, i) => (
               <li
                 key={r.name}
-                className={`flex items-center gap-3 rounded-2xl px-4 py-2.5 shadow ring-1 ring-black/5 ${
-                  r.you ? "bg-sunburst/30 ring-flame/30" : "bg-white/85"
+                className={`flex items-center gap-3 rounded-2xl px-4 py-2.5 shadow ring-1 dark:text-stone-100 ${
+                  r.you
+                    ? "bg-sunburst/30 ring-flame/30"
+                    : "bg-white/85 ring-black/5 dark:bg-stone-800/85 dark:ring-white/10"
                 }`}
               >
                 <span className="w-6 text-center text-lg font-black">
                   {MEDALS[i] ?? <span className="text-stone-400">{i + 1}</span>}
                 </span>
-                <span className="flex-1 truncate font-bold text-stone-700">
+                <span className="flex-1 truncate font-bold text-stone-700 dark:text-stone-100">
                   {r.name}
                   {r.you && (
                     <span className="ml-1.5 text-xs font-bold text-flame">(you)</span>
@@ -141,7 +143,7 @@ export function HowToPlayDemo() {
           <div className="mt-4 text-center">
             <button
               onClick={() => setLocked(false)}
-              className="rounded-full bg-white px-6 py-3 font-bold text-grape shadow ring-1 ring-black/5 transition active:scale-95"
+              className="rounded-full bg-white px-6 py-3 font-bold text-grape shadow ring-1 ring-black/5 transition active:scale-95 dark:bg-stone-800 dark:text-violet-300 dark:ring-white/10"
             >
               ↺ Try a different score
             </button>

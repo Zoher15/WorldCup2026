@@ -26,7 +26,7 @@ export function Flag({
   if (!team) {
     return (
       <span
-        className={`${shared} grid place-items-center bg-stone-200 text-stone-500 ${className}`}
+        className={`${shared} grid place-items-center bg-stone-200 text-stone-500 dark:bg-stone-700 dark:text-stone-400 ${className}`}
         title="To be decided"
         aria-label="To be decided"
       >

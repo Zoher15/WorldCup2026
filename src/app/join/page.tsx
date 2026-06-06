@@ -10,24 +10,26 @@ import {
 } from "@/app/actions";
 
 const input =
-  "w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-base font-medium outline-none focus:border-pitch focus:ring-2 focus:ring-pitch/30";
-const label = "mb-1 block text-sm font-bold text-stone-600";
+  "w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-base font-medium outline-none focus:border-pitch focus:ring-2 focus:ring-pitch/30 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100 dark:placeholder:text-stone-500";
+const label = "mb-1 block text-sm font-bold text-stone-600 dark:text-stone-300";
 
 function Success({ state }: { state: JoinState }) {
   return (
-    <div className="animate-pop-in rounded-3xl bg-white/90 p-6 text-center shadow-lg ring-1 ring-black/5">
+    <div className="animate-pop-in rounded-3xl bg-white/90 p-6 text-center shadow-lg ring-1 ring-black/5 dark:bg-stone-800/90 dark:ring-white/10">
       <div className="text-4xl">🎉</div>
       <h2 className="mt-2 text-2xl font-black text-pitch">You&apos;re in!</h2>
-      <p className="mt-1 text-stone-500">Share this code so others can join:</p>
-      <div className="my-3 inline-block rounded-2xl bg-cream px-6 py-3 text-3xl font-black tracking-[0.2em] text-grape">
+      <p className="mt-1 text-stone-500 dark:text-stone-300">
+        Share this code so others can join:
+      </p>
+      <div className="my-3 inline-block rounded-2xl bg-cream px-6 py-3 text-3xl font-black tracking-[0.2em] text-grape dark:bg-stone-700 dark:text-violet-300">
         {state.groupCode}
       </div>
       {state.recoveryCode && (
-        <div className="mt-3 rounded-2xl bg-sunburst/20 p-4 text-left">
-          <p className="text-sm font-bold text-stone-700">
+        <div className="mt-3 rounded-2xl bg-sunburst/20 p-4 text-left dark:bg-sunburst/10">
+          <p className="text-sm font-bold text-stone-700 dark:text-stone-100">
             🔑 Save your recovery code
           </p>
-          <p className="text-xs text-stone-500">
+          <p className="text-xs text-stone-500 dark:text-stone-300">
             You&apos;ll need it to get back into your account on another device.
           </p>
           <p className="mt-2 text-center text-xl font-black tracking-widest text-flame">
@@ -149,13 +151,15 @@ function Tabs({ searchParams }: { searchParams: Promise<{ mode?: string }> }) {
   const [tab, setTab] = useState<"join" | "create">(initial);
   return (
     <div>
-      <div className="mb-6 flex gap-1 rounded-full bg-stone-100 p-1">
+      <div className="mb-6 flex gap-1 rounded-full bg-stone-100 p-1 dark:bg-stone-700">
         {(["join", "create"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`flex-1 rounded-full py-2 text-sm font-bold capitalize transition ${
-              tab === t ? "bg-white text-stone-800 shadow" : "text-stone-500"
+              tab === t
+                ? "bg-white text-stone-800 shadow dark:bg-stone-900 dark:text-stone-100"
+                : "text-stone-500 dark:text-stone-300"
             }`}
           >
             {t === "join" ? "Join a group" : "Create a group"}

@@ -62,13 +62,13 @@ export function Leaderboard({ data, code }: { data: Standings; code?: string }) 
   const rest = rows.slice(3);
 
   return (
-    <div className="rounded-3xl bg-white/85 p-5 shadow-lg ring-1 ring-black/5 backdrop-blur">
-      <h2 className="mb-4 text-center text-2xl font-black text-grape">
+    <div className="rounded-3xl bg-white/85 p-5 shadow-lg ring-1 ring-black/5 backdrop-blur dark:bg-stone-800/85 dark:ring-white/10">
+      <h2 className="mb-4 text-center text-2xl font-black text-grape dark:text-violet-300">
         🏆 Leaderboard
       </h2>
 
       {/* Tabs */}
-      <div className="mb-5 flex justify-center gap-1 rounded-full bg-stone-100 p-1">
+      <div className="mb-5 flex justify-center gap-1 rounded-full bg-stone-100 p-1 dark:bg-stone-700">
         {TABS.map((t) => (
           <button
             key={t.key}
@@ -76,7 +76,7 @@ export function Leaderboard({ data, code }: { data: Standings; code?: string }) 
             className={`flex-1 rounded-full px-3 py-1.5 text-sm font-bold transition ${
               tab === t.key
                 ? "bg-grape text-white shadow"
-                : "text-stone-500 hover:text-stone-700"
+                : "text-stone-500 hover:text-stone-700 dark:text-stone-300 dark:hover:text-white"
             }`}
           >
             {t.label}
@@ -112,7 +112,7 @@ export function Leaderboard({ data, code }: { data: Standings; code?: string }) 
         {rest.map((r, i) => (
           <li
             key={r.userId}
-            className="flex items-center gap-3 rounded-2xl bg-stone-50 px-4 py-2.5"
+            className="flex items-center gap-3 rounded-2xl bg-stone-50 px-4 py-2.5 dark:bg-stone-700/50 dark:text-stone-100"
           >
             <span className="w-6 text-center font-black text-stone-400">
               {i + 4}

@@ -13,7 +13,9 @@
 }
 
 :root {
-  color-scheme: light;
+  /* Support both schemes so OS / browser dark settings (and form controls,
+     scrollbars) render correctly; the palette below adapts to match. */
+  color-scheme: light dark;
 }
 
 body {
@@ -22,6 +24,16 @@ body {
     radial-gradient(1000px 600px at 110% 10%, rgba(255, 90, 54, 0.22), transparent 55%),
     linear-gradient(160deg, #fff8ec 0%, #ffeede 40%, #ffe7f0 100%);
   min-height: 100dvh;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(255, 210, 63, 0.10), transparent 60%),
+      radial-gradient(1000px 600px at 110% 10%, rgba(255, 90, 54, 0.10), transparent 55%),
+      linear-gradient(160deg, #1c1917 0%, #1a1422 45%, #1b1418 100%);
+    color: #e7e5e4;
+  }
 }
 
 /* Confetti-ish celebratory shimmer used on score updates / podium */

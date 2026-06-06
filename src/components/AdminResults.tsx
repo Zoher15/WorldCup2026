@@ -54,8 +54,8 @@ function Row({ m }: { m: AdminMatch }) {
 
   return (
     <div
-      className={`rounded-2xl p-3 shadow ring-1 ring-black/5 ${
-        m.resultConfirmed ? "bg-pitch/10" : "bg-white/85"
+      className={`rounded-2xl p-3 shadow ring-1 ring-black/5 dark:ring-white/10 dark:text-stone-100 ${
+        m.resultConfirmed ? "bg-pitch/10 dark:bg-pitch/20" : "bg-white/85 dark:bg-stone-800/85"
       }`}
     >
       <div className="mb-1 flex items-center justify-between text-xs font-bold text-stone-400">
@@ -79,7 +79,7 @@ function Row({ m }: { m: AdminMatch }) {
           inputMode="numeric"
           value={home}
           onChange={(e) => setHome(e.target.value)}
-          className="w-12 rounded-lg border border-stone-200 px-2 py-1.5 text-center font-bold"
+          className="w-12 rounded-lg border border-stone-200 px-2 py-1.5 text-center font-bold dark:border-stone-600 dark:bg-stone-900 dark:text-stone-100"
         />
         <span className="font-black text-stone-300">:</span>
         <input
@@ -88,7 +88,7 @@ function Row({ m }: { m: AdminMatch }) {
           inputMode="numeric"
           value={away}
           onChange={(e) => setAway(e.target.value)}
-          className="w-12 rounded-lg border border-stone-200 px-2 py-1.5 text-center font-bold"
+          className="w-12 rounded-lg border border-stone-200 px-2 py-1.5 text-center font-bold dark:border-stone-600 dark:bg-stone-900 dark:text-stone-100"
         />
         <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
           <span className="truncate text-right text-sm font-bold">
@@ -102,16 +102,16 @@ function Row({ m }: { m: AdminMatch }) {
           value={adv}
           onChange={(e) => setAdv(e.target.value)}
           placeholder="Advanced team code (e.g. ARG)"
-          className="mt-2 w-full rounded-lg border border-stone-200 px-2 py-1.5 text-sm"
+          className="mt-2 w-full rounded-lg border border-stone-200 px-2 py-1.5 text-sm dark:border-stone-600 dark:bg-stone-900 dark:text-stone-100 dark:placeholder:text-stone-500"
         />
       )}
       <div className="mt-2 flex items-center justify-end gap-2">
-        {msg && <span className="mr-auto text-xs font-bold text-stone-500">{msg}</span>}
+        {msg && <span className="mr-auto text-xs font-bold text-stone-500 dark:text-stone-300">{msg}</span>}
         {m.resultConfirmed && (
           <button
             onClick={clear}
             disabled={pending}
-            className="rounded-full bg-stone-200 px-3 py-1.5 text-xs font-bold text-stone-700 disabled:opacity-50"
+            className="rounded-full bg-stone-200 px-3 py-1.5 text-xs font-bold text-stone-700 disabled:opacity-50 dark:bg-stone-700 dark:text-stone-200"
           >
             Clear
           </button>
@@ -156,8 +156,8 @@ export function AdminResults({ matches }: { matches: AdminMatch[] }) {
     <div>
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-black text-grape">Results</h1>
-          <p className="text-sm text-stone-500">
+          <h1 className="text-2xl font-black text-grape dark:text-violet-300">Results</h1>
+          <p className="text-sm text-stone-500 dark:text-stone-300">
             {confirmed} of {matches.length} confirmed
           </p>
         </div>
@@ -170,7 +170,7 @@ export function AdminResults({ matches }: { matches: AdminMatch[] }) {
             {syncing ? "Syncing…" : "Sync live scores"}
           </button>
           <form action={adminLogoutAction}>
-            <button className="rounded-full bg-stone-200 px-4 py-2 text-sm font-bold text-stone-700">
+            <button className="rounded-full bg-stone-200 px-4 py-2 text-sm font-bold text-stone-700 dark:bg-stone-700 dark:text-stone-200">
               Sign out
             </button>
           </form>
@@ -186,7 +186,7 @@ export function AdminResults({ matches }: { matches: AdminMatch[] }) {
         value={q}
         onChange={(e) => setQ(e.target.value)}
         placeholder="Search by team or match #"
-        className="mb-4 w-full rounded-xl border border-stone-200 bg-white px-4 py-3 font-medium outline-none focus:border-grape focus:ring-2 focus:ring-grape/30"
+        className="mb-4 w-full rounded-xl border border-stone-200 bg-white px-4 py-3 font-medium outline-none focus:border-grape focus:ring-2 focus:ring-grape/30 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100 dark:placeholder:text-stone-500"
       />
 
       <div className="space-y-2">

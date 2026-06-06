@@ -91,7 +91,7 @@ function Section({
         {title}
       </h2>
       {rows.length === 0 ? (
-        <p className="rounded-2xl bg-white/60 px-4 py-3 text-sm font-medium text-stone-400">
+        <p className="rounded-2xl bg-white/60 px-4 py-3 text-sm font-medium text-stone-400 dark:bg-stone-800/60">
           {empty}
         </p>
       ) : (

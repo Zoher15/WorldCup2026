@@ -27,8 +27,8 @@ export default async function PlayerPage({
         ← {group.name}
       </Link>
 
-      <header className="mt-3 mb-6 rounded-3xl bg-white/85 p-6 text-center shadow-lg ring-1 ring-black/5">
-        <h1 className="text-3xl font-black text-grape">
+      <header className="mt-3 mb-6 rounded-3xl bg-white/85 p-6 text-center shadow-lg ring-1 ring-black/5 dark:bg-stone-800/85 dark:ring-white/10">
+        <h1 className="text-3xl font-black text-grape dark:text-violet-300">
           {player.displayName}
           {player.isViewer && (
             <span className="ml-2 align-middle text-xs font-bold text-stone-400">
@@ -36,7 +36,7 @@ export default async function PlayerPage({
             </span>
           )}
         </h1>
-        <p className="mt-2 text-sm font-medium text-stone-500">
+        <p className="mt-2 text-sm font-medium text-stone-500 dark:text-stone-300">
           {summary.points} pts · predicted {summary.predicted} of {summary.total}{" "}
           matches
         </p>

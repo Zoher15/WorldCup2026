@@ -20,14 +20,14 @@ export default async function PredictPage() {
       <h1 className="mt-3 mb-1 bg-gradient-to-r from-flame to-grape bg-clip-text text-3xl font-black text-transparent">
         Your predictions
       </h1>
-      <p className="mb-6 text-sm font-medium text-stone-500">
+      <p className="mb-6 text-sm font-medium text-stone-500 dark:text-stone-300">
         A day&apos;s games all open for prediction{" "}
         <strong>the day before</strong>, and each match closes at kickoff — watch
         the countdowns. Your picks count in every group you&apos;re in.
       </p>
 
       {matches.length === 0 ? (
-        <p className="rounded-2xl bg-white/85 p-6 text-center font-medium text-stone-500 shadow">
+        <p className="rounded-2xl bg-white/85 p-6 text-center font-medium text-stone-500 shadow dark:bg-stone-800/85 dark:text-stone-300">
           No upcoming matches to predict right now.
         </p>
       ) : (

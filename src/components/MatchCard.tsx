@@ -62,8 +62,9 @@ const THEME: Record<MatchCardState, { ring: string; header: string }> = {
     header: "bg-gradient-to-r from-sunburst/50 to-flame/20 text-flame",
   },
   locked: {
-    ring: "ring-stone-200",
-    header: "bg-gradient-to-r from-stone-200 to-stone-100 text-stone-500",
+    ring: "ring-stone-200 dark:ring-white/10",
+    header:
+      "bg-gradient-to-r from-stone-200 to-stone-100 text-stone-500 dark:from-stone-700 dark:to-stone-800 dark:text-stone-300",
   },
   live: {
     ring: "ring-flame/60",
@@ -135,7 +136,7 @@ function TeamSide({
   return (
     <div className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
       <Flag code={code} size="lg" />
-      <span className="line-clamp-2 max-w-full text-center text-sm font-bold leading-tight text-stone-700">
+      <span className="line-clamp-2 max-w-full text-center text-sm font-bold leading-tight text-stone-700 dark:text-stone-100">
         {teamLabel(code, label)}
       </span>
     </div>
@@ -193,7 +194,7 @@ export function MatchCard({
       <Score
         home={data.homeGoals!}
         away={data.awayGoals!}
-        tone={data.state === "live" ? "text-flame" : "text-stone-800"}
+        tone={data.state === "live" ? "text-flame" : "text-stone-800 dark:text-stone-100"}
       />
     );
   } else if (editing) {
@@ -209,14 +210,13 @@ export function MatchCard({
     );
   }
 
-  // Open cards "go live" with a soft ombre of the two flags — home colour on the
-  // left half, away colour on the right. Every other state stays plain, unless a
-  // caller opts in (e.g. the home-page showcase).
-  const ombre = ombreProp ?? data.state === "open";
+  // Every card wears a soft ombre of the two flags — home colour on the left
+  // half, away colour on the right. Callers can still force it off.
+  const ombre = ombreProp ?? true;
 
   return (
     <div
-      className={`relative animate-pop-in overflow-hidden rounded-3xl bg-white/90 shadow-lg ring-1 ${theme.ring} backdrop-blur`}
+      className={`relative animate-pop-in overflow-hidden rounded-3xl bg-white/90 shadow-lg ring-1 dark:bg-stone-800/90 ${theme.ring} backdrop-blur`}
     >
       {ombre && (
         <div
@@ -250,7 +250,9 @@ export function MatchCard({
           {entry && (
             <div
               className={`mt-3 flex items-center justify-center gap-4 rounded-2xl py-2 ${
-                editing ? "bg-cream/80" : "bg-stone-100/80"
+                editing
+                  ? "bg-cream/80 dark:bg-stone-700/60"
+                  : "bg-stone-100/80 dark:bg-stone-800/70"
               }`}
             >
               <Stepper
@@ -271,7 +273,7 @@ export function MatchCard({
         </div>
 
         {footer && (
-          <div className="border-t border-black/5 bg-cream/60 px-4 py-2 text-xs font-bold">
+          <div className="border-t border-black/5 bg-cream/60 px-4 py-2 text-xs font-bold dark:border-white/10 dark:bg-stone-800/60">
             {footer}
           </div>
         )}
