@@ -41,6 +41,12 @@ export default function Home() {
             Join a group
           </a>
         </div>
+        <a
+          href="/how-to-play"
+          className="mt-3 inline-block text-sm font-bold text-grape hover:underline"
+        >
+          New here? How to play →
+        </a>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
