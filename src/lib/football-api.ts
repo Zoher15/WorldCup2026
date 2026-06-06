@@ -50,6 +50,42 @@ export async function fetchFixturesByDate(date: string): Promise<ApiFixture[]> {
   return body.response;
 }
 
+/**
+ * Diagnostic probe: runs a few fixture queries and returns the API's own
+ * `results`/`errors` metadata (which the normal path discards) so we can see
+ * exactly why a query came back empty — e.g. a free-plan season restriction.
+ */
+export async function fetchFixturesDiagnostics(date: string): Promise<unknown> {
+  const probes: { label: string; path: string }[] = [
+    { label: "league+season+date", path: `/fixtures?league=${WORLD_CUP_LEAGUE}&season=${SEASON}&date=${date}&timezone=UTC` },
+    { label: "league+season (all)", path: `/fixtures?league=${WORLD_CUP_LEAGUE}&season=${SEASON}` },
+    { label: "league seasons coverage", path: `/leagues?id=${WORLD_CUP_LEAGUE}` },
+  ];
+  const out: unknown[] = [];
+  for (const probe of probes) {
+    const res = await fetch(`${API_BASE}${probe.path}`, {
+      headers: { "x-apisports-key": apiKey() },
+      cache: "no-store",
+    });
+    let json: Record<string, unknown> = {};
+    try {
+      json = (await res.json()) as Record<string, unknown>;
+    } catch {
+      /* non-JSON */
+    }
+    const response = json.response;
+    out.push({
+      probe: probe.label,
+      httpStatus: res.status,
+      results: json.results,
+      errors: json.errors,
+      sample:
+        Array.isArray(response) && response.length > 0 ? response[0] : null,
+    });
+  }
+  return out;
+}
+
 // --- pure status helpers (safe to unit-test) ---
 
 const FINAL_STATUSES = new Set(["FT", "AET", "PEN"]);
