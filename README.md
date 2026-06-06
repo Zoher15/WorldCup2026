@@ -94,10 +94,11 @@ Aim: **festive and colorful**, fun for all ages, friction-free on phones.
   placeholders ("Winner Group A") get a neutral icon until the team is known.
 - **Match cards**: one unified scoreboard for every state. Both flags, team
   names, kickoff time, venue, and a state pill (opens-in / closes-in countdown,
-  `LIVE 67'`, `FULL TIME`). Every card wears a soft ombre of the two flags'
-  colours (home on the left half, away on the right). Open cards have active
-  +/− steppers; non-open cards grey the steppers out. When locked, the card
-  reads as a scoreboard: your pick, the result, and points earned.
+  `LIVE 67'`, `FULL TIME`). Each card's background is the two teams' actual
+  flags — home on the left half, away on the right — feathered into an ombre
+  where they meet. Open cards have active +/− steppers; non-open cards grey the
+  steppers out. When locked, the card reads as a scoreboard: your pick, the
+  result, and points earned.
 - **Light & dark**: the whole UI adapts to the viewer's `prefers-color-scheme`,
   so OS / browser dark settings (and dark-mode toggles) get a proper dark theme
   rather than a washed-out auto-invert. `color-scheme` is declared too.

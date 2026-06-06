@@ -3,7 +3,7 @@
 import { Flag } from "./Flag";
 import { Stepper } from "./Stepper";
 import { Countdown } from "./Countdown";
-import { teamColor, teamLabel } from "@/lib/fifa";
+import { teamByCode, teamColor, teamLabel } from "@/lib/fifa";
 import { formatKickoffTime, formatStageLabel } from "@/lib/format";
 import type { Stage } from "@/lib/types";
 
@@ -170,6 +170,42 @@ function Score({
   );
 }
 
+/**
+ * One half of the card's background, painted with a team's actual flag (via the
+ * flag-icons `fi fi-xx` class) and feathered on its inner edge so the home and
+ * away halves cross-blend in the middle. Unknown teams (knockout placeholders)
+ * fall back to their neutral colour.
+ */
+function FlagHalf({
+  code,
+  side,
+}: {
+  code: string | null;
+  side: "left" | "right";
+}) {
+  const team = teamByCode(code);
+  const edge = side === "left" ? "left-0" : "right-0";
+  const mask =
+    side === "left"
+      ? "linear-gradient(to right, #000 60%, transparent 100%)"
+      : "linear-gradient(to left, #000 60%, transparent 100%)";
+  const style: React.CSSProperties = {
+    backgroundSize: "cover",
+    WebkitMaskImage: mask,
+    maskImage: mask,
+    ...(team ? null : { backgroundColor: teamColor(code) }),
+  };
+  return (
+    <span
+      aria-hidden
+      className={`absolute top-0 ${edge} h-full w-[55%] bg-center bg-no-repeat ${
+        team ? `fi fi-${team.iso}` : ""
+      }`}
+      style={style}
+    />
+  );
+}
+
 export function MatchCard({
   data,
   opensAt,
@@ -210,8 +246,8 @@ export function MatchCard({
     );
   }
 
-  // Every card wears a soft ombre of the two flags — home colour on the left
-  // half, away colour on the right. Callers can still force it off.
+  // Every card wears the two teams' flags — home on the left half, away on the
+  // right — feathered into an ombre where they meet. Callers can force it off.
   const ombre = ombreProp ?? true;
 
   return (
@@ -219,13 +255,10 @@ export function MatchCard({
       className={`relative animate-pop-in overflow-hidden rounded-3xl bg-white/90 shadow-lg ring-1 dark:bg-stone-800/90 ${theme.ring} backdrop-blur`}
     >
       {ombre && (
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-25"
-          style={{
-            background: `linear-gradient(100deg, ${teamColor(data.homeCode)} 0%, ${teamColor(data.homeCode)} 35%, ${teamColor(data.awayCode)} 65%, ${teamColor(data.awayCode)} 100%)`,
-          }}
-        />
+        <div className="pointer-events-none absolute inset-0 opacity-25">
+          <FlagHalf code={data.homeCode} side="left" />
+          <FlagHalf code={data.awayCode} side="right" />
+        </div>
       )}
 
       <div className="relative">
