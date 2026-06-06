@@ -1,5 +1,6 @@
 import { pollIfDue, syncDay } from "@/lib/sync";
 import { fetchFixturesDiagnostics } from "@/lib/football-api";
+import { balldontlieDiagnostics } from "@/lib/balldontlie";
 
 export const dynamic = "force-dynamic";
 
@@ -28,10 +29,14 @@ async function handle(req: Request): Promise<Response> {
   try {
     const date = url.searchParams.get("date");
 
-    // Diagnostics: show the API's own results/errors metadata, write nothing.
-    if (url.searchParams.get("debug")) {
+    // Diagnostics: show a provider's raw responses, write nothing.
+    const debug = url.searchParams.get("debug");
+    if (debug === "bdl") {
+      return Response.json({ ok: true, debug: "balldontlie", probes: await balldontlieDiagnostics() });
+    }
+    if (debug) {
       const probes = await fetchFixturesDiagnostics(date ?? "2026-06-11");
-      return Response.json({ ok: true, debug: true, probes });
+      return Response.json({ ok: true, debug: "api-football", probes });
     }
 
     // Forced sync of a specific date (manual / backfill), bypassing the guard.
