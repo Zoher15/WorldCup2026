@@ -7,6 +7,7 @@ import {
   setResultAction,
   clearResultAction,
   adminLogoutAction,
+  syncNowAction,
 } from "@/app/admin/actions";
 import type { AdminMatch } from "@/lib/results";
 
@@ -150,6 +151,15 @@ export function AdminResults({ matches }: { matches: AdminMatch[] }) {
   }, [matches, q]);
 
   const confirmed = matches.filter((m) => m.resultConfirmed).length;
+  const [syncing, startSync] = useTransition();
+  const [syncMsg, setSyncMsg] = useState<string | null>(null);
+
+  function syncNow() {
+    startSync(async () => {
+      const res = await syncNowAction();
+      setSyncMsg(res.ok ? res.message ?? "Synced ✓" : res.error ?? "Sync failed");
+    });
+  }
 
   return (
     <div>
@@ -160,12 +170,26 @@ export function AdminResults({ matches }: { matches: AdminMatch[] }) {
             {confirmed} of {matches.length} confirmed
           </p>
         </div>
-        <form action={adminLogoutAction}>
-          <button className="rounded-full bg-stone-200 px-4 py-2 text-sm font-bold text-stone-700">
-            Sign out
+        <div className="flex items-center gap-2">
+          <button
+            onClick={syncNow}
+            disabled={syncing}
+            className="rounded-full bg-ocean px-4 py-2 text-sm font-bold text-white shadow disabled:opacity-50"
+          >
+            {syncing ? "Syncing…" : "Sync live scores"}
           </button>
-        </form>
+          <form action={adminLogoutAction}>
+            <button className="rounded-full bg-stone-200 px-4 py-2 text-sm font-bold text-stone-700">
+              Sign out
+            </button>
+          </form>
+        </div>
       </div>
+      {syncMsg && (
+        <p className="mb-3 rounded-xl bg-ocean/10 px-4 py-2 text-sm font-bold text-ocean">
+          {syncMsg}
+        </p>
+      )}
 
       <input
         value={q}

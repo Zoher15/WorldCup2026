@@ -131,3 +131,57 @@ export function codeByName(name: string | null | undefined): string | null {
   if (!name) return null;
   return NAME_TO_CODE[name] ?? null;
 }
+
+/**
+ * API-Football uses its own team-name spellings, different from both FIFA codes
+ * and the openfootball names (e.g. "Korea Republic", "IR Iran",
+ * "Czech Republic"). These aliases (normalized: lowercase, accent-free) map
+ * those to our FIFA codes.
+ */
+const API_ALIASES: Record<string, string> = {
+  "korea republic": "KOR",
+  "south korea": "KOR",
+  usa: "USA",
+  "united states": "USA",
+  "ir iran": "IRN",
+  iran: "IRN",
+  "ivory coast": "CIV",
+  "cote divoire": "CIV",
+  "czech republic": "CZE",
+  czechia: "CZE",
+  turkey: "TUR",
+  turkiye: "TUR",
+  "cape verde islands": "CPV",
+  "cape verde": "CPV",
+  "dr congo": "COD",
+  "congo dr": "COD",
+  "bosnia and herzegovina": "BIH",
+  "bosnia herzegovina": "BIH",
+  curacao: "CUW",
+  "saudi arabia": "KSA",
+};
+
+function normalizeName(name: string): string {
+  // NFD splits accented letters into base + combining marks; [^a-z ] then drops
+  // the marks (and punctuation), so "Côte d'Ivoire" -> "cote divoire".
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[^a-z ]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Resolve an API-Football team name to our FIFA code, or null if unknown. */
+export function resolveApiTeam(name: string | null | undefined): string | null {
+  if (!name) return null;
+  const n = normalizeName(name);
+  if (API_ALIASES[n]) return API_ALIASES[n];
+  for (const [fifaName, code] of Object.entries(NAME_TO_CODE)) {
+    if (normalizeName(fifaName) === n) return code;
+  }
+  for (const [code, info] of Object.entries(TEAMS)) {
+    if (normalizeName(info.name) === n) return code;
+  }
+  return null;
+}
