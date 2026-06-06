@@ -29,6 +29,41 @@ async function fdGet(path: string): Promise<{ status: number; ok: boolean; json:
   return { status: res.status, ok: res.ok, json, text };
 }
 
+export interface FdTeam {
+  id: number;
+  name: string;
+  tla: string | null;
+}
+
+export interface FdMatch {
+  id: number;
+  utcDate: string;
+  status: string; // TIMED | SCHEDULED | IN_PLAY | PAUSED | FINISHED | AWARDED | POSTPONED | SUSPENDED | CANCELLED
+  stage: string; // GROUP_STAGE | LAST_16 | ... | FINAL
+  group: string | null;
+  homeTeam: FdTeam;
+  awayTeam: FdTeam;
+  score: {
+    winner: string | null; // HOME_TEAM | AWAY_TEAM | DRAW
+    duration: string; // REGULAR | EXTRA_TIME | PENALTY_SHOOTOUT
+    fullTime: { home: number | null; away: number | null };
+  };
+}
+
+/** Fetch World Cup matches (all of the current season, or a date range). */
+export async function fetchWorldCupMatches(
+  dateFrom?: string,
+  dateTo?: string,
+): Promise<FdMatch[]> {
+  let path = "/competitions/WC/matches";
+  if (dateFrom && dateTo) path += `?dateFrom=${dateFrom}&dateTo=${dateTo}`;
+  const r = await fdGet(path);
+  if (!r.ok) {
+    throw new Error(`football-data ${r.status}: ${r.text.slice(0, 200)}`);
+  }
+  return ((r.json as { matches?: FdMatch[] })?.matches ?? []);
+}
+
 export async function footballDataDiagnostics(): Promise<unknown> {
   const out: Record<string, unknown> = {};
 

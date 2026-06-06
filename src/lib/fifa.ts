@@ -159,6 +159,7 @@ const API_ALIASES: Record<string, string> = {
   "bosnia herzegovina": "BIH",
   curacao: "CUW",
   "saudi arabia": "KSA",
+  "cabo verde": "CPV",
 };
 
 function normalizeName(name: string): string {
@@ -184,4 +185,16 @@ export function resolveApiTeam(name: string | null | undefined): string | null {
     if (normalizeName(info.name) === n) return code;
   }
   return null;
+}
+
+/**
+ * Resolve a football-data.org team to our FIFA code. Their `tla` is usually a
+ * FIFA code already, so prefer it; fall back to resolving the name.
+ */
+export function resolveFdTeam(
+  tla: string | null | undefined,
+  name: string | null | undefined,
+): string | null {
+  if (tla && TEAMS[tla.toUpperCase()]) return tla.toUpperCase();
+  return resolveApiTeam(name);
 }

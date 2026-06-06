@@ -39,22 +39,23 @@ worldcup.kachwalas.com  → Vercel (this app)  ──>  Supabase (Postgres)
 
 ## 4. Live-score poller (free)
 
+Scores come from **football-data.org** (free tier — covers the 2026 World Cup,
+final scores, slightly delayed; not a live in-play clock). API-Football's free
+tier does **not** cover 2026, so it's only kept for the optional paid upgrade.
+
 Vercel's free plan caps cron at **once per day**, so the poller is scheduled in
 **Supabase** instead (`pg_cron`, every minute, free). The `/api/poll` endpoint is
-budget-aware — it only spends an API-Football request when a match is live and
-the planner's interval (`src/lib/polling.ts`) has elapsed — so an every-minute
-cron stays within the free 100/day quota.
+budget-aware — it only calls football-data when a match is live and the planner's
+interval (`src/lib/polling.ts`) has elapsed.
 
-1. Set `FOOTBALL_API_KEY` and `CRON_SECRET` in Vercel and redeploy.
+1. Set `FOOTBALL_DATA_TOKEN` (free, from football-data.org) and `CRON_SECRET` in
+   Vercel and redeploy.
 2. In the Supabase SQL Editor, run `supabase/cron.sql`, replacing
    `YOUR_CRON_SECRET` with the same value.
 3. Verify with `select * from cron.job_run_details order by start_time desc;`.
 
-To test before the tournament, force a sync of a specific day (bypasses the
-guard): `GET /api/poll?secret=...&date=2026-06-11&force=1`.
-
-The poller runs server-side, so `FOOTBALL_API_KEY` stays secret and one request
-covers every viewer.
+The poller auto-confirms a result when football-data reports `FINISHED`, feeding
+the leaderboards. `/admin` stays available to correct or fill anything by hand.
 
 ## Recovery
 

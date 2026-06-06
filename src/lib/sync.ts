@@ -1,12 +1,13 @@
 import { createAdminClient } from "./supabase/admin";
-import { fetchFixturesByDate } from "./football-api";
-import { resolveApiTeam } from "./fifa";
+import { fetchWorldCupMatches } from "./footballdata";
+import { resolveFdTeam } from "./fifa";
 import { planDay, isWithinLiveWindows } from "./polling";
 import {
-  deriveMatchUpdate,
-  matchApiFixtureToLocal,
-  type LocalMatchRef,
-} from "./sync-core";
+  deriveFdUpdate,
+  fdStatusToOurs,
+  matchFdToLocal,
+} from "./fd-core";
+import type { LocalMatchRef } from "./sync-core";
 
 export interface SyncSummary {
   fetched: number;
@@ -16,20 +17,28 @@ export interface SyncSummary {
 }
 
 /**
- * Sync all World Cup fixtures for a UTC date from API-Football into our matches.
+ * Sync World Cup match data from football-data.org into our matches.
  *
- *  - Links each fixture to a local match by stored external_ref, else by
- *    time/teams, recording the link for next time.
- *  - Writes live status/minute/score; fills in knockout teams once known.
- *  - Auto-confirms results on FT/AET/PEN (the points gate).
- *  - Never overwrites a match that's already confirmed, so manual admin
- *    corrections always win.
+ *  - Pulls all WC matches; processes only live/finished ones (the ones with
+ *    something to write).
+ *  - Links each to a local match by stored external_ref, else by time/teams,
+ *    recording the link for next time.
+ *  - Writes live status/score; fills in knockout teams once known.
+ *  - Auto-confirms results when football-data reports FINISHED/AWARDED.
+ *  - Never overwrites an already-confirmed match, so manual admin corrections
+ *    always win.
+ *
+ * football-data's free tier provides final scores (slightly delayed), not a
+ * live in-play clock, so `minute` is left null.
  */
-export async function syncDay(date: string): Promise<SyncSummary> {
+export async function syncDay(_date?: string): Promise<SyncSummary> {
   const db = createAdminClient();
-  const fixtures = await fetchFixturesByDate(date);
+  const all = await fetchWorldCupMatches();
+  const fixtures = all.filter((m) => {
+    const s = fdStatusToOurs(m.status);
+    return s === "live" || s === "finished";
+  });
 
-  // Load local matches near this date (±1 day) plus any already linked.
   const { data: localRows } = await db
     .from("matches")
     .select("id, external_ref, kickoff_at, stage, home_code, away_code, result_confirmed");
@@ -52,10 +61,10 @@ export async function syncDay(date: string): Promise<SyncSummary> {
   };
 
   for (const fx of fixtures) {
-    const refId = String(fx.fixture.id);
+    const refId = String(fx.id);
     let local = byRef.get(refId) ?? null;
     if (!local) {
-      const matchedId = matchApiFixtureToLocal(fx, refs, resolveApiTeam);
+      const matchedId = matchFdToLocal(fx, refs, resolveFdTeam);
       local = matchedId ? locals.find((l) => l.id === matchedId) ?? null : null;
     }
     if (!local) {
@@ -66,7 +75,7 @@ export async function syncDay(date: string): Promise<SyncSummary> {
     if (local.result_confirmed) continue;
 
     const isKnockout = local.stage !== "group";
-    const u = deriveMatchUpdate(fx, { isKnockout, resolveCode: resolveApiTeam });
+    const u = deriveFdUpdate(fx, { isKnockout, resolveTeam: resolveFdTeam });
 
     const patch: Record<string, unknown> = {
       external_ref: refId,
@@ -76,7 +85,6 @@ export async function syncDay(date: string): Promise<SyncSummary> {
       away_goals: u.awayGoals,
       last_synced_at: new Date().toISOString(),
     };
-    // Fill in knockout teams once the API knows them.
     if (isKnockout) {
       if (!local.home_code && u.homeCode) patch.home_code = u.homeCode;
       if (!local.away_code && u.awayCode) patch.away_code = u.awayCode;

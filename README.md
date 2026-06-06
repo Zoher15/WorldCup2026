@@ -127,7 +127,7 @@ Predictions are never lost, and the leaderboard can always be rebuilt:
 - ✅ Recompute / recovery engine + tests (`src/lib/recompute.ts`)
 - ✅ Per-group leaderboards (overall / win / scoreline) from confirmed results
 - ✅ Admin results entry (`/admin`, passcode-gated) feeding the leaderboard
-- ✅ Live score sync (API-Football → `/api/poll`, auto-confirms on FT/AET/PEN)
+- ✅ Live score sync (football-data.org free → `/api/poll`, auto-confirms on FINISHED)
 - ✅ Budget-aware polling + Supabase cron setup (`supabase/cron.sql`)
 - ⬜ PWA polish
 
