@@ -59,7 +59,7 @@ export default function Home() {
           </h2>
           <div className="grid gap-4 sm:grid-cols-2">
             {UPCOMING.map((m, i) => (
-              <MatchCard key={i} data={m} />
+              <MatchCard key={i} data={m} ombre />
             ))}
           </div>
         </section>

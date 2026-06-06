@@ -47,6 +47,8 @@ export interface MatchCardProps {
   footer?: React.ReactNode;
   /** Fired when a header countdown reaches zero (e.g. to refresh the page). */
   onExpire?: () => void;
+  /** Force the two-flag ombre on/off (defaults to on for open cards). */
+  ombre?: boolean;
 }
 
 /** Per-state festive treatment: card edge tint + header gradient. */
@@ -174,6 +176,7 @@ export function MatchCard({
   pick,
   footer,
   onExpire,
+  ombre: ombreProp,
 }: MatchCardProps) {
   const theme = THEME[data.state];
   const editing = data.state === "open" && entry != null;
@@ -207,8 +210,9 @@ export function MatchCard({
   }
 
   // Open cards "go live" with a soft ombre of the two flags — home colour on the
-  // left half, away colour on the right. Every other state stays plain.
-  const ombre = data.state === "open";
+  // left half, away colour on the right. Every other state stays plain, unless a
+  // caller opts in (e.g. the home-page showcase).
+  const ombre = ombreProp ?? data.state === "open";
 
   return (
     <div
