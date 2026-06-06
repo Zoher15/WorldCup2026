@@ -2,15 +2,8 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Flag } from "./Flag";
-import { Stepper } from "./Stepper";
-import { Countdown } from "./Countdown";
-import { teamLabel } from "@/lib/fifa";
-import {
-  formatKickoffDate,
-  formatKickoffTime,
-  formatStageLabel,
-} from "@/lib/format";
+import { MatchCard } from "./MatchCard";
+import { formatKickoffDate } from "@/lib/format";
 import { savePredictionsAction } from "@/app/predict/actions";
 import type { MatchForPrediction, SavedPrediction } from "@/lib/predictions";
 
@@ -109,69 +102,36 @@ export function PredictionList({
               const open = m.state === "open";
               const isSaved = !dirtyIds.includes(m.id) && savedSnapshot[m.id];
               return (
-                <div
+                <MatchCard
                   key={m.id}
-                  className={`rounded-2xl p-4 shadow ring-1 ring-black/5 ${
-                    open ? "bg-white/90" : "bg-white/60"
-                  }`}
-                >
-                  <div className="mb-1 flex items-center justify-between text-xs font-bold">
-                    <span className="text-stone-400">
-                      {formatStageLabel(m.groupLabel, m.stage)}
-                      {" · "}
-                      {formatKickoffTime(m.kickoffAt)}
-                    </span>
-                    {open ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-flame/15 px-2 py-0.5 text-flame">
-                        ⏳ closes in{" "}
-                        <Countdown
-                          target={m.kickoffAt}
-                          expiredLabel="closed"
-                          onExpire={() => router.refresh()}
-                        />
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-ocean/10 px-2 py-0.5 text-ocean">
-                        🔒 opens in{" "}
-                        <Countdown
-                          target={m.opensAt}
-                          expiredLabel="now open"
-                          onExpire={() => router.refresh()}
-                        />
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex min-w-0 flex-1 items-center gap-2">
-                      <Flag code={m.homeCode} size="md" />
-                      <span className="truncate font-bold">
-                        {teamLabel(m.homeCode, m.homeLabel)}
-                      </span>
-                    </div>
-                    <Stepper
-                      value={pick.home}
-                      onChange={(n) => setPick(m.id, "home", n)}
-                      disabled={!open}
-                    />
-                    <span className="font-black text-stone-300">:</span>
-                    <Stepper
-                      value={pick.away}
-                      onChange={(n) => setPick(m.id, "away", n)}
-                      disabled={!open}
-                    />
-                    <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
-                      <span className="truncate text-right font-bold">
-                        {teamLabel(m.awayCode, m.awayLabel)}
-                      </span>
-                      <Flag code={m.awayCode} size="md" />
-                    </div>
-                  </div>
-                  {open && isSaved && (
-                    <div className="mt-1 text-right text-xs font-bold text-pitch">
-                      Saved ✓
-                    </div>
-                  )}
-                </div>
+                  data={{
+                    homeCode: m.homeCode,
+                    awayCode: m.awayCode,
+                    homeLabel: m.homeLabel,
+                    awayLabel: m.awayLabel,
+                    kickoffAt: m.kickoffAt,
+                    stage: m.stage,
+                    groupLabel: m.groupLabel,
+                    matchNumber: m.matchNumber,
+                    state: m.state,
+                  }}
+                  opensAt={m.opensAt}
+                  entry={
+                    open
+                      ? {
+                          home: pick.home,
+                          away: pick.away,
+                          onChange: (side, n) => setPick(m.id, side, n),
+                        }
+                      : undefined
+                  }
+                  onExpire={() => router.refresh()}
+                  footer={
+                    open && isSaved ? (
+                      <span className="text-pitch">Saved ✓</span>
+                    ) : undefined
+                  }
+                />
               );
             })}
           </div>

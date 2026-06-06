@@ -1,109 +1,89 @@
 "use client";
 
 import Link from "next/link";
-import { Flag } from "./Flag";
-import { teamLabel } from "@/lib/fifa";
-import { formatKickoffDateTime, formatStageLabel } from "@/lib/format";
+import { MatchCard, type MatchCardData, type MatchCardState } from "./MatchCard";
 import type { PlayerPredictionRow, PlayerProfile } from "@/lib/player";
 
-const score = (a: number, b: number) => `${a}–${b}`;
+/** A single match in a player's profile, rendered as the shared scoreboard. */
+function PlayerCard({ row }: { row: PlayerPredictionRow }) {
+  // A kicked-off match with a confirmed result reads as "final"; otherwise it
+  // keeps its prediction-window state (upcoming / open / locked-awaiting).
+  const state: MatchCardState =
+    row.state === "locked" && row.result ? "final" : row.state;
 
-function Teams({ row }: { row: PlayerPredictionRow }) {
+  const data: MatchCardData = {
+    homeCode: row.homeCode,
+    awayCode: row.awayCode,
+    homeLabel: row.homeLabel,
+    awayLabel: row.awayLabel,
+    kickoffAt: row.kickoffAt,
+    stage: row.stage,
+    groupLabel: row.groupLabel,
+    matchNumber: row.matchNumber,
+    state,
+    homeGoals: row.result?.home,
+    awayGoals: row.result?.away,
+  };
+
+  const footer =
+    row.state === "locked" ? <PastFooter row={row} /> : <FutureFooter row={row} />;
+
   return (
-    <div className="flex items-center gap-2 text-sm font-bold">
-      <div className="flex min-w-0 flex-1 items-center gap-2">
-        <Flag code={row.homeCode} size="sm" />
-        <span className="truncate">{teamLabel(row.homeCode, row.homeLabel)}</span>
-      </div>
-      <span className="text-stone-300">v</span>
-      <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
-        <span className="truncate text-right">
-          {teamLabel(row.awayCode, row.awayLabel)}
-        </span>
-        <Flag code={row.awayCode} size="sm" />
-      </div>
-    </div>
+    <MatchCard
+      data={data}
+      pick={row.pick ? { home: row.pick.home, away: row.pick.away } : null}
+      footer={footer}
+    />
   );
 }
 
-function Meta({ row }: { row: PlayerPredictionRow }) {
+/** Past (kicked-off) match: the pick and points earned are revealed to everyone. */
+function PastFooter({ row }: { row: PlayerPredictionRow }) {
   return (
-    <div className="mb-1 flex items-center justify-between text-xs font-bold text-stone-400">
-      <span>
-        #{row.matchNumber} · {formatStageLabel(row.groupLabel, row.stage)}
-      </span>
-      <span>{formatKickoffDateTime(row.kickoffAt)}</span>
-    </div>
-  );
-}
-
-/** A past (kicked-off) match: pick and result are revealed for everyone. */
-function PastRow({ row }: { row: PlayerPredictionRow }) {
-  return (
-    <div className="rounded-2xl bg-white/85 p-3 shadow ring-1 ring-black/5">
-      <Meta row={row} />
-      <Teams row={row} />
-      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-bold">
-        <span className="text-stone-500">
-          Pick:{" "}
-          {row.pick ? (
-            <span className="text-grape">{score(row.pick.home, row.pick.away)}</span>
-          ) : (
-            <span className="text-stone-400">no prediction</span>
-          )}
-        </span>
-        {row.result && (
-          <span className="text-stone-500">
-            Result:{" "}
-            <span className="text-ocean">
-              {score(row.result.home, row.result.away)}
-            </span>
-          </span>
-        )}
-        {row.points != null ? (
-          <span className="ml-auto rounded-full bg-pitch/15 px-2.5 py-1 font-black text-pitch">
-            +{row.points} pts
-          </span>
-        ) : row.result == null ? (
-          <span className="ml-auto text-stone-400">awaiting result</span>
-        ) : row.hasPrediction ? (
-          <span className="ml-auto text-stone-400">before you joined</span>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
-/** An open/upcoming match: pick stays hidden, only entered-or-not is shown. */
-function FutureRow({ row }: { row: PlayerPredictionRow }) {
-  return (
-    <div className="rounded-2xl bg-white/70 p-3 shadow ring-1 ring-black/5">
-      <Meta row={row} />
-      <Teams row={row} />
-      <div className="mt-2 text-xs font-bold">
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-stone-500">
         {row.pick ? (
-          // Owner viewing their own pick.
-          <span className="text-grape">Your pick: {score(row.pick.home, row.pick.away)}</span>
-        ) : row.hasPrediction ? (
-          <span className="text-stone-500">🔒 Entered · hidden until kickoff</span>
+          <>
+            Pick{" "}
+            <span className="text-grape">
+              {row.pick.home}–{row.pick.away}
+            </span>
+          </>
         ) : (
-          <span className="text-stone-400">Not entered yet</span>
+          <span className="text-stone-400">No prediction</span>
         )}
-      </div>
+      </span>
+      {row.points != null ? (
+        <span className="rounded-full bg-pitch/15 px-2.5 py-0.5 font-black text-pitch">
+          +{row.points} pts
+        </span>
+      ) : row.result == null ? (
+        <span className="text-stone-400">awaiting result</span>
+      ) : row.hasPrediction ? (
+        <span className="text-stone-400">before you joined</span>
+      ) : null}
     </div>
   );
+}
+
+/** Open/upcoming match: the pick stays private — only entered-or-not is shown. */
+function FutureFooter({ row }: { row: PlayerPredictionRow }) {
+  if (row.pick) return <span className="text-pitch">✓ You&apos;re in</span>;
+  if (row.hasPrediction)
+    return (
+      <span className="text-stone-500">🔒 Entered · hidden until kickoff</span>
+    );
+  return <span className="text-stone-400">Not entered yet</span>;
 }
 
 function Section({
   title,
   rows,
   empty,
-  render,
 }: {
   title: string;
   rows: PlayerPredictionRow[];
   empty: string;
-  render: (row: PlayerPredictionRow) => React.ReactNode;
 }) {
   return (
     <section className="mb-6">
@@ -115,7 +95,11 @@ function Section({
           {empty}
         </p>
       ) : (
-        <div className="space-y-2">{rows.map(render)}</div>
+        <div className="space-y-3">
+          {rows.map((r) => (
+            <PlayerCard key={r.matchId} row={r} />
+          ))}
+        </div>
       )}
     </section>
   );
@@ -125,9 +109,7 @@ export function PlayerPredictions({ profile }: { profile: PlayerProfile }) {
   const open = profile.rows.filter((r) => r.state === "open");
   const upcoming = profile.rows.filter((r) => r.state === "upcoming");
   // Most-recent first for finished/in-progress matches.
-  const past = profile.rows
-    .filter((r) => r.state === "locked")
-    .reverse();
+  const past = profile.rows.filter((r) => r.state === "locked").reverse();
 
   return (
     <div>
@@ -135,19 +117,16 @@ export function PlayerPredictions({ profile }: { profile: PlayerProfile }) {
         title="Open now"
         rows={open}
         empty="No matches are open for prediction right now."
-        render={(r) => <FutureRow key={r.matchId} row={r} />}
       />
       <Section
         title="Upcoming"
         rows={upcoming}
         empty="Nothing on the horizon yet."
-        render={(r) => <FutureRow key={r.matchId} row={r} />}
       />
       <Section
         title="Past"
         rows={past}
         empty="No matches have kicked off yet."
-        render={(r) => <PastRow key={r.matchId} row={r} />}
       />
 
       {profile.player.isViewer && (

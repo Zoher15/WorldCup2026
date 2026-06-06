@@ -7,11 +7,14 @@ import { FIXTURES } from "@/data/fixtures";
 const UPCOMING: MatchCardData[] = FIXTURES.slice(0, 6).map((f) => ({
   homeCode: f.homeCode,
   awayCode: f.awayCode,
-  homeLabel: f.homeLabel ?? undefined,
-  awayLabel: f.awayLabel ?? undefined,
+  homeLabel: f.homeLabel,
+  awayLabel: f.awayLabel,
   kickoffAt: f.kickoffAt,
   venue: f.venue,
-  status: "scheduled",
+  stage: f.stage,
+  groupLabel: f.groupLabel,
+  matchNumber: f.matchNumber,
+  state: "upcoming",
 }));
 
 export default function Home() {
