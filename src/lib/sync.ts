@@ -109,11 +109,19 @@ export interface PollResult {
 }
 
 /**
- * Budget-aware poll, meant to be called frequently (e.g. a once-a-minute cron).
- * It only spends an API request when there's actually a match live AND enough
- * time has passed since the last sync (the interval the planner computed for
- * the day). Outside live windows it returns immediately without touching the
- * API, so frequent cron ticks stay well within the free quota.
+ * Minimum seconds between live-window polls. football-data.org's free tier
+ * limits us to 10 requests/minute with no daily cap, and one poll is one
+ * request, so ~once a minute is comfortable (1/10th of the limit). This floor
+ * just de-dupes back-to-back triggers; it isn't a budget constraint.
+ */
+const MIN_POLL_INTERVAL_SEC = 30;
+
+/**
+ * Poll guard, meant to be called frequently (e.g. a once-a-minute cron). It
+ * only calls football-data when a match is actually live (using the planner's
+ * match windows, which cover stoppage/extra time/penalties), and de-dupes
+ * polls closer than MIN_POLL_INTERVAL_SEC. Outside live windows it returns
+ * immediately without touching the API.
  */
 export async function pollIfDue(now: Date = new Date()): Promise<PollResult> {
   const db = createAdminClient();
@@ -139,7 +147,7 @@ export async function pollIfDue(now: Date = new Date()): Promise<PollResult> {
     const t = r.last_synced_at ? Date.parse(r.last_synced_at) : 0;
     return t > max ? t : max;
   }, 0);
-  if (lastSynced && nowMs - lastSynced < plan.intervalSec * 1000) {
+  if (lastSynced && nowMs - lastSynced < MIN_POLL_INTERVAL_SEC * 1000) {
     return { synced: false, reason: "paced" };
   }
 
