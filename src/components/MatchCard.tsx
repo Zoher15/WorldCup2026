@@ -7,11 +7,12 @@ import { formatKickoffTime, formatStageLabel } from "@/lib/format";
 import type { Stage } from "@/lib/types";
 
 /**
- * Every place a match shows up — predicting, locked, live, finished — speaks
- * one visual language: the two teams' flags fill the whole card, meeting in a
- * feathered seam down the middle, with the essentials floating on top in legible
- * glass chips. The *state* drives the status pill and what lives in the center
- * (score-entry steppers, a revealed pick, the live/final score, or kickoff time).
+ * Flat-design match card: the two teams' flags fill the whole card edge to edge
+ * and butt against each other in a hard split down the middle. Everything else
+ * is a crisp solid panel floating on top — no blur, no gradients — so the bold
+ * flags stay the hero. The *state* drives the status pill and what sits in the
+ * single focal tile (score-entry steppers, a revealed pick, the live/final
+ * score, or kickoff time).
  */
 export type MatchCardState = "upcoming" | "open" | "locked" | "live" | "final";
 
@@ -33,13 +34,13 @@ export interface MatchCardProps {
   data: MatchCardData;
   /** Window-open time (ISO) for the "opens in" countdown on upcoming matches. */
   opensAt?: string;
-  /** Interactive score entry; when present on an open match, the center shows steppers. */
+  /** Interactive score entry; when present on an open match, the focal tile shows steppers. */
   entry?: {
     home: number;
     away: number;
     onChange: (side: "home" | "away", n: number) => void;
   };
-  /** A revealed predicted score, shown in the center when not editing or live/final. */
+  /** A revealed predicted score, shown in the focal tile when not editing or live/final. */
   pick?: { home: number; away: number } | null;
   /** Contextual strip under the teams (saved indicator, points, privacy note). */
   footer?: React.ReactNode;
@@ -47,18 +48,8 @@ export interface MatchCardProps {
   onExpire?: () => void;
 }
 
-/** Per-state edge tint — a cheap, fun cue layered over the flag background. */
-const RING: Record<MatchCardState, string> = {
-  upcoming: "ring-ocean/30",
-  open: "ring-flame/40",
-  locked: "ring-stone-300 dark:ring-white/15",
-  live: "ring-flame/70",
-  final: "ring-pitch/40",
-};
-
-/** Frosted backdrop that keeps text crisp over any flag colors. */
-const GLASS =
-  "bg-white/75 backdrop-blur-sm ring-1 ring-black/5 dark:bg-stone-900/60 dark:ring-white/10";
+/** Solid (flat) surface for every panel floating over the flags. */
+const SOLID = "bg-white text-stone-700 dark:bg-stone-900 dark:text-stone-100";
 
 function StatusPill({
   data,
@@ -69,56 +60,50 @@ function StatusPill({
   opensAt?: string;
   onExpire?: () => void;
 }) {
+  const base = "rounded-full px-2.5 py-0.5";
   switch (data.state) {
     case "live":
       return (
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-flame px-2.5 py-0.5 text-white shadow-sm">
+        <span className={`${base} inline-flex items-center gap-1.5 bg-flame text-white`}>
           <span className="live-dot h-2 w-2 rounded-full bg-white" />
           LIVE{data.minute ? ` ${data.minute}'` : ""}
         </span>
       );
     case "final":
-      return (
-        <span className="rounded-full bg-pitch px-2.5 py-0.5 text-white shadow-sm">
-          FULL TIME
-        </span>
-      );
+      return <span className={`${base} bg-pitch text-white`}>FULL TIME</span>;
     case "locked":
-      return (
-        <span className={`rounded-full px-2.5 py-0.5 text-stone-600 dark:text-stone-200 ${GLASS}`}>
-          🔒 Locked
-        </span>
-      );
+      return <span className={`${base} ${SOLID} text-stone-500 dark:text-stone-300`}>🔒 Locked</span>;
     case "open":
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-flame px-2.5 py-0.5 text-white shadow-sm">
+        <span className={`${base} inline-flex items-center gap-1 bg-flame text-white`}>
           ⏳ closes in{" "}
           <Countdown target={data.kickoffAt} expiredLabel="closed" onExpire={onExpire} />
         </span>
       );
     case "upcoming":
       return opensAt ? (
-        <span className="inline-flex items-center gap-1 rounded-full bg-ocean px-2.5 py-0.5 text-white shadow-sm">
+        <span className={`${base} inline-flex items-center gap-1 bg-ocean text-white`}>
           🔓 opens in{" "}
           <Countdown target={opensAt} expiredLabel="now open" onExpire={onExpire} />
         </span>
       ) : (
-        <span className={`rounded-full px-2.5 py-0.5 text-ocean ${GLASS}`}>Upcoming</span>
+        <span className={`${base} ${SOLID} text-ocean`}>Upcoming</span>
       );
   }
 }
 
-/** A team's name in a glass chip — flags carry the identity, this keeps it legible. */
+/** A team's name on a solid bar — the flags carry identity, this keeps it legible. */
 function TeamName({ code, label }: { code: string | null; label?: string | null }) {
   return (
     <span
-      className={`line-clamp-2 min-w-0 flex-1 rounded-lg px-2 py-1 text-center text-sm font-extrabold leading-tight text-stone-800 dark:text-stone-50 ${GLASS}`}
+      className={`truncate rounded-lg px-2.5 py-1 text-center text-sm font-extrabold ${SOLID} text-stone-800 dark:text-stone-50`}
     >
       {teamLabel(code, label)}
     </span>
   );
 }
 
+/** The single focal tile: a solid block holding the score (or kickoff time). */
 function Score({
   home,
   away,
@@ -131,47 +116,40 @@ function Score({
   label?: string;
 }) {
   return (
-    <div className={`rounded-xl px-3 py-1 text-center ${GLASS}`}>
-      <div className={`flex items-center gap-1.5 text-2xl font-black tabular-nums ${tone}`}>
+    <div className={`rounded-xl px-4 py-1.5 text-center ${SOLID}`}>
+      <div className={`flex items-center gap-2 text-3xl font-black tabular-nums ${tone}`}>
         <span>{home}</span>
-        <span className="text-stone-400">:</span>
+        <span className="text-stone-300 dark:text-stone-600">:</span>
         <span>{away}</span>
       </div>
       {label && (
-        <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400">
-          {label}
-        </div>
+        <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400">{label}</div>
       )}
     </div>
   );
 }
 
 /**
- * One half of the card's background, painted with a team's actual flag (via the
- * flag-icons `fi fi-xx` class) and feathered on its inner edge so the home and
- * away halves cross-blend in the exact middle. Unknown teams (knockout
- * placeholders) fall back to their neutral colour.
+ * One half of the card's background, painted edge to edge with a team's actual
+ * flag (the flag-icons `fi fi-xx` class). The two halves butt together in a hard
+ * split at the exact middle; unknown teams (knockout placeholders) fall back to
+ * their neutral colour.
+ *
+ * Positioning and size are inline because flag-icons' `.fi` rule sets
+ * `position: relative; width: 1.333em` at equal specificity and loads later —
+ * inline styles are the only thing that reliably wins.
  */
 function FlagHalf({ code, side }: { code: string | null; side: "left" | "right" }) {
   const team = teamByCode(code);
-  const mask =
-    side === "left"
-      ? "linear-gradient(to right, #000 55%, transparent 100%)"
-      : "linear-gradient(to left, #000 55%, transparent 100%)";
-  // Positioning AND size go inline: flag-icons' `.fi` rule sets
-  // `position: relative; width: 1.333em` with the same specificity as Tailwind
-  // utilities, and is imported later — so `absolute`/`w-[…]` classes lose. Inline
-  // styles beat any class selector, reliably pinning each half to its edge and
-  // stretching it to fill (and overlap at) the seam.
   const style: React.CSSProperties = {
     position: "absolute",
     top: 0,
-    width: "62%",
     height: "100%",
-    ...(side === "left" ? { left: 0 } : { right: 0 }),
     backgroundSize: "cover",
-    WebkitMaskImage: mask,
-    maskImage: mask,
+    // The left half runs 1px past centre so the hard seam never shows a hairline.
+    ...(side === "left"
+      ? { left: 0, width: "calc(50% + 1px)" }
+      : { left: "50%", width: "50%" }),
     ...(team ? null : { backgroundColor: teamColor(code) }),
   };
   return (
@@ -190,96 +168,91 @@ export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: Matc
     data.homeGoals != null &&
     data.awayGoals != null;
 
-  // The center "scoreboard": the result, a revealed pick, or — failing all — the
-  // kickoff time. While editing it stays empty: the steppers below already show
-  // (and own) the live entry, so a center score would just duplicate them.
-  let center: React.ReactNode = null;
-  if (!editing) {
-    if (hasResult) {
-      center = (
-        <Score
-          home={data.homeGoals!}
-          away={data.awayGoals!}
-          tone={data.state === "live" ? "text-flame" : "text-stone-800 dark:text-stone-100"}
-        />
-      );
-    } else if (pick) {
-      center = <Score home={pick.home} away={pick.away} tone="text-grape" label="your pick" />;
-    } else {
-      center = (
-        <div className={`rounded-xl px-3 py-1 text-center text-stone-500 dark:text-stone-300 ${GLASS}`}>
-          <div className="text-base font-black">{formatKickoffTime(data.kickoffAt)}</div>
-          <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400">kickoff</div>
+  // The single focal tile, always the same size so the card's proportions never
+  // shift between states. Where a score can be entered (`entry`), the steppers
+  // are the constant element — active while editing, and disabled with a lock
+  // once the window is shut. Otherwise it shows the result, a revealed pick, or
+  // the kickoff time.
+  let focal: React.ReactNode;
+  if (hasResult) {
+    focal = (
+      <Score
+        home={data.homeGoals!}
+        away={data.awayGoals!}
+        tone={data.state === "live" ? "text-flame" : "text-stone-800 dark:text-stone-50"}
+      />
+    );
+  } else if (entry) {
+    const label = editing
+      ? "your call"
+      : data.state === "locked"
+        ? "🔒 locked"
+        : "🔒 opens soon";
+    focal = (
+      <div className={`rounded-xl px-3 py-1.5 ${SOLID} ${editing ? "" : "opacity-95"}`}>
+        <div className="flex items-center justify-center gap-3">
+          <Stepper
+            size="sm"
+            value={entry.home}
+            disabled={!editing}
+            onChange={(n) => entry.onChange("home", n)}
+          />
+          <span className="text-xl font-black text-stone-300 dark:text-stone-600">:</span>
+          <Stepper
+            size="sm"
+            value={entry.away}
+            disabled={!editing}
+            onChange={(n) => entry.onChange("away", n)}
+          />
         </div>
-      );
-    }
+        <div className="text-center text-[9px] font-bold uppercase tracking-wide text-stone-400">
+          {label}
+        </div>
+      </div>
+    );
+  } else if (pick) {
+    focal = <Score home={pick.home} away={pick.away} tone="text-grape" label="your pick" />;
+  } else {
+    focal = (
+      <div className={`rounded-xl px-4 py-2 text-center ${SOLID}`}>
+        <div className="text-xl font-black text-stone-700 dark:text-stone-100">
+          {formatKickoffTime(data.kickoffAt)}
+        </div>
+        <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400">kickoff</div>
+      </div>
+    );
   }
 
   return (
-    <div
-      className={`relative animate-pop-in overflow-hidden rounded-2xl bg-white shadow-md ring-1 dark:bg-stone-900 ${RING[data.state]}`}
-    >
-      {/* The two teams' flags fill the whole card, feathered together at the seam.
-          A 1px bleed past the edges keeps the rounded overflow-clip from leaving a
-          hairline of the card background showing along the edges. */}
-      <div aria-hidden className="pointer-events-none absolute -inset-px opacity-90">
+    <div className="relative animate-pop-in overflow-hidden rounded-2xl bg-stone-200 shadow-md dark:bg-stone-800">
+      {/* The two flags fill the card and butt together at a hard centre split.
+          A 1px bleed past the edges keeps the rounded clip from leaving a hairline. */}
+      <div aria-hidden className="pointer-events-none absolute -inset-px">
         <FlagHalf code={data.homeCode} side="left" />
         <FlagHalf code={data.awayCode} side="right" />
       </div>
-      {/* A gentle scrim takes the edge off saturation so chips read cleanly. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-white/25 dark:bg-stone-950/35"
-      />
 
-      <div className="relative flex flex-col gap-2 p-3 text-xs font-bold">
+      <div className="relative flex min-h-[11.5rem] flex-col justify-between gap-2 p-3 text-xs font-bold">
         <div className="flex items-center justify-between gap-2">
-          <span
-            className={`truncate rounded-full px-2.5 py-0.5 text-stone-600 dark:text-stone-200 ${GLASS}`}
-          >
+          <span className={`truncate rounded-full px-2.5 py-0.5 ${SOLID} text-stone-600 dark:text-stone-200`}>
             {formatStageLabel(data.groupLabel, data.stage ?? "group")}
           </span>
           <StatusPill data={data} opensAt={opensAt} onExpire={onExpire} />
         </div>
 
-        <div className="flex items-center justify-between gap-2">
-          <TeamName code={data.homeCode} label={data.homeLabel} />
-          {center && <div className="shrink-0">{center}</div>}
-          <TeamName code={data.awayCode} label={data.awayLabel} />
-        </div>
+        <div className="flex justify-center">{focal}</div>
 
-        {entry && (
-          <div
-            className={`flex flex-col items-center gap-1 rounded-xl py-1.5 ${GLASS} ${
-              editing ? "" : "opacity-70"
-            }`}
-          >
-            <div className="flex items-center justify-center gap-4">
-              <Stepper
-                size="sm"
-                value={entry.home}
-                disabled={!editing}
-                onChange={(n) => entry.onChange("home", n)}
-              />
-              <span className="text-lg font-black text-stone-400">:</span>
-              <Stepper
-                size="sm"
-                value={entry.away}
-                disabled={!editing}
-                onChange={(n) => entry.onChange("away", n)}
-              />
+        <div className="flex flex-col gap-2">
+          <div className="grid grid-cols-2 gap-2">
+            <TeamName code={data.homeCode} label={data.homeLabel} />
+            <TeamName code={data.awayCode} label={data.awayLabel} />
+          </div>
+          {footer && (
+            <div className={`rounded-lg px-3 py-1.5 ${SOLID} text-stone-700 dark:text-stone-100`}>
+              {footer}
             </div>
-            <span className="text-[9px] font-bold uppercase tracking-wide text-stone-400">
-              {editing ? "your call" : "your pick"}
-            </span>
-          </div>
-        )}
-
-        {footer && (
-          <div className={`rounded-xl px-3 py-1.5 text-stone-700 dark:text-stone-100 ${GLASS}`}>
-            {footer}
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
