@@ -55,8 +55,8 @@ test("scorePrediction scores an exact group prediction", () => {
   const s = scorePrediction(pred(), match()); // 0-1 vs 0-1
   assert.deepEqual(s, {
     predictionId: "p1",
-    outcomePoints: 6,
-    closenessPoints: 4,
+    outcomePoints: 5,
+    closenessPoints: 5,
     advancePoints: 0,
     totalPoints: 10,
   });

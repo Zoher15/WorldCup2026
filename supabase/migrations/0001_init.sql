@@ -115,8 +115,8 @@ create index predictions_match_idx on predictions(match_id);
 -- ---------------------------------------------------------------------------
 create table match_scores (
   prediction_id    uuid primary key references predictions(id) on delete cascade,
-  outcome_points   int not null,                -- 0 / 3 / 6
-  closeness_points int not null,                -- 0..4
+  outcome_points   int not null,                -- 0 / 2 / 5
+  closeness_points int not null,                -- 0..5
   advance_points   int not null default 0,      -- knockout bonus
   total_points     int not null,
   computed_at      timestamptz not null default now()

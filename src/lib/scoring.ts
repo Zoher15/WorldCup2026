@@ -4,19 +4,19 @@
  * Each match prediction is worth up to 10 points, split into two independent
  * parts that always sum to the total:
  *
- *   1. Outcome points (0, 3, or 6) — did you back the right direction?
- *        - Right winner, or right draw .................... 6
+ *   1. Outcome points (0, 2, or 5) — did you back the right direction?
+ *        - Right winner, or right draw .................... 5
  *        - One step off (predicted draw, someone won, or
- *          vice-versa) ................................... 3
+ *          vice-versa) ................................... 2
  *        - Backed the wrong team entirely ................. 0
  *
- *   2. Closeness points (0–4) — how close was the scoreline?
- *        closeness = max(0, 4 - totalGoalError)
+ *   2. Closeness points (0–5) — how close was the scoreline?
+ *        closeness = max(0, 5 - totalGoalError)
  *        where totalGoalError = |predHome - actualHome| + |predAway - actualAway|
  *
  * This means:
- *   - Picking the wrong winner is punished twice as hard (−6) as
- *     predicting a draw (−3).
+ *   - Picking the wrong winner costs all 5 outcome points, while a draw
+ *     guess only costs 3 — a wrong winner is punished harder.
  *   - Over-/under-shooting the goal count bleeds points smoothly, so a
  *     5–0 prediction beats 6–0 beats 10–0 when the real score is 5–0.
  *
@@ -38,9 +38,9 @@ export interface Scoreline {
 
 /** The breakdown of points earned for a single match prediction. */
 export interface MatchScore {
-  /** Outcome points: 0, 3, or 6. */
+  /** Outcome points: 0, 2, or 5. */
   outcome: number;
-  /** Closeness points: 0–4. */
+  /** Closeness points: 0–5. */
   closeness: number;
   /** Total points: 0–10 (always outcome + closeness). */
   total: number;
@@ -56,9 +56,9 @@ export const MAX_MATCH_POINTS = 10;
  */
 export const ADVANCE_BONUS = 3;
 
-const OUTCOME_FOR_CORRECT_DIRECTION = 6;
+const OUTCOME_FOR_CORRECT_DIRECTION = 5;
 const OUTCOME_PENALTY_PER_STEP = 3;
-const MAX_CLOSENESS_POINTS = 4;
+const MAX_CLOSENESS_POINTS = 5;
 
 /** Validates that a scoreline is made of non-negative whole numbers. */
 function assertValidScoreline(label: string, score: Scoreline): void {

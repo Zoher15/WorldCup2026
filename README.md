@@ -13,31 +13,31 @@ parts that always add up to the total:
 
 | Your call vs reality | Points |
 | --- | --- |
-| Right winner, or right draw | **6** |
-| One step off (you said draw, someone won — or vice-versa) | **3** |
+| Right winner, or right draw | **5** |
+| One step off (you said draw, someone won — or vice-versa) | **2** |
 | Backed the wrong team entirely | **0** |
 
-Picking the **wrong team** costs you 6, while predicting a **draw** only costs
-3 — so a wrong winner is punished twice as hard as a draw.
+Picking the **wrong team** costs you all 5 outcome points, while predicting a
+**draw** only costs 3 — so a wrong winner is punished harder than a draw.
 
 ### 2. Closeness points — how close was the scoreline?
 
 ```
-closeness = max(0, 4 − totalGoalError)
+closeness = max(0, 5 − totalGoalError)
 totalGoalError = |predHome − actualHome| + |predAway − actualAway|
 ```
 
 Over-/under-shooting the goal count bleeds points smoothly, so when the real
-score is 5–0: a guess of 5–0 → 10, 6–0 → 9, 7–0 → 8, 10–0 → 6.
+score is 5–0: a guess of 5–0 → 10, 6–0 → 9, 7–0 → 8, 10–0 → 5.
 
 ### Worked example — actual result **0–1** (away win)
 
 | Prediction | Outcome | Closeness | Total |
 | --- | --- | --- | --- |
-| 0–1 | 6 | 4 | **10** |
-| 0–2 | 6 | 3 | **9** (right direction rewarded) |
-| 0–0 | 3 | 3 | **6** (predicted a draw) |
-| 1–0 | 0 | 2 | **2** (wrong winner, punished hardest) |
+| 0–1 | 5 | 5 | **10** |
+| 0–2 | 5 | 4 | **9** (right direction rewarded) |
+| 0–0 | 2 | 4 | **6** (predicted a draw) |
+| 1–0 | 0 | 3 | **3** (wrong winner, punished hardest) |
 
 ### Three leaderboards for free
 

@@ -1,6 +1,5 @@
 "use client";
 
-import { Flag } from "./Flag";
 import { Stepper } from "./Stepper";
 import { Countdown } from "./Countdown";
 import { teamByCode, teamColor, teamLabel } from "@/lib/fifa";
@@ -9,9 +8,10 @@ import type { Stage } from "@/lib/types";
 
 /**
  * Every place a match shows up — predicting, locked, live, finished — speaks
- * one visual language: a festive scoreboard. The *state* drives the header
- * tint, the status pill, and what lives in the center "stage" (score-entry
- * steppers, a revealed pick, the live/final score, or the kickoff time).
+ * one visual language: the two teams' flags fill the whole card, meeting in a
+ * feathered seam down the middle, with the essentials floating on top in legible
+ * glass chips. The *state* drives the status pill and what lives in the center
+ * (score-entry steppers, a revealed pick, the live/final score, or kickoff time).
  */
 export type MatchCardState = "upcoming" | "open" | "locked" | "live" | "final";
 
@@ -21,10 +21,8 @@ export interface MatchCardData {
   homeLabel?: string | null; // fallback text for knockout placeholders
   awayLabel?: string | null;
   kickoffAt: string;
-  venue?: string | null;
   stage?: Stage;
   groupLabel?: string | null;
-  matchNumber?: number | null;
   state: MatchCardState;
   minute?: number | null;
   homeGoals?: number | null;
@@ -47,34 +45,20 @@ export interface MatchCardProps {
   footer?: React.ReactNode;
   /** Fired when a header countdown reaches zero (e.g. to refresh the page). */
   onExpire?: () => void;
-  /** Force the two-flag ombre on/off (defaults to on for open cards). */
-  ombre?: boolean;
 }
 
-/** Per-state festive treatment: card edge tint + header gradient. */
-const THEME: Record<MatchCardState, { ring: string; header: string }> = {
-  upcoming: {
-    ring: "ring-ocean/20",
-    header: "bg-gradient-to-r from-ocean/10 to-grape/10 text-ocean",
-  },
-  open: {
-    ring: "ring-flame/30",
-    header: "bg-gradient-to-r from-sunburst/50 to-flame/20 text-flame",
-  },
-  locked: {
-    ring: "ring-stone-200 dark:ring-white/10",
-    header:
-      "bg-gradient-to-r from-stone-200 to-stone-100 text-stone-500 dark:from-stone-700 dark:to-stone-800 dark:text-stone-300",
-  },
-  live: {
-    ring: "ring-flame/60",
-    header: "bg-gradient-to-r from-flame to-flame/70 text-white",
-  },
-  final: {
-    ring: "ring-pitch/30",
-    header: "bg-gradient-to-r from-pitch/15 to-ocean/10 text-pitch",
-  },
+/** Per-state edge tint — a cheap, fun cue layered over the flag background. */
+const RING: Record<MatchCardState, string> = {
+  upcoming: "ring-ocean/30",
+  open: "ring-flame/40",
+  locked: "ring-stone-300 dark:ring-white/15",
+  live: "ring-flame/70",
+  final: "ring-pitch/40",
 };
+
+/** Frosted backdrop that keeps text crisp over any flag colors. */
+const GLASS =
+  "bg-white/75 backdrop-blur-sm ring-1 ring-black/5 dark:bg-stone-900/60 dark:ring-white/10";
 
 function StatusPill({
   data,
@@ -88,58 +72,50 @@ function StatusPill({
   switch (data.state) {
     case "live":
       return (
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/25 px-2.5 py-0.5 font-bold">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-flame px-2.5 py-0.5 text-white shadow-sm">
           <span className="live-dot h-2 w-2 rounded-full bg-white" />
           LIVE{data.minute ? ` ${data.minute}'` : ""}
         </span>
       );
     case "final":
       return (
-        <span className="rounded-full bg-pitch px-2.5 py-0.5 font-bold text-white">
+        <span className="rounded-full bg-pitch px-2.5 py-0.5 text-white shadow-sm">
           FULL TIME
         </span>
       );
     case "locked":
       return (
-        <span className="rounded-full bg-stone-300 px-2.5 py-0.5 font-bold text-stone-600">
+        <span className={`rounded-full px-2.5 py-0.5 text-stone-600 dark:text-stone-200 ${GLASS}`}>
           🔒 Locked
         </span>
       );
     case "open":
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-flame px-2.5 py-0.5 font-bold text-white">
+        <span className="inline-flex items-center gap-1 rounded-full bg-flame px-2.5 py-0.5 text-white shadow-sm">
           ⏳ closes in{" "}
           <Countdown target={data.kickoffAt} expiredLabel="closed" onExpire={onExpire} />
         </span>
       );
     case "upcoming":
       return opensAt ? (
-        <span className="inline-flex items-center gap-1 rounded-full bg-ocean px-2.5 py-0.5 font-bold text-white">
+        <span className="inline-flex items-center gap-1 rounded-full bg-ocean px-2.5 py-0.5 text-white shadow-sm">
           🔓 opens in{" "}
           <Countdown target={opensAt} expiredLabel="now open" onExpire={onExpire} />
         </span>
       ) : (
-        <span className="rounded-full bg-ocean/15 px-2.5 py-0.5 font-bold text-ocean">
-          Upcoming
-        </span>
+        <span className={`rounded-full px-2.5 py-0.5 text-ocean ${GLASS}`}>Upcoming</span>
       );
   }
 }
 
-function TeamSide({
-  code,
-  label,
-}: {
-  code: string | null;
-  label?: string | null;
-}) {
+/** A team's name in a glass chip — flags carry the identity, this keeps it legible. */
+function TeamName({ code, label }: { code: string | null; label?: string | null }) {
   return (
-    <div className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
-      <Flag code={code} size="lg" />
-      <span className="line-clamp-2 max-w-full text-center text-sm font-bold leading-tight text-stone-700 dark:text-stone-100">
-        {teamLabel(code, label)}
-      </span>
-    </div>
+    <span
+      className={`line-clamp-2 min-w-0 flex-1 rounded-lg px-2 py-1 text-center text-sm font-extrabold leading-tight text-stone-800 dark:text-stone-50 ${GLASS}`}
+    >
+      {teamLabel(code, label)}
+    </span>
   );
 }
 
@@ -155,14 +131,14 @@ function Score({
   label?: string;
 }) {
   return (
-    <div className="text-center">
-      <div className={`flex items-center gap-2 text-3xl font-black tabular-nums ${tone}`}>
+    <div className={`rounded-xl px-3 py-1 text-center ${GLASS}`}>
+      <div className={`flex items-center gap-1.5 text-2xl font-black tabular-nums ${tone}`}>
         <span>{home}</span>
-        <span className="text-stone-300">:</span>
+        <span className="text-stone-400">:</span>
         <span>{away}</span>
       </div>
       {label && (
-        <div className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-stone-400">
+        <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400">
           {label}
         </div>
       )}
@@ -173,22 +149,16 @@ function Score({
 /**
  * One half of the card's background, painted with a team's actual flag (via the
  * flag-icons `fi fi-xx` class) and feathered on its inner edge so the home and
- * away halves cross-blend in the middle. Unknown teams (knockout placeholders)
- * fall back to their neutral colour.
+ * away halves cross-blend in the exact middle. Unknown teams (knockout
+ * placeholders) fall back to their neutral colour.
  */
-function FlagHalf({
-  code,
-  side,
-}: {
-  code: string | null;
-  side: "left" | "right";
-}) {
+function FlagHalf({ code, side }: { code: string | null; side: "left" | "right" }) {
   const team = teamByCode(code);
   const edge = side === "left" ? "left-0" : "right-0";
   const mask =
     side === "left"
-      ? "linear-gradient(to right, #000 60%, transparent 100%)"
-      : "linear-gradient(to left, #000 60%, transparent 100%)";
+      ? "linear-gradient(to right, #000 55%, transparent 100%)"
+      : "linear-gradient(to left, #000 55%, transparent 100%)";
   const style: React.CSSProperties = {
     backgroundSize: "cover",
     WebkitMaskImage: mask,
@@ -206,24 +176,15 @@ function FlagHalf({
   );
 }
 
-export function MatchCard({
-  data,
-  opensAt,
-  entry,
-  pick,
-  footer,
-  onExpire,
-  ombre: ombreProp,
-}: MatchCardProps) {
-  const theme = THEME[data.state];
+export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: MatchCardProps) {
   const editing = data.state === "open" && entry != null;
   const hasResult =
     (data.state === "live" || data.state === "final") &&
     data.homeGoals != null &&
     data.awayGoals != null;
 
-  // The center "scoreboard" number: the result, your live entry (updates as you
-  // tap the steppers below), a revealed pick, or — failing all — the kickoff time.
+  // The center "scoreboard": the result, your live entry (updates as you tap the
+  // steppers below), a revealed pick, or — failing all — the kickoff time.
   let center: React.ReactNode;
   if (hasResult) {
     center = (
@@ -239,74 +200,68 @@ export function MatchCard({
     center = <Score home={pick.home} away={pick.away} tone="text-grape" label="your pick" />;
   } else {
     center = (
-      <div className="text-center text-stone-400">
-        <div className="text-lg font-black">{formatKickoffTime(data.kickoffAt)}</div>
-        <div className="text-[10px] font-bold uppercase tracking-wide">kickoff</div>
+      <div className={`rounded-xl px-3 py-1 text-center text-stone-500 dark:text-stone-300 ${GLASS}`}>
+        <div className="text-base font-black">{formatKickoffTime(data.kickoffAt)}</div>
+        <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400">kickoff</div>
       </div>
     );
   }
 
-  // Every card wears the two teams' flags — home on the left half, away on the
-  // right — feathered into an ombre where they meet. Callers can force it off.
-  const ombre = ombreProp ?? true;
-
   return (
     <div
-      className={`relative animate-pop-in overflow-hidden rounded-3xl bg-white/90 shadow-lg ring-1 dark:bg-stone-800/90 ${theme.ring} backdrop-blur`}
+      className={`relative animate-pop-in overflow-hidden rounded-2xl bg-white shadow-md ring-1 dark:bg-stone-900 ${RING[data.state]}`}
     >
-      {ombre && (
-        <div className="pointer-events-none absolute inset-0 opacity-25">
-          <FlagHalf code={data.homeCode} side="left" />
-          <FlagHalf code={data.awayCode} side="right" />
-        </div>
-      )}
+      {/* The two teams' flags fill the whole card, feathered together at the seam. */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 opacity-90">
+        <FlagHalf code={data.homeCode} side="left" />
+        <FlagHalf code={data.awayCode} side="right" />
+      </div>
+      {/* A gentle scrim takes the edge off saturation so chips read cleanly. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-white/25 dark:bg-stone-950/35"
+      />
 
-      <div className="relative">
-        <div
-          className={`flex items-center justify-between gap-2 px-4 py-2 text-xs font-bold ${theme.header}`}
-        >
-          <span className="truncate">
-            {data.matchNumber ? `#${data.matchNumber} · ` : ""}
+      <div className="relative flex flex-col gap-2 p-3 text-xs font-bold">
+        <div className="flex items-center justify-between gap-2">
+          <span
+            className={`truncate rounded-full px-2.5 py-0.5 text-stone-600 dark:text-stone-200 ${GLASS}`}
+          >
             {formatStageLabel(data.groupLabel, data.stage ?? "group")}
-            {data.venue ? ` · ${data.venue}` : ""}
           </span>
           <StatusPill data={data} opensAt={opensAt} onExpire={onExpire} />
         </div>
 
-        <div className="px-4 py-4">
-          <div className="flex items-center justify-between gap-3">
-            <TeamSide code={data.homeCode} label={data.homeLabel} />
-            <div className="flex shrink-0 items-center justify-center">{center}</div>
-            <TeamSide code={data.awayCode} label={data.awayLabel} />
-          </div>
-
-          {entry && (
-            <div
-              className={`mt-3 flex items-center justify-center gap-4 rounded-2xl py-2 ${
-                editing
-                  ? "bg-cream/80 dark:bg-stone-700/60"
-                  : "bg-stone-100/80 dark:bg-stone-800/70"
-              }`}
-            >
-              <Stepper
-                size="sm"
-                value={entry.home}
-                disabled={!editing}
-                onChange={(n) => entry.onChange("home", n)}
-              />
-              <span className="text-xl font-black text-stone-300">:</span>
-              <Stepper
-                size="sm"
-                value={entry.away}
-                disabled={!editing}
-                onChange={(n) => entry.onChange("away", n)}
-              />
-            </div>
-          )}
+        <div className="flex items-center justify-between gap-2">
+          <TeamName code={data.homeCode} label={data.homeLabel} />
+          <div className="shrink-0">{center}</div>
+          <TeamName code={data.awayCode} label={data.awayLabel} />
         </div>
 
+        {entry && (
+          <div
+            className={`flex items-center justify-center gap-4 rounded-xl py-1.5 ${GLASS} ${
+              editing ? "" : "opacity-70"
+            }`}
+          >
+            <Stepper
+              size="sm"
+              value={entry.home}
+              disabled={!editing}
+              onChange={(n) => entry.onChange("home", n)}
+            />
+            <span className="text-lg font-black text-stone-400">:</span>
+            <Stepper
+              size="sm"
+              value={entry.away}
+              disabled={!editing}
+              onChange={(n) => entry.onChange("away", n)}
+            />
+          </div>
+        )}
+
         {footer && (
-          <div className="border-t border-black/5 bg-cream/60 px-4 py-2 text-xs font-bold dark:border-white/10 dark:bg-stone-800/60">
+          <div className={`rounded-xl px-3 py-1.5 text-stone-700 dark:text-stone-100 ${GLASS}`}>
             {footer}
           </div>
         )}
