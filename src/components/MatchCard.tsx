@@ -219,8 +219,10 @@ export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: Matc
     <div
       className={`relative animate-pop-in overflow-hidden rounded-2xl bg-white shadow-md ring-1 dark:bg-stone-900 ${RING[data.state]}`}
     >
-      {/* The two teams' flags fill the whole card, feathered together at the seam. */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 opacity-90">
+      {/* The two teams' flags fill the whole card, feathered together at the seam.
+          A 1px bleed past the edges keeps the rounded overflow-clip from leaving a
+          hairline of the card background showing along the edges. */}
+      <div aria-hidden className="pointer-events-none absolute -inset-px opacity-90">
         <FlagHalf code={data.homeCode} side="left" />
         <FlagHalf code={data.awayCode} side="right" />
       </div>
