@@ -159,7 +159,12 @@ function FlagHalf({ code, side }: { code: string | null; side: "left" | "right" 
     side === "left"
       ? "linear-gradient(to right, #000 55%, transparent 100%)"
       : "linear-gradient(to left, #000 55%, transparent 100%)";
+  // width/height go inline: flag-icons' `.fi { width: 1.333em }` has the same
+  // specificity as a Tailwind width utility and is imported later, so only an
+  // inline style reliably stretches each half to fill (and overlap at) the seam.
   const style: React.CSSProperties = {
+    width: "62%",
+    height: "100%",
     backgroundSize: "cover",
     WebkitMaskImage: mask,
     maskImage: mask,
@@ -168,7 +173,7 @@ function FlagHalf({ code, side }: { code: string | null; side: "left" | "right" 
   return (
     <span
       aria-hidden
-      className={`absolute top-0 ${edge} h-full w-[55%] bg-center bg-no-repeat ${
+      className={`absolute top-0 ${edge} bg-center bg-no-repeat ${
         team ? `fi fi-${team.iso}` : ""
       }`}
       style={style}
@@ -183,28 +188,29 @@ export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: Matc
     data.homeGoals != null &&
     data.awayGoals != null;
 
-  // The center "scoreboard": the result, your live entry (updates as you tap the
-  // steppers below), a revealed pick, or — failing all — the kickoff time.
-  let center: React.ReactNode;
-  if (hasResult) {
-    center = (
-      <Score
-        home={data.homeGoals!}
-        away={data.awayGoals!}
-        tone={data.state === "live" ? "text-flame" : "text-stone-800 dark:text-stone-100"}
-      />
-    );
-  } else if (editing) {
-    center = <Score home={entry!.home} away={entry!.away} tone="text-flame" label="your call" />;
-  } else if (pick) {
-    center = <Score home={pick.home} away={pick.away} tone="text-grape" label="your pick" />;
-  } else {
-    center = (
-      <div className={`rounded-xl px-3 py-1 text-center text-stone-500 dark:text-stone-300 ${GLASS}`}>
-        <div className="text-base font-black">{formatKickoffTime(data.kickoffAt)}</div>
-        <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400">kickoff</div>
-      </div>
-    );
+  // The center "scoreboard": the result, a revealed pick, or — failing all — the
+  // kickoff time. While editing it stays empty: the steppers below already show
+  // (and own) the live entry, so a center score would just duplicate them.
+  let center: React.ReactNode = null;
+  if (!editing) {
+    if (hasResult) {
+      center = (
+        <Score
+          home={data.homeGoals!}
+          away={data.awayGoals!}
+          tone={data.state === "live" ? "text-flame" : "text-stone-800 dark:text-stone-100"}
+        />
+      );
+    } else if (pick) {
+      center = <Score home={pick.home} away={pick.away} tone="text-grape" label="your pick" />;
+    } else {
+      center = (
+        <div className={`rounded-xl px-3 py-1 text-center text-stone-500 dark:text-stone-300 ${GLASS}`}>
+          <div className="text-base font-black">{formatKickoffTime(data.kickoffAt)}</div>
+          <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400">kickoff</div>
+        </div>
+      );
+    }
   }
 
   return (
@@ -234,29 +240,34 @@ export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: Matc
 
         <div className="flex items-center justify-between gap-2">
           <TeamName code={data.homeCode} label={data.homeLabel} />
-          <div className="shrink-0">{center}</div>
+          {center && <div className="shrink-0">{center}</div>}
           <TeamName code={data.awayCode} label={data.awayLabel} />
         </div>
 
         {entry && (
           <div
-            className={`flex items-center justify-center gap-4 rounded-xl py-1.5 ${GLASS} ${
+            className={`flex flex-col items-center gap-1 rounded-xl py-1.5 ${GLASS} ${
               editing ? "" : "opacity-70"
             }`}
           >
-            <Stepper
-              size="sm"
-              value={entry.home}
-              disabled={!editing}
-              onChange={(n) => entry.onChange("home", n)}
-            />
-            <span className="text-lg font-black text-stone-400">:</span>
-            <Stepper
-              size="sm"
-              value={entry.away}
-              disabled={!editing}
-              onChange={(n) => entry.onChange("away", n)}
-            />
+            <div className="flex items-center justify-center gap-4">
+              <Stepper
+                size="sm"
+                value={entry.home}
+                disabled={!editing}
+                onChange={(n) => entry.onChange("home", n)}
+              />
+              <span className="text-lg font-black text-stone-400">:</span>
+              <Stepper
+                size="sm"
+                value={entry.away}
+                disabled={!editing}
+                onChange={(n) => entry.onChange("away", n)}
+              />
+            </div>
+            <span className="text-[9px] font-bold uppercase tracking-wide text-stone-400">
+              {editing ? "your call" : "your pick"}
+            </span>
           </div>
         )}
 
