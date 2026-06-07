@@ -154,17 +154,21 @@ function Score({
  */
 function FlagHalf({ code, side }: { code: string | null; side: "left" | "right" }) {
   const team = teamByCode(code);
-  const edge = side === "left" ? "left-0" : "right-0";
   const mask =
     side === "left"
       ? "linear-gradient(to right, #000 55%, transparent 100%)"
       : "linear-gradient(to left, #000 55%, transparent 100%)";
-  // width/height go inline: flag-icons' `.fi { width: 1.333em }` has the same
-  // specificity as a Tailwind width utility and is imported later, so only an
-  // inline style reliably stretches each half to fill (and overlap at) the seam.
+  // Positioning AND size go inline: flag-icons' `.fi` rule sets
+  // `position: relative; width: 1.333em` with the same specificity as Tailwind
+  // utilities, and is imported later — so `absolute`/`w-[…]` classes lose. Inline
+  // styles beat any class selector, reliably pinning each half to its edge and
+  // stretching it to fill (and overlap at) the seam.
   const style: React.CSSProperties = {
+    position: "absolute",
+    top: 0,
     width: "62%",
     height: "100%",
+    ...(side === "left" ? { left: 0 } : { right: 0 }),
     backgroundSize: "cover",
     WebkitMaskImage: mask,
     maskImage: mask,
@@ -173,9 +177,7 @@ function FlagHalf({ code, side }: { code: string | null; side: "left" | "right" 
   return (
     <span
       aria-hidden
-      className={`absolute top-0 ${edge} bg-center bg-no-repeat ${
-        team ? `fi fi-${team.iso}` : ""
-      }`}
+      className={`bg-center bg-no-repeat ${team ? `fi fi-${team.iso}` : ""}`}
       style={style}
     />
   );
@@ -217,8 +219,10 @@ export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: Matc
     <div
       className={`relative animate-pop-in overflow-hidden rounded-2xl bg-white shadow-md ring-1 dark:bg-stone-900 ${RING[data.state]}`}
     >
-      {/* The two teams' flags fill the whole card, feathered together at the seam. */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 opacity-90">
+      {/* The two teams' flags fill the whole card, feathered together at the seam.
+          A 1px bleed past the edges keeps the rounded overflow-clip from leaving a
+          hairline of the card background showing along the edges. */}
+      <div aria-hidden className="pointer-events-none absolute -inset-px opacity-90">
         <FlagHalf code={data.homeCode} side="left" />
         <FlagHalf code={data.awayCode} side="right" />
       </div>
