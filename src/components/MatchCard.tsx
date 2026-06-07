@@ -238,7 +238,7 @@ export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: Matc
       <div className="relative flex min-h-[9rem] flex-col justify-between gap-2 p-3 text-xs font-bold">
         <div className="flex items-center justify-between gap-2">
           <span className={`truncate rounded-full px-2.5 py-0.5 ${SOLID} text-stone-600 dark:text-stone-200`}>
-            {formatStageLabel(data.groupLabel, data.stage ?? "group")}
+            {formatStageLabel(data.groupLabel, data.stage)}
           </span>
           <StatusPill data={data} opensAt={opensAt} onExpire={onExpire} />
         </div>

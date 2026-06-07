@@ -8,7 +8,7 @@ import type { Stage } from "./types";
  */
 export function formatStageLabel(
   groupLabel: string | null | undefined,
-  stage: Stage,
+  stage: Stage = "group",
 ): string {
   return groupLabel ? `Group ${groupLabel}` : stage.replace(/_/g, " ");
 }
