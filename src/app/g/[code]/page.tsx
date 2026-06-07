@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getGroupStandings } from "@/lib/groups";
 import { Leaderboard } from "@/components/Leaderboard";
+import { LoadError } from "@/components/LoadError";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,17 @@ export default async function GroupPage({
   params: Promise<{ code: string }>;
 }) {
   const { code } = await params;
-  const data = await getGroupStandings(code);
+  let data;
+  try {
+    data = await getGroupStandings(code);
+  } catch (e) {
+    return (
+      <LoadError
+        title="Couldn't load this group"
+        message={e instanceof Error ? e.message : String(e)}
+      />
+    );
+  }
   if (!data) notFound();
   const { group, standings } = data;
 

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getUserId } from "@/lib/identity";
 import { getPlayerProfile } from "@/lib/player";
 import { PlayerPredictions } from "@/components/PlayerPredictions";
+import { LoadError } from "@/components/LoadError";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,17 @@ export default async function PlayerPage({
 }) {
   const { code, userId } = await params;
   const viewerId = await getUserId();
-  const profile = await getPlayerProfile({ code, userId, viewerId });
+  let profile;
+  try {
+    profile = await getPlayerProfile({ code, userId, viewerId });
+  } catch (e) {
+    return (
+      <LoadError
+        title="Couldn't load this profile"
+        message={e instanceof Error ? e.message : String(e)}
+      />
+    );
+  }
   if (!profile) notFound();
 
   const { group, player, summary } = profile;

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getUserId } from "@/lib/identity";
 import { getPredictionBoard } from "@/lib/predictions";
 import { PredictionList } from "@/components/PredictionList";
+import { LoadError } from "@/components/LoadError";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,18 @@ export default async function PredictPage() {
   const userId = await getUserId();
   if (!userId) redirect("/join");
 
-  const { matches, predictions } = await getPredictionBoard(userId);
+  let board;
+  try {
+    board = await getPredictionBoard(userId);
+  } catch (e) {
+    return (
+      <LoadError
+        title="Couldn't load your predictions"
+        message={e instanceof Error ? e.message : String(e)}
+      />
+    );
+  }
+  const { matches, predictions } = board;
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
