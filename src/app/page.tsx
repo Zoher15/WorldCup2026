@@ -23,10 +23,11 @@ export default function Home() {
           ⚽ World Cup 2026
         </div>
         <h1 className="mt-3 bg-gradient-to-r from-flame via-grape to-ocean bg-clip-text text-4xl font-black tracking-tight text-transparent sm:text-5xl">
-          Predict. Compete. Celebrate.
+          You think you know ball?
         </h1>
         <p className="mt-2 font-medium text-stone-500 dark:text-stone-300">
-          Call the score, pick the winner, climb the leaderboard with the family.
+          Football, that is. Dubious until proven — predict every World Cup 2026
+          match and beat your group.
         </p>
         <div className="mt-5 flex justify-center gap-3">
           <a
