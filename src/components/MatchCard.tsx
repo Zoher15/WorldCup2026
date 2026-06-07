@@ -182,31 +182,34 @@ export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: Matc
         tone={data.state === "live" ? "text-flame" : "text-stone-800 dark:text-stone-50"}
       />
     );
-  } else if (entry) {
-    const label = editing
-      ? "your call"
-      : data.state === "locked"
-        ? "🔒 locked"
-        : "🔒 opens soon";
+  } else if (entry && editing) {
+    // Open for editing: active steppers are the control.
     focal = (
-      <div className={`rounded-xl px-3 py-1.5 ${SOLID} ${editing ? "" : "opacity-95"}`}>
+      <div className={`rounded-xl px-3 py-1.5 ${SOLID}`}>
         <div className="flex items-center justify-center gap-3">
-          <Stepper
-            size="sm"
-            value={entry.home}
-            disabled={!editing}
-            onChange={(n) => entry.onChange("home", n)}
-          />
+          <Stepper size="sm" value={entry.home} onChange={(n) => entry.onChange("home", n)} />
           <span className="text-xl font-black text-stone-300 dark:text-stone-600">:</span>
-          <Stepper
-            size="sm"
-            value={entry.away}
-            disabled={!editing}
-            onChange={(n) => entry.onChange("away", n)}
-          />
+          <Stepper size="sm" value={entry.away} onChange={(n) => entry.onChange("away", n)} />
         </div>
         <div className="text-center text-[9px] font-bold uppercase tracking-wide text-stone-400">
-          {label}
+          your call
+        </div>
+      </div>
+    );
+  } else if (entry) {
+    // Not editable: drop the +/- and show a clear lock (or "opens soon") badge in
+    // the same spot, keeping the pick visible. Same footprint = fixed proportions.
+    const locked = data.state === "locked";
+    focal = (
+      <div className={`rounded-xl px-4 py-1.5 ${SOLID}`}>
+        <div className="flex items-center justify-center gap-2 text-2xl font-black tabular-nums text-stone-400 dark:text-stone-500">
+          <span className="text-xl leading-none">{locked ? "🔒" : "⏳"}</span>
+          <span>{entry.home}</span>
+          <span className="text-stone-300 dark:text-stone-600">:</span>
+          <span>{entry.away}</span>
+        </div>
+        <div className="text-center text-[9px] font-bold uppercase tracking-wide text-stone-400">
+          {locked ? "locked" : "opens soon"}
         </div>
       </div>
     );
@@ -232,7 +235,7 @@ export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: Matc
         <FlagHalf code={data.awayCode} side="right" />
       </div>
 
-      <div className="relative flex min-h-[11.5rem] flex-col justify-between gap-2 p-3 text-xs font-bold">
+      <div className="relative flex min-h-[9rem] flex-col justify-between gap-2 p-3 text-xs font-bold">
         <div className="flex items-center justify-between gap-2">
           <span className={`truncate rounded-full px-2.5 py-0.5 ${SOLID} text-stone-600 dark:text-stone-200`}>
             {formatStageLabel(data.groupLabel, data.stage ?? "group")}
