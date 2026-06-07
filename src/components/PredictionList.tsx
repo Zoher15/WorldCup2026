@@ -27,9 +27,8 @@ export function PredictionList({
   });
   const [savedSnapshot, setSavedSnapshot] = useState<Picks>(() => {
     const p: Picks = {};
-    for (const m of matches) {
-      const saved = initial[m.id];
-      if (saved) p[m.id] = { home: saved.predHome, away: saved.predAway };
+    for (const [id, saved] of Object.entries(initial)) {
+      p[id] = { home: saved.predHome, away: saved.predAway };
     }
     return p;
   });

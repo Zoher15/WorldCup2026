@@ -9,48 +9,33 @@ const SIZES = {
 export function Stepper({
   value,
   onChange,
-  disabled,
   size = "md",
 }: {
   value: number;
   onChange: (n: number) => void;
-  disabled?: boolean;
   size?: keyof typeof SIZES;
 }) {
   const s = SIZES[size];
   const btn = `${s.btn} rounded-full font-bold grid place-items-center transition active:scale-90`;
-  // When the whole stepper is disabled it greys out entirely (a "not open" card);
-  // when only "−" is disabled at zero it just dims.
-  const plus = disabled
-    ? `${btn} bg-stone-200 text-stone-400 dark:bg-stone-700 dark:text-stone-500`
-    : `${btn} bg-pitch text-white`;
-  const minus = disabled
-    ? `${btn} bg-stone-200 text-stone-400 dark:bg-stone-700 dark:text-stone-500`
-    : `${btn} bg-stone-200 text-stone-700 disabled:opacity-40 dark:bg-stone-700 dark:text-stone-200`;
   return (
     <div className="flex items-center gap-2">
       <button
         type="button"
         aria-label="decrease"
-        disabled={disabled || value <= 0}
+        disabled={value <= 0}
         onClick={() => onChange(Math.max(0, value - 1))}
-        className={minus}
+        className={`${btn} bg-stone-200 text-stone-700 disabled:opacity-40 dark:bg-stone-700 dark:text-stone-200`}
       >
         −
       </button>
-      <span
-        className={`${s.value} text-center font-extrabold tabular-nums ${
-          disabled ? "text-stone-400" : ""
-        }`}
-      >
+      <span className={`${s.value} text-center font-extrabold tabular-nums`}>
         {value}
       </span>
       <button
         type="button"
         aria-label="increase"
-        disabled={disabled}
         onClick={() => onChange(value + 1)}
-        className={plus}
+        className={`${btn} bg-pitch text-white`}
       >
         +
       </button>

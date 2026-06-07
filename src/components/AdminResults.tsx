@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { Flag } from "./Flag";
 import { teamLabel } from "@/lib/fifa";
 import { formatKickoffDateTime, formatStageLabel } from "@/lib/format";
+import { isKnockoutStage } from "@/lib/polling";
 import {
   setResultAction,
   clearResultAction,
@@ -18,7 +19,7 @@ function Row({ m }: { m: AdminMatch }) {
   const [adv, setAdv] = useState(m.advancedCode ?? "");
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
-  const knockout = m.stage !== "group";
+  const knockout = isKnockoutStage(m.stage);
 
   function confirm() {
     const h = parseInt(home, 10);
