@@ -54,7 +54,6 @@ export function HowToPlayDemo() {
           kickoffAt: KICKOFF,
           stage: "group",
           groupLabel: "F",
-          venue: "New York / New Jersey",
           state: locked ? "final" : "open",
           homeGoals: locked ? RESULT.home : undefined,
           awayGoals: locked ? RESULT.away : undefined,

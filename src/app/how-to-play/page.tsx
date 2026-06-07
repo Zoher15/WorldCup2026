@@ -79,16 +79,16 @@ export default function HowToPlayPage() {
           </p>
           <div className="mt-4 flex flex-col items-stretch justify-center gap-3 sm:flex-row">
             <div className="flex-1 rounded-2xl bg-flame/10 p-4 dark:bg-flame/20">
-              <div className="text-2xl font-black text-flame">up to 6</div>
+              <div className="text-2xl font-black text-flame">up to 5</div>
               <div className="text-sm font-bold text-stone-700 dark:text-stone-100">
                 Outcome
               </div>
               <p className="mt-1 text-xs font-medium text-stone-500 dark:text-stone-300">
-                Right winner (or right draw) = 6. One step off = 3. Wrong = 0.
+                Right winner (or right draw) = 5. One step off = 2. Wrong = 0.
               </p>
             </div>
             <div className="flex-1 rounded-2xl bg-ocean/10 p-4 dark:bg-ocean/20">
-              <div className="text-2xl font-black text-ocean">up to 4</div>
+              <div className="text-2xl font-black text-ocean">up to 5</div>
               <div className="text-sm font-bold text-stone-700 dark:text-stone-100">
                 Closeness
               </div>

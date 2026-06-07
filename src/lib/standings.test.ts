@@ -60,7 +60,7 @@ test("carry_over counts every locked prediction", () => {
     lateJoinPolicy: "carry_over",
     groupCreatedAt: "2026-06-01T00:00:00Z",
   });
-  // Alice: m1 exact = 10, m2 (1-1 vs 2-2) = outcome 6 + closeness 2 = 8 -> 18
+  // Alice: m1 exact = 10, m2 (1-1 vs 2-2) = outcome 5 + closeness 3 = 8 -> 18
   // Bob: m2 exact = 10
   assert.deepEqual(s.overall, [
     { userId: "u1", displayName: "Alice", points: 18, movement: 0 },
@@ -103,15 +103,15 @@ test("win and scoreline boards split the score components", () => {
     lateJoinPolicy: "carry_over",
     groupCreatedAt: "2026-06-01T00:00:00Z",
   });
-  // Alice outcome: m1=6, m2=6 -> 12 ; Bob outcome: m2=6
+  // Alice outcome: m1=5, m2=5 -> 10 ; Bob outcome: m2=5
   assert.deepEqual(s.win, [
-    { userId: "u1", displayName: "Alice", points: 12, movement: 0 },
-    { userId: "u2", displayName: "Bob", points: 6, movement: 0 },
+    { userId: "u1", displayName: "Alice", points: 10, movement: 0 },
+    { userId: "u2", displayName: "Bob", points: 5, movement: 0 },
   ]);
-  // Alice closeness: m1=4, m2=2 -> 6 ; Bob closeness: m2=4
+  // Alice closeness: m1=5, m2=3 -> 8 ; Bob closeness: m2=5
   assert.deepEqual(s.scoreline, [
-    { userId: "u1", displayName: "Alice", points: 6, movement: 0 },
-    { userId: "u2", displayName: "Bob", points: 4, movement: 0 },
+    { userId: "u1", displayName: "Alice", points: 8, movement: 0 },
+    { userId: "u2", displayName: "Bob", points: 5, movement: 0 },
   ]);
 });
 
