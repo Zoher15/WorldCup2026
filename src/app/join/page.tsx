@@ -2,12 +2,8 @@
 
 import { use, useActionState, useState } from "react";
 import Link from "next/link";
-import {
-  createGroupAction,
-  joinGroupAction,
-  INITIAL_JOIN_STATE,
-  type JoinState,
-} from "@/app/actions";
+import { createGroupAction, joinGroupAction } from "@/app/actions";
+import { INITIAL_JOIN_STATE, type JoinState } from "@/app/join-state";
 
 const input =
   "w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-base font-medium outline-none focus:border-pitch focus:ring-2 focus:ring-pitch/30 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100 dark:placeholder:text-stone-500";
