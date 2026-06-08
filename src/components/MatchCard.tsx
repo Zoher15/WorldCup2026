@@ -50,6 +50,8 @@ export interface MatchCardProps {
   footer?: React.ReactNode;
   /** Fired when a header countdown reaches zero (e.g. to refresh the page). */
   onExpire?: () => void;
+  /** Brighten the flags on hover (as if unlocked) — used in the homepage preview. */
+  revealOnHover?: boolean;
 }
 
 /** Frosted liquid-glass surface for every text panel floating over the flags.
@@ -167,7 +169,7 @@ function FlagHalf({ code, side }: { code: string | null; side: "left" | "right" 
   );
 }
 
-export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: MatchCardProps) {
+export function MatchCard({ data, opensAt, entry, pick, footer, onExpire, revealOnHover }: MatchCardProps) {
   const editing = data.state === "open" && entry != null;
   const hasResult =
     (data.state === "live" || data.state === "final") &&
@@ -245,7 +247,7 @@ export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: Matc
   }
 
   return (
-    <div className="relative animate-pop-in overflow-hidden rounded-2xl bg-stone-200 shadow-lg ring-1 ring-white/30 dark:bg-stone-800 dark:ring-white/15">
+    <div className={`relative animate-pop-in overflow-hidden rounded-2xl bg-stone-200 shadow-lg ring-1 ring-white/30 dark:bg-stone-800 dark:ring-white/15${revealOnHover ? " glass-reveal" : ""}`}>
       {/* The two flags fill the card and butt together at a hard centre split.
           A 1px bleed past the edges keeps the rounded clip from leaving a hairline. */}
       <div aria-hidden className="pointer-events-none absolute -inset-px">
@@ -259,7 +261,13 @@ export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: Matc
           from the still-frosted upcoming cards. */}
       <div
         aria-hidden
-        className={`glass absolute inset-0 rounded-2xl ${data.state === "open" ? "glass-vivid" : ""}`}
+        className={`glass glass-flag absolute inset-0 rounded-2xl ${
+          data.state === "open"
+            ? "glass-vivid"
+            : data.state === "locked"
+              ? "glass-muted"
+              : ""
+        }`}
       />
 
       <div className="relative flex min-h-[9rem] flex-col justify-between gap-2 p-3 text-xs font-bold">
