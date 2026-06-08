@@ -14,6 +14,7 @@ export interface PlayerPredictionRow {
   homeLabel: string | null;
   awayLabel: string | null;
   kickoffAt: string;
+  venue: string | null;
   state: PredictionState;
   /** Whether the player has entered a prediction (always visible). */
   hasPrediction: boolean;
@@ -70,7 +71,7 @@ export async function getPlayerProfile(opts: {
     db
       .from("matches")
       .select(
-        "id, match_number, stage, group_label, home_code, away_code, home_team, away_team, kickoff_at, home_goals, away_goals, advanced_code, result_confirmed",
+        "id, match_number, stage, group_label, home_code, away_code, home_team, away_team, kickoff_at, venue, home_goals, away_goals, advanced_code, result_confirmed",
       )
       .order("kickoff_at", { ascending: true }),
     db
@@ -139,6 +140,7 @@ export async function getPlayerProfile(opts: {
       homeLabel: m.home_team,
       awayLabel: m.away_team,
       kickoffAt: m.kickoff_at,
+      venue: m.venue,
       state,
       hasPrediction,
       pick,

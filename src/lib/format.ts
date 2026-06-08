@@ -13,6 +13,18 @@ export function formatStageLabel(
   return groupLabel ? `Group ${groupLabel}` : stage.replace(/_/g, " ");
 }
 
+/**
+ * Clean host-city label from a venue string. The fixtures carry the metro plus
+ * the stadium suburb in parentheses (e.g. "Los Angeles (Inglewood)",
+ * "New York/New Jersey (East Rutherford)"); for a card chip we want just the
+ * city: "Los Angeles", "New York/New Jersey". Returns null for empty venues.
+ */
+export function formatHostCity(venue: string | null | undefined): string | null {
+  if (!venue) return null;
+  const city = venue.replace(/\s*\(.*\)\s*/, "").trim();
+  return city || null;
+}
+
 export function formatKickoffTime(iso: string): string {
   return new Date(iso).toLocaleTimeString(undefined, {
     hour: "numeric",

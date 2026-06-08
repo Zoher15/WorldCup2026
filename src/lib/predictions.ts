@@ -18,6 +18,7 @@ export interface MatchForPrediction {
   homeLabel: string | null;
   awayLabel: string | null;
   kickoffAt: string;
+  venue: string | null;
   /** When the prediction window opens (ISO). */
   opensAt: string;
   /** upcoming = not open yet, open = editable, locked = kickoff passed. */
@@ -53,7 +54,7 @@ export async function getPredictionBoard(userId: string): Promise<{
     db
       .from("matches")
       .select(
-        "id, match_number, stage, group_label, home_code, away_code, home_team, away_team, kickoff_at",
+        "id, match_number, stage, group_label, home_code, away_code, home_team, away_team, kickoff_at, venue",
       )
       .gte("kickoff_at", nowIso)
       .order("kickoff_at", { ascending: true }),
@@ -87,6 +88,7 @@ export async function getPredictionBoard(userId: string): Promise<{
       homeLabel: m.home_team,
       awayLabel: m.away_team,
       kickoffAt: m.kickoff_at,
+      venue: m.venue,
       opensAt: new Date(windowOpensAt(m.kickoff_at)).toISOString(),
       state: predictionState(m.kickoff_at),
     })),

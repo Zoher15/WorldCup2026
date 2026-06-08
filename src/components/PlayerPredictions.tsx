@@ -19,6 +19,7 @@ function PlayerCard({ row }: { row: PlayerPredictionRow }) {
     kickoffAt: row.kickoffAt,
     stage: row.stage,
     groupLabel: row.groupLabel,
+    venue: row.venue,
     state,
     homeGoals: row.result?.home,
     awayGoals: row.result?.away,
