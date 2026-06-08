@@ -97,10 +97,17 @@ export function Leaderboard({ data, code }: { data: Standings; code?: string }) 
                 code={code}
                 className="mb-1 max-w-full truncate text-xs font-bold"
               />
-              <div
-                className={`flex w-full ${PODIUM_HEIGHT[idx]} items-start justify-center rounded-t-xl bg-gradient-to-b ${PODIUM_BG[idx]} pt-1 font-black text-white shadow-inner`}
-              >
-                {r.points}
+              {/* Glass sheet floating over the vibrant medal gradient — the
+                  gold/silver/bronze glows through the frost, matching the
+                  "glass over flags" treatment on the match cards. */}
+              <div className={`relative w-full ${PODIUM_HEIGHT[idx]}`}>
+                <div
+                  className={`absolute inset-0 rounded-t-xl bg-gradient-to-b ${PODIUM_BG[idx]}`}
+                />
+                <div className="absolute inset-0 rounded-t-xl glass" />
+                <div className="relative flex h-full items-start justify-center pt-1 font-black text-stone-800 dark:text-stone-50">
+                  {r.points}
+                </div>
               </div>
             </div>
           );
