@@ -10,8 +10,6 @@ export interface JoinState {
   status: "idle" | "error" | "success";
   error?: string;
   groupCode?: string;
-  /** Shown once when a new account was created so the user can save it. */
-  recoveryCode?: string | null;
 }
 
 export const INITIAL_JOIN_STATE: JoinState = { status: "idle" };

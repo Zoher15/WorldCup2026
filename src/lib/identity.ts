@@ -1,25 +1,27 @@
-import { cookies } from "next/headers";
+import { createServerSupabase } from "./supabase/server";
 
 /**
- * Lightweight device identity: a single httpOnly cookie holds the user's id.
- * No passwords. A user reclaims their identity on a new device with their
- * recovery code (see lib/codes and the recover flow).
+ * Identity is Supabase Auth (email magic-link). The signed-in user's id is the
+ * app's user id (== auth.uid()) and the key for memberships, predictions, and
+ * the profile row in `users`.
+ *
+ * Both helpers fail open (return null) if Supabase auth isn't configured yet,
+ * so the site still renders in a logged-out state during setup rather than
+ * crashing every page.
  */
-const UID_COOKIE = "wc_uid";
-const ONE_YEAR = 60 * 60 * 24 * 365;
-
-export async function getUserId(): Promise<string | null> {
-  const store = await cookies();
-  return store.get(UID_COOKIE)?.value ?? null;
+export async function getAuthUser() {
+  try {
+    const supabase = await createServerSupabase();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    return user;
+  } catch {
+    return null;
+  }
 }
 
-export async function setUserId(id: string): Promise<void> {
-  const store = await cookies();
-  store.set(UID_COOKIE, id, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: ONE_YEAR,
-  });
+export async function getUserId(): Promise<string | null> {
+  const user = await getAuthUser();
+  return user?.id ?? null;
 }

@@ -1,6 +1,10 @@
 import type { Metadata, Viewport } from "next";
+import Link from "next/link";
 import "flag-icons/css/flag-icons.min.css";
 import "./globals.css";
+import { getAuthUser } from "@/lib/identity";
+import { getProfile, initials } from "@/lib/profile";
+import { AccountMenu } from "@/components/AccountMenu";
 
 export const metadata: Metadata = {
   title: "World Cup 2026 Predictions",
@@ -14,14 +18,31 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const user = await getAuthUser();
+  const profile = user ? await getProfile(user.id) : null;
+  const name = profile?.name ?? null;
+
   return (
     <html lang="en">
       <body className="text-stone-800 antialiased dark:text-stone-100">
+        <header className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+          <Link
+            href="/"
+            className="text-sm font-black tracking-tight text-stone-500 dark:text-stone-300"
+          >
+            ⚽ WC2026
+          </Link>
+          <AccountMenu
+            loggedIn={Boolean(user)}
+            name={name}
+            initials={name ? initials(name) : "🙂"}
+          />
+        </header>
         {children}
       </body>
     </html>
