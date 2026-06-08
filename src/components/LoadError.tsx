@@ -20,7 +20,7 @@ export function LoadError({
       </p>
       <a
         href="/"
-        className="mt-6 inline-block rounded-full bg-pitch px-6 py-3 font-bold text-white shadow transition active:scale-95"
+        className="mt-6 inline-block rounded-full glass px-6 py-3 font-bold text-pitch dark:text-emerald-400 transition active:scale-95"
       >
         ← Back home
       </a>

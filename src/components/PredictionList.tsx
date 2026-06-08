@@ -146,7 +146,7 @@ export function PredictionList({
           <button
             onClick={save}
             disabled={pending || dirtyIds.length === 0}
-            className="rounded-full bg-pitch px-6 py-3 font-bold text-white shadow transition active:scale-95 disabled:opacity-40"
+            className="rounded-full glass px-6 py-3 font-bold text-pitch dark:text-emerald-400 transition active:scale-95 disabled:opacity-40"
           >
             {pending ? "Saving…" : "Save predictions"}
           </button>

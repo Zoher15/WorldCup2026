@@ -69,14 +69,14 @@ export function Leaderboard({ data, code }: { data: Standings; code?: string }) 
       </h2>
 
       {/* Tabs */}
-      <div className="mb-5 flex justify-center gap-1 rounded-full bg-stone-100 p-1 dark:bg-stone-700">
+      <div className="mb-5 flex justify-center gap-1 rounded-full glass p-1">
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
             className={`flex-1 rounded-full px-3 py-1.5 text-sm font-bold transition ${
               tab === t.key
-                ? "bg-grape text-white shadow"
+                ? "glass text-grape dark:text-violet-300"
                 : "text-stone-500 hover:text-stone-700 dark:text-stone-300 dark:hover:text-white"
             }`}
           >

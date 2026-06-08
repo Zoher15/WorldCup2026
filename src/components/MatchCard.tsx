@@ -68,18 +68,18 @@ function StatusPill({
   switch (data.state) {
     case "live":
       return (
-        <span className={`${base} inline-flex items-center gap-1.5 bg-flame text-white`}>
-          <span className="live-dot h-2 w-2 rounded-full bg-white" />
+        <span className={`${base} glass inline-flex items-center gap-1.5 text-flame`}>
+          <span className="live-dot h-2 w-2 rounded-full bg-flame" />
           LIVE{data.minute ? ` ${data.minute}'` : ""}
         </span>
       );
     case "final":
-      return <span className={`${base} bg-pitch text-white`}>FULL TIME</span>;
+      return <span className={`${base} glass text-pitch dark:text-emerald-400`}>FULL TIME</span>;
     case "locked":
       return <span className={`${base} ${GLASS} text-stone-500 dark:text-stone-300`}>🔒 Locked</span>;
     case "open":
       return (
-        <span className={`${base} inline-flex items-center gap-1 bg-flame text-white`}>
+        <span className={`${base} glass inline-flex items-center gap-1 text-flame`}>
           ⏳ closes in{" "}
           <Countdown target={data.kickoffAt} expiredLabel="closed" onExpire={onExpire} />
         </span>
@@ -245,13 +245,17 @@ export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: Matc
   }
 
   return (
-    <div className="relative animate-pop-in overflow-hidden rounded-2xl bg-stone-200 shadow-lg ring-1 ring-black/5 dark:bg-stone-800 dark:ring-white/10">
+    <div className="relative animate-pop-in overflow-hidden rounded-2xl bg-stone-200 shadow-lg ring-1 ring-white/30 dark:bg-stone-800 dark:ring-white/15">
       {/* The two flags fill the card and butt together at a hard centre split.
           A 1px bleed past the edges keeps the rounded clip from leaving a hairline. */}
       <div aria-hidden className="pointer-events-none absolute -inset-px">
         <FlagHalf code={data.homeCode} side="left" />
         <FlagHalf code={data.awayCode} side="right" />
       </div>
+      {/* Frost the flags into a glass surface: the colours bloom through the
+          blur so the whole card reads as one liquid-glass panel (and the
+          pointer sheen rides across it). */}
+      <div aria-hidden className="glass absolute inset-0 rounded-2xl" />
 
       <div className="relative flex min-h-[9rem] flex-col justify-between gap-2 p-3 text-xs font-bold">
         <div className="flex items-center justify-between gap-2">
