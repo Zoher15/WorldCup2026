@@ -49,3 +49,37 @@ body {
   50% { opacity: 0.35; }
 }
 .live-dot { animation: live-pulse 1.1s ease-in-out infinite; }
+
+/* Liquid-glass surface for the text panels floating over the flags. A frosted,
+   translucent tint lets the vibrant flags glow through, while the blur keeps
+   text crisp; `saturate` pushes the flag colours that bleed through, and the
+   bright edge + inner sheen give the "liquid glass" lift. Colour is left to
+   utility classes so each panel can keep its own tone. */
+.glass {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(14px) saturate(180%);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.04),
+    0 4px 14px rgba(0, 0, 0, 0.10);
+}
+@media (prefers-color-scheme: dark) {
+  .glass {
+    background: rgba(28, 25, 23, 0.42);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.16),
+      inset 0 -1px 1px rgba(0, 0, 0, 0.25),
+      0 6px 18px rgba(0, 0, 0, 0.38);
+  }
+}
+/* Graceful fallback: if the browser can't blur the backdrop, lean opaque so
+   text never sits on a bare flag. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass { background: rgba(255, 255, 255, 0.92); }
+  @media (prefers-color-scheme: dark) {
+    .glass { background: rgba(28, 25, 23, 0.9); }
+  }
+}

@@ -7,12 +7,13 @@ import { formatKickoffTime, formatStageLabel } from "@/lib/format";
 import type { Stage } from "@/lib/types";
 
 /**
- * Flat-design match card: the two teams' flags fill the whole card edge to edge
- * and butt against each other in a hard split down the middle. Everything else
- * is a crisp solid panel floating on top — no blur, no gradients — so the bold
- * flags stay the hero. The *state* drives the status pill and what sits in the
- * single focal tile (score-entry steppers, a revealed pick, the live/final
- * score, or kickoff time).
+ * Liquid-glass match card: the two teams' flags fill the whole card edge to
+ * edge and butt against each other in a hard split down the middle. Floating on
+ * top are frosted, translucent glass panels (see `.glass` in globals.css) — the
+ * vibrant flags glow through the blur while text stays crisp, so the flags stay
+ * the hero without ever fighting the copy. The *state* drives the status pill
+ * and what sits in the single focal tile (score-entry steppers, a revealed
+ * pick, the live/final score, or kickoff time).
  */
 export type MatchCardState = "upcoming" | "open" | "locked" | "live" | "final";
 
@@ -48,8 +49,10 @@ export interface MatchCardProps {
   onExpire?: () => void;
 }
 
-/** Solid (flat) surface for every panel floating over the flags. */
-const SOLID = "bg-white text-stone-700 dark:bg-stone-900 dark:text-stone-100";
+/** Frosted liquid-glass surface for every text panel floating over the flags.
+ *  Keeps the same default text tones as before; the `.glass` class supplies the
+ *  translucent tint, blur, edge and sheen. */
+const GLASS = "glass text-stone-700 dark:text-stone-100";
 
 function StatusPill({
   data,
@@ -72,7 +75,7 @@ function StatusPill({
     case "final":
       return <span className={`${base} bg-pitch text-white`}>FULL TIME</span>;
     case "locked":
-      return <span className={`${base} ${SOLID} text-stone-500 dark:text-stone-300`}>🔒 Locked</span>;
+      return <span className={`${base} ${GLASS} text-stone-500 dark:text-stone-300`}>🔒 Locked</span>;
     case "open":
       return (
         <span className={`${base} inline-flex items-center gap-1 bg-flame text-white`}>
@@ -87,7 +90,7 @@ function StatusPill({
           <Countdown target={opensAt} expiredLabel="now open" onExpire={onExpire} />
         </span>
       ) : (
-        <span className={`${base} ${SOLID} text-ocean`}>Upcoming</span>
+        <span className={`${base} ${GLASS} text-ocean`}>Upcoming</span>
       );
   }
 }
@@ -96,7 +99,7 @@ function StatusPill({
 function TeamName({ code, label }: { code: string | null; label?: string | null }) {
   return (
     <span
-      className={`truncate rounded-lg px-2.5 py-1 text-center text-sm font-extrabold ${SOLID} text-stone-800 dark:text-stone-50`}
+      className={`truncate rounded-lg px-2.5 py-1 text-center text-sm font-extrabold ${GLASS} text-stone-800 dark:text-stone-50`}
     >
       {teamLabel(code, label)}
     </span>
@@ -116,7 +119,7 @@ function Score({
   label?: string;
 }) {
   return (
-    <div className={`rounded-xl px-4 py-1.5 text-center ${SOLID}`}>
+    <div className={`rounded-xl px-4 py-1.5 text-center ${GLASS}`}>
       <div className={`flex items-center gap-2 text-3xl font-black tabular-nums ${tone}`}>
         <span>{home}</span>
         <span className="text-stone-300 dark:text-stone-600">:</span>
@@ -185,7 +188,7 @@ export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: Matc
   } else if (entry && editing) {
     // Open for editing: active steppers are the control.
     focal = (
-      <div className={`rounded-xl px-3 py-1.5 ${SOLID}`}>
+      <div className={`rounded-xl px-3 py-1.5 ${GLASS}`}>
         <div className="flex items-center justify-center gap-3">
           <Stepper size="sm" value={entry.home} onChange={(n) => entry.onChange("home", n)} />
           <span className="text-xl font-black text-stone-300 dark:text-stone-600">:</span>
@@ -201,7 +204,7 @@ export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: Matc
     // the same spot, keeping the pick visible. Same footprint = fixed proportions.
     const locked = data.state === "locked";
     focal = (
-      <div className={`rounded-xl px-4 py-1.5 ${SOLID}`}>
+      <div className={`rounded-xl px-4 py-1.5 ${GLASS}`}>
         <div className="flex items-center justify-center gap-2 text-2xl font-black tabular-nums text-stone-400 dark:text-stone-500">
           <span className="text-xl leading-none">{locked ? "🔒" : "⏳"}</span>
           <span>{entry.home}</span>
@@ -217,7 +220,7 @@ export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: Matc
     focal = <Score home={pick.home} away={pick.away} tone="text-grape" label="your pick" />;
   } else {
     focal = (
-      <div className={`rounded-xl px-4 py-2 text-center ${SOLID}`}>
+      <div className={`rounded-xl px-4 py-2 text-center ${GLASS}`}>
         <div className="text-xl font-black text-stone-700 dark:text-stone-100">
           {formatKickoffTime(data.kickoffAt)}
         </div>
@@ -227,7 +230,7 @@ export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: Matc
   }
 
   return (
-    <div className="relative animate-pop-in overflow-hidden rounded-2xl bg-stone-200 shadow-md dark:bg-stone-800">
+    <div className="relative animate-pop-in overflow-hidden rounded-2xl bg-stone-200 shadow-lg ring-1 ring-black/5 dark:bg-stone-800 dark:ring-white/10">
       {/* The two flags fill the card and butt together at a hard centre split.
           A 1px bleed past the edges keeps the rounded clip from leaving a hairline. */}
       <div aria-hidden className="pointer-events-none absolute -inset-px">
@@ -237,7 +240,7 @@ export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: Matc
 
       <div className="relative flex min-h-[9rem] flex-col justify-between gap-2 p-3 text-xs font-bold">
         <div className="flex items-center justify-between gap-2">
-          <span className={`truncate rounded-full px-2.5 py-0.5 ${SOLID} text-stone-600 dark:text-stone-200`}>
+          <span className={`truncate rounded-full px-2.5 py-0.5 ${GLASS} text-stone-600 dark:text-stone-200`}>
             {formatStageLabel(data.groupLabel, data.stage)}
           </span>
           <StatusPill data={data} opensAt={opensAt} onExpire={onExpire} />
@@ -251,7 +254,7 @@ export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: Matc
             <TeamName code={data.awayCode} label={data.awayLabel} />
           </div>
           {footer && (
-            <div className={`rounded-lg px-3 py-1.5 ${SOLID} text-stone-700 dark:text-stone-100`}>
+            <div className={`rounded-lg px-3 py-1.5 ${GLASS} text-stone-700 dark:text-stone-100`}>
               {footer}
             </div>
           )}
