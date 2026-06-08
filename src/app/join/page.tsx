@@ -28,7 +28,7 @@ export default async function JoinPage({
       <Link href="/" className="text-sm font-bold text-stone-400">
         ← Back
       </Link>
-      <h1 className="mt-3 mb-6 bg-gradient-to-r from-flame to-grape bg-clip-text text-3xl font-black text-transparent">
+      <h1 className="mt-3 mb-6 bg-gradient-to-r from-flame to-grape bg-clip-text pb-1 text-3xl font-black leading-tight text-transparent">
         Join the fun
       </h1>
       <JoinForms
