@@ -40,6 +40,15 @@ export function formatKickoffDate(iso: string): string {
   });
 }
 
+/** Compact date for the card focal tile, e.g. "Sat, Jun 13". */
+export function formatKickoffDateCompact(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 export function formatKickoffDateTime(iso: string): string {
   return new Date(iso).toLocaleString(undefined, {
     month: "short",

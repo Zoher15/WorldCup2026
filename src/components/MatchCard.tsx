@@ -3,7 +3,7 @@
 import { Stepper } from "./Stepper";
 import { Countdown } from "./Countdown";
 import { teamByCode, teamColor, teamLabel } from "@/lib/fifa";
-import { formatHostCity, formatKickoffTime, formatStageLabel } from "@/lib/format";
+import { formatHostCity, formatKickoffDateCompact, formatKickoffTime, formatStageLabel } from "@/lib/format";
 import type { Stage } from "@/lib/types";
 
 /**
@@ -234,10 +234,12 @@ export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: Matc
   } else {
     focal = (
       <div className={`rounded-xl px-4 py-2 text-center ${GLASS}`}>
-        <div className="text-xl font-black text-stone-700 dark:text-stone-100">
-          {formatKickoffTime(data.kickoffAt)}
+        <div className="text-lg font-black leading-tight text-stone-700 dark:text-stone-100">
+          {formatKickoffDateCompact(data.kickoffAt)}
         </div>
-        <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">kickoff</div>
+        <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
+          {formatKickoffTime(data.kickoffAt)} · kickoff
+        </div>
       </div>
     );
   }
