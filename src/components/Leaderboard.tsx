@@ -18,7 +18,8 @@ const PODIUM_BG = [
 ];
 // Render order places #1 in the middle, #2 left, #3 right.
 const PODIUM_ORDER = [1, 0, 2];
-const PODIUM_HEIGHT = ["h-20", "h-28", "h-16"];
+// Indexed by rank (0 = 1st): the winner's bar is tallest, descending from there.
+const PODIUM_HEIGHT = ["h-28", "h-20", "h-16"];
 
 function Movement({ value }: { value: number }) {
   if (value === 0)
