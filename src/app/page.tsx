@@ -20,7 +20,7 @@ export default function Home() {
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
       <header className="mb-8 text-center">
-        <div className="inline-flex items-center gap-2 rounded-full bg-pitch px-4 py-1.5 text-sm font-bold text-white shadow">
+        <div className="inline-flex items-center gap-2 rounded-full glass px-4 py-1.5 text-sm font-bold text-pitch dark:text-emerald-400">
           ⚽ World Cup 2026
         </div>
         <h1 className="mt-3 bg-gradient-to-r from-flame via-grape to-ocean bg-clip-text text-4xl font-black tracking-tight text-transparent sm:text-5xl">

@@ -33,7 +33,7 @@ export default async function RootLayout({
         <header className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
           <Link
             href="/"
-            className="text-sm font-black tracking-tight text-stone-500 dark:text-stone-300"
+            className="inline-flex items-center gap-1.5 rounded-full glass px-3 py-1.5 text-sm font-black tracking-tight text-stone-600 dark:text-stone-200"
           >
             ⚽ WC2026
           </Link>
