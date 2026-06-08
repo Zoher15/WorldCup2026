@@ -3,7 +3,7 @@
 import { Stepper } from "./Stepper";
 import { Countdown } from "./Countdown";
 import { teamByCode, teamColor, teamLabel } from "@/lib/fifa";
-import { formatKickoffTime, formatStageLabel } from "@/lib/format";
+import { formatHostCity, formatKickoffTime, formatStageLabel } from "@/lib/format";
 import type { Stage } from "@/lib/types";
 
 /**
@@ -25,6 +25,8 @@ export interface MatchCardData {
   kickoffAt: string;
   stage?: Stage;
   groupLabel?: string | null;
+  /** Host city / venue, shown top-right on upcoming cards. */
+  venue?: string | null;
   state: MatchCardState;
   minute?: number | null;
   homeGoals?: number | null;
@@ -33,7 +35,8 @@ export interface MatchCardData {
 
 export interface MatchCardProps {
   data: MatchCardData;
-  /** Window-open time (ISO) for the "opens in" countdown on upcoming matches. */
+  /** Window-open time (ISO). Drives a hidden ticker that auto-refreshes an
+   *  upcoming card the moment its prediction window opens (no visible badge). */
   opensAt?: string;
   /** Interactive score entry; when present on an open match, the focal tile shows steppers. */
   entry?: {
@@ -83,15 +86,23 @@ function StatusPill({
           <Countdown target={data.kickoffAt} expiredLabel="closed" onExpire={onExpire} />
         </span>
       );
-    case "upcoming":
-      return opensAt ? (
-        <span className={`${base} inline-flex items-center gap-1 bg-ocean text-white`}>
-          🔓 opens in{" "}
-          <Countdown target={opensAt} expiredLabel="now open" onExpire={onExpire} />
+    case "upcoming": {
+      // Top-right carries the host city, not a countdown — the prediction
+      // window's "opens" timing already lives elsewhere and was duplicating it.
+      const city = formatHostCity(data.venue);
+      return (
+        <span className={`${base} ${GLASS} inline-flex items-center gap-1 text-ocean`}>
+          {/* Keep driving the upcoming→open auto-refresh without showing a
+              second countdown: a visually-hidden ticker fires onExpire. */}
+          {opensAt && (
+            <span className="sr-only">
+              <Countdown target={opensAt} expiredLabel="open" onExpire={onExpire} />
+            </span>
+          )}
+          {city ? <>📍 {city}</> : "Upcoming"}
         </span>
-      ) : (
-        <span className={`${base} ${GLASS} text-ocean`}>Upcoming</span>
       );
+    }
   }
 }
 
@@ -199,20 +210,20 @@ export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: Matc
         </div>
       </div>
     );
-  } else if (entry) {
-    // Not editable: drop the +/- and show a clear lock (or "opens soon") badge in
-    // the same spot, keeping the pick visible. Same footprint = fixed proportions.
-    const locked = data.state === "locked";
+  } else if (entry && data.state === "locked") {
+    // Window shut at kickoff: drop the +/- and show the locked-in pick. An
+    // upcoming (not-yet-open) match isn't handled here — it falls through to the
+    // kickoff time, since its 0:0 isn't a real pick and the "opens" cue is gone.
     focal = (
       <div className={`rounded-xl px-4 py-1.5 ${GLASS}`}>
         <div className="flex items-center justify-center gap-2 text-2xl font-black tabular-nums text-stone-400 dark:text-stone-500">
-          <span className="text-xl leading-none">{locked ? "🔒" : "⏳"}</span>
+          <span className="text-xl leading-none">🔒</span>
           <span>{entry.home}</span>
           <span className="text-stone-300 dark:text-stone-600">:</span>
           <span>{entry.away}</span>
         </div>
         <div className="text-center text-[9px] font-bold uppercase tracking-wide text-stone-400">
-          {locked ? "locked" : "opens soon"}
+          locked
         </div>
       </div>
     );

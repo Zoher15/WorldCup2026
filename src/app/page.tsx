@@ -12,6 +12,7 @@ const UPCOMING: MatchCardData[] = FIXTURES.slice(0, 6).map((f) => ({
   kickoffAt: f.kickoffAt,
   stage: f.stage,
   groupLabel: f.groupLabel,
+  venue: f.venue,
   state: "upcoming",
 }));
 
