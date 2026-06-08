@@ -13,7 +13,7 @@ function Success({ state }: { state: JoinState }) {
   return (
     <div className="animate-pop-in rounded-3xl glass p-6 text-center">
       <div className="text-4xl">🎉</div>
-      <h2 className="mt-2 text-2xl font-black text-pitch">You&apos;re in!</h2>
+      <h2 className="mt-2 text-2xl font-black text-pitch dark:text-emerald-400">You&apos;re in!</h2>
       <p className="mt-1 text-stone-500 dark:text-stone-300">
         Share this code so others can join:
       </p>

@@ -35,7 +35,7 @@ export default function LoginPage({
       {state.status === "sent" ? (
         <div className="animate-pop-in rounded-3xl glass p-6 text-center">
           <div className="text-4xl">📬</div>
-          <h2 className="mt-2 text-xl font-black text-pitch">Check your email</h2>
+          <h2 className="mt-2 text-xl font-black text-pitch dark:text-emerald-400">Check your email</h2>
           <p className="mt-1 text-sm text-stone-500 dark:text-stone-300">
             We sent a sign-in link to <strong>{state.email}</strong>. Open it on
             this device to continue.

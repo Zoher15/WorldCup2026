@@ -180,7 +180,7 @@ export function AdminResults({ matches }: { matches: AdminMatch[] }) {
         </div>
       </div>
       {syncMsg && (
-        <p className="mb-3 rounded-xl bg-ocean/10 px-4 py-2 text-sm font-bold text-ocean">
+        <p className="mb-3 rounded-xl bg-ocean/10 px-4 py-2 text-sm font-bold text-ocean dark:text-sky-400">
           {syncMsg}
         </p>
       )}

@@ -90,7 +90,7 @@ function StatusPill({
       // the same timing isn't duplicated in two places.
       const city = formatHostCity(data.venue);
       return (
-        <span className={`${base} ${GLASS} inline-flex items-center gap-1 text-ocean`}>
+        <span className={`${base} ${GLASS} inline-flex items-center gap-1 text-ocean dark:text-sky-400`}>
           {city ? <>📍 {city}</> : "Upcoming"}
         </span>
       );
@@ -206,7 +206,7 @@ export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: Matc
     // Window shut at kickoff: drop the +/- and show the locked-in pick.
     focal = (
       <div className={`rounded-xl px-4 py-1.5 ${GLASS}`}>
-        <div className="flex items-center justify-center gap-2 text-2xl font-black tabular-nums text-stone-400 dark:text-stone-500">
+        <div className="flex items-center justify-center gap-2 text-2xl font-black tabular-nums text-stone-400 dark:text-stone-400">
           <span className="text-xl leading-none">🔒</span>
           <span>{entry.home}</span>
           <span className="text-stone-300 dark:text-stone-600">:</span>
@@ -223,14 +223,14 @@ export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: Matc
     // place this timing lives, with the host city already shown top-right.
     focal = (
       <div className={`rounded-xl px-4 py-2 text-center ${GLASS}`}>
-        <div className="text-xl font-black tabular-nums text-ocean">
+        <div className="text-xl font-black tabular-nums text-ocean dark:text-sky-400">
           <Countdown target={opensAt} expiredLabel="open now" onExpire={onExpire} />
         </div>
         <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">opens in</div>
       </div>
     );
   } else if (pick) {
-    focal = <Score home={pick.home} away={pick.away} tone="text-grape" label="your pick" />;
+    focal = <Score home={pick.home} away={pick.away} tone="text-grape dark:text-violet-300" label="your pick" />;
   } else {
     focal = (
       <div className={`rounded-xl px-4 py-2 text-center ${GLASS}`}>

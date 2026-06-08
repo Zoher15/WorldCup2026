@@ -88,7 +88,7 @@ export default function HowToPlayPage() {
               </p>
             </div>
             <div className="flex-1 rounded-2xl bg-ocean/10 p-4 dark:bg-ocean/20">
-              <div className="text-2xl font-black text-ocean">up to 5</div>
+              <div className="text-2xl font-black text-ocean dark:text-sky-400">up to 5</div>
               <div className="text-sm font-bold text-stone-700 dark:text-stone-100">
                 Closeness
               </div>

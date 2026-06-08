@@ -26,7 +26,7 @@ function Movement({ value }: { value: number }) {
   const up = value > 0;
   return (
     <span
-      className={`text-xs font-bold ${up ? "text-pitch" : "text-flame"}`}
+      className={`text-xs font-bold ${up ? "text-pitch dark:text-emerald-400" : "text-flame"}`}
       title={`${up ? "Up" : "Down"} ${Math.abs(value)}`}
     >
       {up ? "▲" : "▼"} {Math.abs(value)}
