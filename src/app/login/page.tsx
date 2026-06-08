@@ -33,7 +33,7 @@ export default function LoginPage({
       </p>
 
       {state.status === "sent" ? (
-        <div className="animate-pop-in rounded-3xl bg-white/90 p-6 text-center shadow-lg ring-1 ring-black/5 dark:bg-stone-800/90 dark:ring-white/10">
+        <div className="animate-pop-in rounded-3xl glass p-6 text-center">
           <div className="text-4xl">📬</div>
           <h2 className="mt-2 text-xl font-black text-pitch">Check your email</h2>
           <p className="mt-1 text-sm text-stone-500 dark:text-stone-300">

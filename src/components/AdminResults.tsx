@@ -55,8 +55,10 @@ function Row({ m }: { m: AdminMatch }) {
 
   return (
     <div
-      className={`rounded-2xl p-3 shadow ring-1 ring-black/5 dark:ring-white/10 dark:text-stone-100 ${
-        m.resultConfirmed ? "bg-pitch/10 dark:bg-pitch/20" : "bg-white/85 dark:bg-stone-800/85"
+      className={`rounded-2xl p-3 dark:text-stone-100 ${
+        m.resultConfirmed
+          ? "bg-pitch/10 shadow ring-1 ring-black/5 dark:bg-pitch/20 dark:ring-white/10"
+          : "glass"
       }`}
     >
       <div className="mb-1 flex items-center justify-between text-xs font-bold text-stone-400">

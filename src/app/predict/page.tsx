@@ -39,7 +39,7 @@ export default async function PredictPage() {
       </p>
 
       {matches.length === 0 ? (
-        <p className="rounded-2xl bg-white/85 p-6 text-center font-medium text-stone-500 shadow dark:bg-stone-800/85 dark:text-stone-300">
+        <p className="rounded-2xl glass p-6 text-center font-medium text-stone-500 dark:text-stone-300">
           No upcoming matches to predict right now.
         </p>
       ) : (

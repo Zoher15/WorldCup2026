@@ -38,7 +38,7 @@ export default async function PlayerPage({
         ← {group.name}
       </Link>
 
-      <header className="mt-3 mb-6 rounded-3xl bg-white/85 p-6 text-center shadow-lg ring-1 ring-black/5 dark:bg-stone-800/85 dark:ring-white/10">
+      <header className="mt-3 mb-6 rounded-3xl glass p-6 text-center">
         <h1 className="text-3xl font-black text-grape dark:text-violet-300">
           {player.displayName}
           {player.isViewer && (

@@ -62,7 +62,7 @@ export function Leaderboard({ data, code }: { data: Standings; code?: string }) 
   const rest = rows.slice(3);
 
   return (
-    <div className="rounded-3xl bg-white/85 p-5 shadow-lg ring-1 ring-black/5 backdrop-blur dark:bg-stone-800/85 dark:ring-white/10">
+    <div className="rounded-3xl glass p-5">
       <h2 className="mb-4 text-center text-2xl font-black text-grape dark:text-violet-300">
         🏆 Leaderboard
       </h2>
@@ -112,7 +112,7 @@ export function Leaderboard({ data, code }: { data: Standings; code?: string }) 
         {rest.map((r, i) => (
           <li
             key={r.userId}
-            className="flex items-center gap-3 rounded-2xl bg-stone-50 px-4 py-2.5 dark:bg-stone-700/50 dark:text-stone-100"
+            className="flex items-center gap-3 rounded-2xl glass px-4 py-2.5 text-stone-700 dark:text-stone-100"
           >
             <span className="w-6 text-center font-black text-stone-400">
               {i + 4}
