@@ -3,70 +3,106 @@
 import { useEffect } from "react";
 
 /**
- * Drives the "liquid glass" specular highlight: a single delegated pointer
- * listener finds the `.glass` element under the cursor/finger and feeds the
- * relative position into CSS custom properties (`--gx`, `--gy`) plus a
- * `--g-on` flag. The `.glass` rule paints a soft radial sheen at that point
- * (see globals.css), so the light appears to follow the pointer across every
- * glass surface. Mounted once globally — no per-component wiring needed.
+ * Drives the "liquid glass" pointer effects so only the *frontmost* glass
+ * surface under the pointer reacts — never its ancestors. (CSS `:hover`/
+ * `:active` would light up every glass element in the stack, which is why a
+ * tap on a podium bar used to ripple through the whole leaderboard.)
+ *
+ * A single delegated pointer listener hit-tests the paint stack with
+ * `elementsFromPoint` and picks the first `.glass` it finds — the element most
+ * in front, or the containing card if nothing nearer is glass. It then:
+ *   - feeds the relative position into `--gx`/`--gy` + a `--g-on` flag for the
+ *     specular sheen (see `.glass` in globals.css), and
+ *   - toggles the `glass-press` class for the tactile press dip.
+ * Mounted once globally — no per-component wiring.
  */
 export function GlassGlow() {
   useEffect(() => {
-    let current: HTMLElement | null = null;
+    let hovered: HTMLElement | null = null;
+    let pressed: HTMLElement | null = null;
     let raf = 0;
-    let pending: { x: number; y: number; target: EventTarget | null } | null = null;
+    let pending: { x: number; y: number } | null = null;
 
-    const clear = () => {
-      if (!current) return;
-      current.style.removeProperty("--gx");
-      current.style.removeProperty("--gy");
-      current.style.removeProperty("--g-on");
-      current = null;
+    // The first glass element in the front-to-back paint stack at this point.
+    const frontGlass = (x: number, y: number): HTMLElement | null => {
+      for (const node of document.elementsFromPoint(x, y)) {
+        if (node instanceof HTMLElement && node.classList.contains("glass")) {
+          return node;
+        }
+      }
+      return null;
+    };
+
+    const clearHover = () => {
+      if (!hovered) return;
+      hovered.style.removeProperty("--gx");
+      hovered.style.removeProperty("--gy");
+      hovered.style.removeProperty("--g-on");
+      hovered = null;
+    };
+
+    const releasePress = () => {
+      if (!pressed) return;
+      pressed.classList.remove("glass-press");
+      pressed = null;
     };
 
     const apply = () => {
       raf = 0;
       if (!pending) return;
-      const { x, y, target } = pending;
-      const el =
-        target instanceof Element
-          ? (target.closest(".glass") as HTMLElement | null)
-          : null;
-      if (el !== current) clear();
+      const { x, y } = pending;
+      const el = frontGlass(x, y);
+      if (el !== hovered) clearHover();
       if (!el) return;
       const r = el.getBoundingClientRect();
       el.style.setProperty("--gx", `${((x - r.left) / r.width) * 100}%`);
       el.style.setProperty("--gy", `${((y - r.top) / r.height) * 100}%`);
       el.style.setProperty("--g-on", "1");
-      current = el;
+      hovered = el;
     };
 
     const onMove = (e: PointerEvent) => {
-      pending = { x: e.clientX, y: e.clientY, target: e.target };
+      pending = { x: e.clientX, y: e.clientY };
       if (!raf) raf = requestAnimationFrame(apply);
     };
 
-    // A touch/pen lift ends the gesture, so fade the sheen out. A mouse button
-    // release shouldn't — the cursor is still hovering — so the next move
-    // re-paints it.
+    const onDown = (e: PointerEvent) => {
+      onMove(e); // refresh the sheen position immediately
+      const el = frontGlass(e.clientX, e.clientY);
+      if (el !== pressed) releasePress();
+      if (el) {
+        el.classList.add("glass-press");
+        pressed = el;
+      }
+    };
+
+    // A touch/pen lift ends the gesture (fade the sheen too); a mouse-button
+    // release keeps the hover sheen, which the next move re-paints.
     const onUp = (e: PointerEvent) => {
-      if (e.pointerType !== "mouse") clear();
+      releasePress();
+      if (e.pointerType !== "mouse") clearHover();
+    };
+
+    const onBlur = () => {
+      releasePress();
+      clearHover();
     };
 
     document.addEventListener("pointermove", onMove, { passive: true });
-    document.addEventListener("pointerdown", onMove, { passive: true });
+    document.addEventListener("pointerdown", onDown, { passive: true });
     document.addEventListener("pointerup", onUp, { passive: true });
     document.addEventListener("pointercancel", onUp, { passive: true });
-    window.addEventListener("blur", clear);
+    window.addEventListener("blur", onBlur);
 
     return () => {
       if (raf) cancelAnimationFrame(raf);
       document.removeEventListener("pointermove", onMove);
-      document.removeEventListener("pointerdown", onMove);
+      document.removeEventListener("pointerdown", onDown);
       document.removeEventListener("pointerup", onUp);
       document.removeEventListener("pointercancel", onUp);
-      window.removeEventListener("blur", clear);
-      clear();
+      window.removeEventListener("blur", onBlur);
+      releasePress();
+      clearHover();
     };
   }, []);
 
