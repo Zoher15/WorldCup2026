@@ -1,38 +1,9 @@
 import { createAdminClient } from "./supabase/admin";
-import { generateGroupCode, generateRecoveryCode, normalizeCode } from "./codes";
+import { generateGroupCode, normalizeCode } from "./codes";
 import { buildStandings, type Standings } from "./standings";
 import type { LateJoinPolicy } from "./types";
 
 const UNIQUE_VIOLATION = "23505";
-
-export interface EnsureUserResult {
-  userId: string;
-  /** Set only when a brand-new user was created (show it once, then it's gone). */
-  recoveryCode: string | null;
-  created: boolean;
-}
-
-/** Reuse the existing device identity, or create a new user with a recovery code. */
-export async function ensureUser(
-  existingId: string | null,
-  realName: string,
-): Promise<EnsureUserResult> {
-  const db = createAdminClient();
-  if (existingId) {
-    await db.from("users").update({ real_name: realName }).eq("id", existingId);
-    return { userId: existingId, recoveryCode: null, created: false };
-  }
-  const recoveryCode = generateRecoveryCode();
-  const { data, error } = await db
-    .from("users")
-    .insert({ real_name: realName, recovery_code: recoveryCode })
-    .select("id")
-    .single();
-  if (error || !data) {
-    throw new Error(`Could not create your account: ${error?.message ?? "unknown error"}`);
-  }
-  return { userId: data.id, recoveryCode, created: true };
-}
 
 /** Create a group with a unique join code and add the owner as admin member. */
 export async function createGroupWithOwner(opts: {

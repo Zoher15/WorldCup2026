@@ -1,11 +1,8 @@
 "use server";
 
-import { getUserId, setUserId } from "@/lib/identity";
-import {
-  ensureUser,
-  createGroupWithOwner,
-  joinGroupByCode,
-} from "@/lib/groups";
+import { getUserId } from "@/lib/identity";
+import { getProfile, upsertProfile } from "@/lib/profile";
+import { createGroupWithOwner, joinGroupByCode } from "@/lib/groups";
 import type { LateJoinPolicy } from "@/lib/types";
 import type { JoinState } from "./join-state";
 
@@ -17,29 +14,44 @@ function fail(error: string): JoinState {
   return { status: "error", error };
 }
 
+/**
+ * Ensure the signed-in user has a profile name (saved from the form's name
+ * field, so the avatar + group display name work), and return the resolved
+ * name. The profile row must exist before we add memberships that reference it.
+ */
+async function resolveName(userId: string, form: FormData): Promise<string> {
+  const typed = field(form, "realName");
+  const existing = await getProfile(userId);
+  if (typed) {
+    if (!existing || existing.name !== typed) await upsertProfile(userId, typed);
+    return typed;
+  }
+  if (existing?.name) return existing.name;
+  throw new Error("Please enter your name.");
+}
+
 export async function createGroupAction(
   _prev: JoinState,
   form: FormData,
 ): Promise<JoinState> {
-  const realName = field(form, "realName");
+  const userId = await getUserId();
+  if (!userId) return fail("Please sign in first.");
+
   const groupName = field(form, "groupName");
-  const displayName = field(form, "displayName") || realName;
+  if (!groupName) return fail("Please give your group a name.");
   const lateJoinPolicy: LateJoinPolicy =
     field(form, "lateJoinPolicy") === "start_even" ? "start_even" : "carry_over";
 
-  if (!realName) return fail("Please enter your name.");
-  if (!groupName) return fail("Please give your group a name.");
-
   try {
-    const user = await ensureUser(await getUserId(), realName);
-    if (user.created) await setUserId(user.userId);
+    const name = await resolveName(userId, form);
+    const displayName = field(form, "displayName") || name;
     const { code } = await createGroupWithOwner({
-      userId: user.userId,
+      userId,
       groupName,
       displayName,
       lateJoinPolicy,
     });
-    return { status: "success", groupCode: code, recoveryCode: user.recoveryCode };
+    return { status: "success", groupCode: code };
   } catch (e) {
     return fail(e instanceof Error ? e.message : "Something went wrong.");
   }
@@ -49,26 +61,17 @@ export async function joinGroupAction(
   _prev: JoinState,
   form: FormData,
 ): Promise<JoinState> {
-  const realName = field(form, "realName");
-  const code = field(form, "groupCode");
-  const displayName = field(form, "displayName") || realName;
+  const userId = await getUserId();
+  if (!userId) return fail("Please sign in first.");
 
-  if (!realName) return fail("Please enter your name.");
+  const code = field(form, "groupCode");
   if (!code) return fail("Please enter the group code.");
 
   try {
-    const user = await ensureUser(await getUserId(), realName);
-    if (user.created) await setUserId(user.userId);
-    const joined = await joinGroupByCode({
-      userId: user.userId,
-      code,
-      displayName,
-    });
-    return {
-      status: "success",
-      groupCode: joined.code,
-      recoveryCode: user.recoveryCode,
-    };
+    const name = await resolveName(userId, form);
+    const displayName = field(form, "displayName") || name;
+    const joined = await joinGroupByCode({ userId, code, displayName });
+    return { status: "success", groupCode: joined.code };
   } catch (e) {
     return fail(e instanceof Error ? e.message : "Something went wrong.");
   }
