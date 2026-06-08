@@ -70,7 +70,7 @@ export function HowToPlayDemo() {
         footer={
           locked ? (
             <div className="flex items-center justify-between gap-2">
-              <span className="text-stone-500">
+              <span className="text-stone-500 dark:text-stone-300">
                 Your pick{" "}
                 <span className="text-grape">
                   {pick.home}–{pick.away}

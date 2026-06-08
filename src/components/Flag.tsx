@@ -21,7 +21,7 @@ export function Flag({
 }) {
   const team = teamByCode(code);
   const box = SIZES[size];
-  const shared = `${box} rounded-md shadow-sm ring-1 ring-black/10 overflow-hidden shrink-0`;
+  const shared = `${box} rounded-lg shadow-sm ring-1 ring-black/10 overflow-hidden shrink-0`;
 
   if (!team) {
     return (

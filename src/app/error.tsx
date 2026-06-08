@@ -28,7 +28,7 @@ export default function Error({
         Sorry — that didn&apos;t load.
       </p>
 
-      <div className="mt-4 break-words rounded-2xl glass p-4 text-left text-xs font-medium text-stone-600 dark:text-stone-300">
+      <div className="mt-4 break-words rounded-2xl glass p-4 text-left text-xs font-medium text-stone-600 dark:text-stone-200">
         {redacted ? (
           <p>
             A server-side error was hidden by the production build. Reference{" "}

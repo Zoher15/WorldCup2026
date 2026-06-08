@@ -15,7 +15,7 @@ export function LoadError({
     <main className="mx-auto max-w-md px-4 py-16 text-center">
       <div className="text-4xl">⚠️</div>
       <h1 className="mt-3 text-xl font-black text-flame">{title}</h1>
-      <p className="mt-3 break-words rounded-2xl glass p-4 text-left text-sm font-medium text-stone-600 dark:text-stone-300">
+      <p className="mt-3 break-words rounded-2xl glass p-4 text-left text-sm font-medium text-stone-600 dark:text-stone-200">
         {message}
       </p>
       <a

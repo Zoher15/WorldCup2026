@@ -41,7 +41,7 @@ function PlayerCard({ row }: { row: PlayerPredictionRow }) {
 function PastFooter({ row }: { row: PlayerPredictionRow }) {
   return (
     <div className="flex items-center justify-between gap-2">
-      <span className="text-stone-500">
+      <span className="text-stone-500 dark:text-stone-300">
         {row.pick ? (
           <>
             Pick{" "}
@@ -71,7 +71,7 @@ function FutureFooter({ row }: { row: PlayerPredictionRow }) {
   if (row.pick) return <span className="text-pitch">✓ You&apos;re in</span>;
   if (row.hasPrediction)
     return (
-      <span className="text-stone-500">🔒 Entered · hidden until kickoff</span>
+      <span className="text-stone-500 dark:text-stone-300">🔒 Entered · hidden until kickoff</span>
     );
   return <span className="text-stone-400">Not entered yet</span>;
 }

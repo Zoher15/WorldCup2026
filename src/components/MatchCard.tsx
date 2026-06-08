@@ -129,7 +129,7 @@ function Score({
         <span>{away}</span>
       </div>
       {label && (
-        <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400">{label}</div>
+        <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">{label}</div>
       )}
     </div>
   );
@@ -197,7 +197,7 @@ export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: Matc
           <span className="text-xl font-black text-stone-300 dark:text-stone-600">:</span>
           <Stepper size="sm" value={entry.away} onChange={(n) => entry.onChange("away", n)} />
         </div>
-        <div className="text-center text-[9px] font-bold uppercase tracking-wide text-stone-400">
+        <div className="text-center text-[9px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
           your call
         </div>
       </div>
@@ -212,7 +212,7 @@ export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: Matc
           <span className="text-stone-300 dark:text-stone-600">:</span>
           <span>{entry.away}</span>
         </div>
-        <div className="text-center text-[9px] font-bold uppercase tracking-wide text-stone-400">
+        <div className="text-center text-[9px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
           locked
         </div>
       </div>
@@ -226,7 +226,7 @@ export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: Matc
         <div className="text-xl font-black tabular-nums text-ocean">
           <Countdown target={opensAt} expiredLabel="open now" onExpire={onExpire} />
         </div>
-        <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400">opens in</div>
+        <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">opens in</div>
       </div>
     );
   } else if (pick) {
@@ -237,7 +237,7 @@ export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: Matc
         <div className="text-xl font-black text-stone-700 dark:text-stone-100">
           {formatKickoffTime(data.kickoffAt)}
         </div>
-        <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400">kickoff</div>
+        <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">kickoff</div>
       </div>
     );
   }
