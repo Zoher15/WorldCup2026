@@ -78,7 +78,7 @@ export default function HowToPlayPage() {
             , split two ways:
           </p>
           <div className="mt-4 flex flex-col items-stretch justify-center gap-3 sm:flex-row">
-            <div className="flex-1 rounded-2xl bg-flame/10 p-4 dark:bg-flame/20">
+            <div className="flex-1 rounded-2xl glass p-4">
               <div className="text-2xl font-black text-flame">up to 5</div>
               <div className="text-sm font-bold text-stone-700 dark:text-stone-100">
                 Outcome
@@ -87,7 +87,7 @@ export default function HowToPlayPage() {
                 Right winner (or right draw) = 5. One step off = 2. Wrong = 0.
               </p>
             </div>
-            <div className="flex-1 rounded-2xl bg-ocean/10 p-4 dark:bg-ocean/20">
+            <div className="flex-1 rounded-2xl glass p-4">
               <div className="text-2xl font-black text-ocean dark:text-sky-400">up to 5</div>
               <div className="text-sm font-bold text-stone-700 dark:text-stone-100">
                 Closeness
@@ -113,7 +113,7 @@ export default function HowToPlayPage() {
       </section>
 
       {/* Knockouts */}
-      <section className="mb-10 rounded-3xl bg-grape/10 p-6 text-center dark:bg-grape/20">
+      <section className="mb-10 rounded-3xl glass p-6 text-center">
         <div className="text-2xl">🥊</div>
         <h2 className="mt-1 text-lg font-black text-grape dark:text-violet-300">
           Knockout bonus

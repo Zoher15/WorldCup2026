@@ -98,7 +98,7 @@ export function HowToPlayDemo() {
         </div>
       ) : (
         <div className="mt-4">
-          <div className="rounded-2xl bg-grape/10 p-4 text-center dark:bg-grape/20">
+          <div className="rounded-2xl glass p-4 text-center">
             <p className="text-sm font-medium text-stone-600 dark:text-stone-200">
               Final score <strong className="text-ocean dark:text-sky-400">{RESULT.home}–{RESULT.away}</strong>. You
               scored{" "}
