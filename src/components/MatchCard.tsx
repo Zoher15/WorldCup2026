@@ -254,8 +254,13 @@ export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: Matc
       </div>
       {/* Frost the flags into a glass surface: the colours bloom through the
           blur so the whole card reads as one liquid-glass panel (and the
-          pointer sheen rides across it). */}
-      <div aria-hidden className="glass absolute inset-0 rounded-2xl" />
+          pointer sheen rides across it). An open (playable) match wears the
+          vivid variant — thinner frost, brighter flags — so it stands out
+          from the still-frosted upcoming cards. */}
+      <div
+        aria-hidden
+        className={`glass absolute inset-0 rounded-2xl ${data.state === "open" ? "glass-vivid" : ""}`}
+      />
 
       <div className="relative flex min-h-[9rem] flex-col justify-between gap-2 p-3 text-xs font-bold">
         <div className="flex items-center justify-between gap-2">

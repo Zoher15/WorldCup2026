@@ -33,11 +33,12 @@ export function GlassGlow() {
       return null;
     };
 
+    // Fade the sheen out *in place*: only dim `--g-on` and leave `--gx`/`--gy`
+    // alone. Removing the position vars would snap them back to their 50%/50%
+    // default, so the highlight would flash to the centre while fading out.
     const clearHover = () => {
       if (!hovered) return;
-      hovered.style.removeProperty("--gx");
-      hovered.style.removeProperty("--gy");
-      hovered.style.removeProperty("--g-on");
+      hovered.style.setProperty("--g-on", "0");
       hovered = null;
     };
 
