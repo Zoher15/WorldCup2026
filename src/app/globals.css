@@ -83,7 +83,7 @@ body {
      pressed, so taps feel alive even where they don't navigate. */
   transition: transform 0.13s ease, box-shadow 0.13s ease, --g-on 0.2s ease;
 }
-.glass:active {
+.glass.glass-press {
   transform: scale(0.985);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.95),
@@ -101,7 +101,7 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.14);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
   }
-  .glass:active {
+  .glass.glass-press {
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.26),
       inset 0 0 22px rgba(255, 255, 255, 0.1);
@@ -112,7 +112,7 @@ body {
   .glass {
     transition: box-shadow 0.13s ease, --g-on 0.2s ease;
   }
-  .glass:active {
+  .glass.glass-press {
     transform: none;
   }
 }
