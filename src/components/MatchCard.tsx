@@ -59,11 +59,9 @@ const GLASS = "glass text-stone-700 dark:text-stone-100";
 
 function StatusPill({
   data,
-  opensAt,
   onExpire,
 }: {
   data: MatchCardData;
-  opensAt?: string;
   onExpire?: () => void;
 }) {
   const base = "rounded-full px-2.5 py-0.5";
@@ -87,18 +85,12 @@ function StatusPill({
         </span>
       );
     case "upcoming": {
-      // Top-right carries the host city, not a countdown — the prediction
-      // window's "opens" timing already lives elsewhere and was duplicating it.
+      // Top-right carries the host city. The "opens in" countdown isn't shown
+      // here — it lives on the centre tile (where the steppers will appear), so
+      // the same timing isn't duplicated in two places.
       const city = formatHostCity(data.venue);
       return (
         <span className={`${base} ${GLASS} inline-flex items-center gap-1 text-ocean`}>
-          {/* Keep driving the upcoming→open auto-refresh without showing a
-              second countdown: a visually-hidden ticker fires onExpire. */}
-          {opensAt && (
-            <span className="sr-only">
-              <Countdown target={opensAt} expiredLabel="open" onExpire={onExpire} />
-            </span>
-          )}
           {city ? <>📍 {city}</> : "Upcoming"}
         </span>
       );
@@ -211,9 +203,7 @@ export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: Matc
       </div>
     );
   } else if (entry && data.state === "locked") {
-    // Window shut at kickoff: drop the +/- and show the locked-in pick. An
-    // upcoming (not-yet-open) match isn't handled here — it falls through to the
-    // kickoff time, since its 0:0 isn't a real pick and the "opens" cue is gone.
+    // Window shut at kickoff: drop the +/- and show the locked-in pick.
     focal = (
       <div className={`rounded-xl px-4 py-1.5 ${GLASS}`}>
         <div className="flex items-center justify-center gap-2 text-2xl font-black tabular-nums text-stone-400 dark:text-stone-500">
@@ -225,6 +215,18 @@ export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: Matc
         <div className="text-center text-[9px] font-bold uppercase tracking-wide text-stone-400">
           locked
         </div>
+      </div>
+    );
+  } else if (entry && data.state === "upcoming" && opensAt) {
+    // Not open yet: the centre tile (where the steppers will land) counts down
+    // to when play opens, and refreshes the card the moment it does — the one
+    // place this timing lives, with the host city already shown top-right.
+    focal = (
+      <div className={`rounded-xl px-4 py-2 text-center ${GLASS}`}>
+        <div className="text-xl font-black tabular-nums text-ocean">
+          <Countdown target={opensAt} expiredLabel="open now" onExpire={onExpire} />
+        </div>
+        <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400">opens in</div>
       </div>
     );
   } else if (pick) {
@@ -254,7 +256,7 @@ export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: Matc
           <span className={`truncate rounded-full px-2.5 py-0.5 ${GLASS} text-stone-600 dark:text-stone-200`}>
             {formatStageLabel(data.groupLabel, data.stage)}
           </span>
-          <StatusPill data={data} opensAt={opensAt} onExpire={onExpire} />
+          <StatusPill data={data} onExpire={onExpire} />
         </div>
 
         <div className="flex justify-center">{focal}</div>
