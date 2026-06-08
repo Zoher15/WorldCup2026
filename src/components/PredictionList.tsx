@@ -123,7 +123,7 @@ export function PredictionList({
                   onExpire={() => router.refresh()}
                   footer={
                     open && isSaved ? (
-                      <span className="text-pitch">Saved ✓</span>
+                      <span className="text-pitch dark:text-emerald-400">Saved ✓</span>
                     ) : undefined
                   }
                 />

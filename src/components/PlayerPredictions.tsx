@@ -45,7 +45,7 @@ function PastFooter({ row }: { row: PlayerPredictionRow }) {
         {row.pick ? (
           <>
             Pick{" "}
-            <span className="text-grape">
+            <span className="text-grape dark:text-violet-300">
               {row.pick.home}–{row.pick.away}
             </span>
           </>
@@ -54,7 +54,7 @@ function PastFooter({ row }: { row: PlayerPredictionRow }) {
         )}
       </span>
       {row.points != null ? (
-        <span className="rounded-full bg-pitch/15 px-2.5 py-0.5 font-black text-pitch">
+        <span className="rounded-full bg-pitch/15 px-2.5 py-0.5 font-black text-pitch dark:bg-pitch/25 dark:text-emerald-400">
           +{row.points} pts
         </span>
       ) : row.result == null ? (
@@ -68,7 +68,7 @@ function PastFooter({ row }: { row: PlayerPredictionRow }) {
 
 /** Open/upcoming match: the pick stays private — only entered-or-not is shown. */
 function FutureFooter({ row }: { row: PlayerPredictionRow }) {
-  if (row.pick) return <span className="text-pitch">✓ You&apos;re in</span>;
+  if (row.pick) return <span className="text-pitch dark:text-emerald-400">✓ You&apos;re in</span>;
   if (row.hasPrediction)
     return (
       <span className="text-stone-500 dark:text-stone-300">🔒 Entered · hidden until kickoff</span>

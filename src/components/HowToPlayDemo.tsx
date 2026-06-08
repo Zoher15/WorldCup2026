@@ -72,11 +72,11 @@ export function HowToPlayDemo() {
             <div className="flex items-center justify-between gap-2">
               <span className="text-stone-500 dark:text-stone-300">
                 Your pick{" "}
-                <span className="text-grape">
+                <span className="text-grape dark:text-violet-300">
                   {pick.home}–{pick.away}
                 </span>
               </span>
-              <span className="rounded-full bg-pitch/15 px-2.5 py-0.5 font-black text-pitch">
+              <span className="rounded-full bg-pitch/15 px-2.5 py-0.5 font-black text-pitch dark:bg-pitch/25 dark:text-emerald-400">
                 +{you.total} pts
               </span>
             </div>
@@ -100,9 +100,9 @@ export function HowToPlayDemo() {
         <div className="mt-4">
           <div className="rounded-2xl bg-grape/10 p-4 text-center dark:bg-grape/20">
             <p className="text-sm font-medium text-stone-600 dark:text-stone-200">
-              Final score <strong className="text-ocean">{RESULT.home}–{RESULT.away}</strong>. You
+              Final score <strong className="text-ocean dark:text-sky-400">{RESULT.home}–{RESULT.away}</strong>. You
               scored{" "}
-              <strong className="text-pitch">{you.total} points</strong> —{" "}
+              <strong className="text-pitch dark:text-emerald-400">{you.total} points</strong> —{" "}
               {you.outcome} for the outcome + {you.closeness} for closeness.
             </p>
           </div>
@@ -129,10 +129,10 @@ export function HowToPlayDemo() {
                     <span className="ml-1.5 text-xs font-bold text-flame">(you)</span>
                   )}
                 </span>
-                <span className="text-sm font-bold text-grape tabular-nums">
+                <span className="text-sm font-bold text-grape dark:text-violet-300 tabular-nums">
                   {r.home}–{r.away}
                 </span>
-                <span className="w-14 text-right font-black tabular-nums text-pitch">
+                <span className="w-14 text-right font-black tabular-nums text-pitch dark:text-emerald-400">
                   {r.score.total} pts
                 </span>
               </li>
