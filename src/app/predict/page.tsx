@@ -29,7 +29,7 @@ export default async function PredictPage() {
       <Link href="/" className="text-sm font-bold text-stone-400">
         ← Home
       </Link>
-      <h1 className="mt-3 mb-1 bg-gradient-to-r from-flame to-grape bg-clip-text text-3xl font-black text-transparent">
+      <h1 className="mt-3 mb-1 bg-gradient-to-r from-flame to-grape bg-clip-text pb-1 text-3xl font-black leading-tight text-transparent">
         Your predictions
       </h1>
       <p className="mb-6 text-sm font-medium text-stone-500 dark:text-stone-300">

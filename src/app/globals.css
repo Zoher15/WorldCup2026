@@ -69,8 +69,8 @@ body {
      the frosted tint. */
   background:
     radial-gradient(
-      circle 9rem at var(--gx, 50%) var(--gy, 50%),
-      rgba(255, 255, 255, calc(0.45 * var(--g-on, 0))),
+      circle 4.5rem at var(--gx, 50%) var(--gy, 50%),
+      rgba(255, 255, 255, calc(0.22 * var(--g-on, 0))),
       transparent 72%
     ),
     rgba(255, 255, 255, 0.72);
@@ -93,8 +93,8 @@ body {
   .glass {
     background:
       radial-gradient(
-        circle 9rem at var(--gx, 50%) var(--gy, 50%),
-        rgba(255, 255, 255, calc(0.18 * var(--g-on, 0))),
+        circle 4.5rem at var(--gx, 50%) var(--gy, 50%),
+        rgba(255, 255, 255, calc(0.1 * var(--g-on, 0))),
         transparent 72%
       ),
       rgba(52, 48, 44, 0.58);

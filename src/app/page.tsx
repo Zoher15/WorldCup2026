@@ -20,7 +20,7 @@ export default function Home() {
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
       <header className="mb-8 text-center">
-        <h1 className="bg-gradient-to-r from-flame via-grape to-ocean bg-clip-text text-4xl font-black tracking-tight text-transparent sm:text-5xl">
+        <h1 className="bg-gradient-to-r from-flame via-grape to-ocean bg-clip-text pb-1 text-4xl font-black leading-tight tracking-tight text-transparent sm:text-5xl">
           You think you know ball?
         </h1>
         <p className="mt-2 font-medium text-stone-500 dark:text-stone-300">
