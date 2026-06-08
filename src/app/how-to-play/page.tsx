@@ -43,7 +43,7 @@ export default function HowToPlayPage() {
           ⚽ How to play
         </div>
         <h1 className="mt-3 bg-gradient-to-r from-flame via-grape to-ocean bg-clip-text text-4xl font-black tracking-tight text-transparent">
-          Predict the scores. Beat the family.
+          Predict the scores. Beat your group.
         </h1>
         <p className="mt-2 font-medium text-stone-500 dark:text-stone-300">
           Call the scoreline for each match. The closer you are, the more points
