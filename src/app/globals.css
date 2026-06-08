@@ -55,8 +55,25 @@ body {
    text crisp; `saturate` pushes the flag colours that bleed through, and the
    bright edge + inner sheen give the "liquid glass" lift. Colour is left to
    utility classes so each panel can keep its own tone. */
+/* Registered so the sheen can fade in/out smoothly (a plain custom property
+   can't be transitioned). `--gx`/`--gy` stay unregistered so the highlight
+   tracks the pointer instantly rather than easing behind it. */
+@property --g-on {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
 .glass {
-  background: rgba(255, 255, 255, 0.72);
+  /* Top layer: the "liquid" specular highlight that follows the pointer
+     (driven by GlassGlow.tsx); invisible until `--g-on` is lit. Bottom layer:
+     the frosted tint. */
+  background:
+    radial-gradient(
+      circle 9rem at var(--gx, 50%) var(--gy, 50%),
+      rgba(255, 255, 255, calc(0.45 * var(--g-on, 0))),
+      transparent 72%
+    ),
+    rgba(255, 255, 255, 0.72);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.6);
@@ -64,7 +81,7 @@ body {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
   /* Tactile feedback: every glass surface dips and its sheen flares when
      pressed, so taps feel alive even where they don't navigate. */
-  transition: transform 0.13s ease, box-shadow 0.13s ease;
+  transition: transform 0.13s ease, box-shadow 0.13s ease, --g-on 0.2s ease;
 }
 .glass:active {
   transform: scale(0.985);
@@ -74,7 +91,13 @@ body {
 }
 @media (prefers-color-scheme: dark) {
   .glass {
-    background: rgba(52, 48, 44, 0.58);
+    background:
+      radial-gradient(
+        circle 9rem at var(--gx, 50%) var(--gy, 50%),
+        rgba(255, 255, 255, calc(0.18 * var(--g-on, 0))),
+        transparent 72%
+      ),
+      rgba(52, 48, 44, 0.58);
     border: 1px solid rgba(255, 255, 255, 0.14);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
   }
@@ -84,10 +107,10 @@ body {
       inset 0 0 22px rgba(255, 255, 255, 0.1);
   }
 }
-/* Respect reduced-motion: keep the sheen flare, drop the movement. */
+/* Respect reduced-motion: keep the sheen, drop the press movement. */
 @media (prefers-reduced-motion: reduce) {
   .glass {
-    transition: box-shadow 0.13s ease;
+    transition: box-shadow 0.13s ease, --g-on 0.2s ease;
   }
   .glass:active {
     transform: none;
