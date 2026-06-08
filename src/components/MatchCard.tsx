@@ -123,7 +123,7 @@ function Score({
 }) {
   return (
     <div className={`rounded-xl px-4 py-1.5 text-center ${GLASS}`}>
-      <div className={`flex items-center gap-2 text-3xl font-black tabular-nums ${tone}`}>
+      <div className={`flex items-center justify-center gap-2 text-3xl font-black tabular-nums ${tone}`}>
         <span>{home}</span>
         <span className="text-stone-300 dark:text-stone-600">:</span>
         <span>{away}</span>
