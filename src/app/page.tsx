@@ -39,7 +39,7 @@ export default function Home() {
           </a>
           <a
             href="/join"
-            className="rounded-full bg-white px-6 py-3 font-bold text-grape shadow ring-1 ring-black/5 transition active:scale-95 dark:bg-stone-800 dark:text-violet-300 dark:ring-white/10"
+            className="rounded-full glass px-6 py-3 font-bold text-grape transition active:scale-95 dark:text-violet-300"
           >
             Join a group
           </a>

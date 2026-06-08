@@ -6,7 +6,7 @@ import { adminLoginAction } from "@/app/admin/actions";
 export function AdminLogin() {
   const [state, action, pending] = useActionState(adminLoginAction, {});
   return (
-    <div className="mx-auto max-w-sm rounded-3xl bg-white/90 p-6 shadow-lg ring-1 ring-black/5 dark:bg-stone-800/90 dark:ring-white/10">
+    <div className="mx-auto max-w-sm rounded-3xl glass p-6">
       <h1 className="mb-1 text-2xl font-black text-grape dark:text-violet-300">Admin</h1>
       <p className="mb-4 text-sm text-stone-500 dark:text-stone-300">
         Enter the admin passcode to record match results.

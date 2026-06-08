@@ -18,7 +18,7 @@ function Step({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl bg-white/85 p-5 text-center shadow ring-1 ring-black/5 dark:bg-stone-800/85 dark:ring-white/10">
+    <div className="rounded-2xl glass p-5 text-center">
       <div className="mx-auto mb-2 grid h-10 w-10 place-items-center rounded-full bg-grape text-lg font-black text-white">
         {n}
       </div>
@@ -69,7 +69,7 @@ export default function HowToPlayPage() {
         <h2 className="mb-3 text-center text-xl font-black text-grape dark:text-violet-300">
           How points work
         </h2>
-        <div className="rounded-3xl bg-white/85 p-6 text-center shadow-lg ring-1 ring-black/5 dark:bg-stone-800/85 dark:ring-white/10">
+        <div className="rounded-3xl glass p-6 text-center">
           <p className="text-sm font-medium text-stone-500 dark:text-stone-300">
             Every match is worth up to{" "}
             <strong className="text-stone-700 dark:text-stone-100">
@@ -134,14 +134,14 @@ export default function HowToPlayPage() {
           Three ways to win
         </h2>
         <div className="grid gap-3 sm:grid-cols-3">
-          <div className="rounded-2xl bg-white/85 p-4 text-center shadow ring-1 ring-black/5 dark:bg-stone-800/85 dark:ring-white/10">
+          <div className="rounded-2xl glass p-4 text-center">
             <div className="text-2xl">🏆</div>
             <div className="font-black text-stone-700 dark:text-stone-100">Overall</div>
             <p className="text-xs font-medium text-stone-500 dark:text-stone-300">
               Your total points — the main prize.
             </p>
           </div>
-          <div className="rounded-2xl bg-white/85 p-4 text-center shadow ring-1 ring-black/5 dark:bg-stone-800/85 dark:ring-white/10">
+          <div className="rounded-2xl glass p-4 text-center">
             <div className="text-2xl">🎯</div>
             <div className="font-black text-stone-700 dark:text-stone-100">
               Win predictor
@@ -150,7 +150,7 @@ export default function HowToPlayPage() {
               Best at calling the right result.
             </p>
           </div>
-          <div className="rounded-2xl bg-white/85 p-4 text-center shadow ring-1 ring-black/5 dark:bg-stone-800/85 dark:ring-white/10">
+          <div className="rounded-2xl glass p-4 text-center">
             <div className="text-2xl">🔢</div>
             <div className="font-black text-stone-700 dark:text-stone-100">
               Scoreline
@@ -168,16 +168,16 @@ export default function HowToPlayPage() {
           Good to know
         </h2>
         <ul className="mx-auto max-w-md space-y-2 text-sm font-medium text-stone-600 dark:text-stone-200">
-          <li className="rounded-2xl bg-white/70 px-4 py-3 dark:bg-stone-800/70">
+          <li className="rounded-2xl glass px-4 py-3">
             ⏱️ Each day&apos;s games open for prediction{" "}
             <strong>the day before</strong> and close at kickoff — a countdown
             shows the time left.
           </li>
-          <li className="rounded-2xl bg-white/70 px-4 py-3 dark:bg-stone-800/70">
+          <li className="rounded-2xl glass px-4 py-3">
             🔒 Everyone&apos;s picks stay hidden until kickoff, so there&apos;s no
             peeking.
           </li>
-          <li className="rounded-2xl bg-white/70 px-4 py-3 dark:bg-stone-800/70">
+          <li className="rounded-2xl glass px-4 py-3">
             👨‍👩‍👧‍👦 In more than one group? You predict once and it counts in all of
             them.
           </li>
@@ -194,7 +194,7 @@ export default function HowToPlayPage() {
         </Link>
         <Link
           href="/join"
-          className="rounded-full bg-white px-6 py-3 font-bold text-grape shadow ring-1 ring-black/5 transition active:scale-95 dark:bg-stone-800 dark:text-violet-300 dark:ring-white/10"
+          className="rounded-full glass px-6 py-3 font-bold text-grape transition active:scale-95 dark:text-violet-300"
         >
           Join a group
         </Link>

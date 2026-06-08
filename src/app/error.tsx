@@ -28,7 +28,7 @@ export default function Error({
         Sorry — that didn&apos;t load.
       </p>
 
-      <div className="mt-4 break-words rounded-2xl bg-white/85 p-4 text-left text-xs font-medium text-stone-600 shadow ring-1 ring-black/5 dark:bg-stone-800/85 dark:text-stone-300 dark:ring-white/10">
+      <div className="mt-4 break-words rounded-2xl glass p-4 text-left text-xs font-medium text-stone-600 dark:text-stone-300">
         {redacted ? (
           <p>
             A server-side error was hidden by the production build. Reference{" "}
@@ -59,7 +59,7 @@ export default function Error({
         </button>
         <a
           href="/"
-          className="rounded-full bg-white px-6 py-3 font-bold text-grape shadow ring-1 ring-black/5 transition active:scale-95 dark:bg-stone-800 dark:text-violet-300 dark:ring-white/10"
+          className="rounded-full glass px-6 py-3 font-bold text-grape transition active:scale-95 dark:text-violet-300"
         >
           Home
         </a>

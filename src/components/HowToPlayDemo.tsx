@@ -114,10 +114,10 @@ export function HowToPlayDemo() {
             {board.map((r, i) => (
               <li
                 key={r.name}
-                className={`flex items-center gap-3 rounded-2xl px-4 py-2.5 shadow ring-1 dark:text-stone-100 ${
+                className={`flex items-center gap-3 rounded-2xl px-4 py-2.5 dark:text-stone-100 ${
                   r.you
-                    ? "bg-sunburst/30 ring-flame/30"
-                    : "bg-white/85 ring-black/5 dark:bg-stone-800/85 dark:ring-white/10"
+                    ? "bg-sunburst/30 shadow ring-1 ring-flame/30"
+                    : "glass"
                 }`}
               >
                 <span className="w-6 text-center text-lg font-black">
@@ -142,7 +142,7 @@ export function HowToPlayDemo() {
           <div className="mt-4 text-center">
             <button
               onClick={() => setLocked(false)}
-              className="rounded-full bg-white px-6 py-3 font-bold text-grape shadow ring-1 ring-black/5 transition active:scale-95 dark:bg-stone-800 dark:text-violet-300 dark:ring-white/10"
+              className="rounded-full glass px-6 py-3 font-bold text-grape transition active:scale-95 dark:text-violet-300"
             >
               ↺ Try a different score
             </button>
