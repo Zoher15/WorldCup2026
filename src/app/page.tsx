@@ -57,7 +57,7 @@ export default function Home() {
           <h2 className="mb-3 px-1 text-lg font-black text-stone-700 dark:text-stone-100">
             Upcoming matches
           </h2>
-          <div className="grid gap-5 sm:grid-cols-2">
+          <div className="grid gap-6 sm:grid-cols-2">
             {UPCOMING.map((m, i) => (
               <MatchCard key={i} data={m} />
             ))}

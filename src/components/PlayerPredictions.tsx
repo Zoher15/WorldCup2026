@@ -95,7 +95,7 @@ function Section({
           {empty}
         </p>
       ) : (
-        <div className="space-y-5">
+        <div className="space-y-6">
           {rows.map((r) => (
             <PlayerCard key={r.matchId} row={r} />
           ))}
