@@ -62,12 +62,35 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.6);
   /* Just the bright top edge that gives the glass its sheen — no drop shadow. */
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  /* Tactile feedback: every glass surface dips and its sheen flares when
+     pressed, so taps feel alive even where they don't navigate. */
+  transition: transform 0.13s ease, box-shadow 0.13s ease;
+}
+.glass:active {
+  transform: scale(0.985);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 0 22px rgba(255, 255, 255, 0.22);
 }
 @media (prefers-color-scheme: dark) {
   .glass {
     background: rgba(52, 48, 44, 0.58);
     border: 1px solid rgba(255, 255, 255, 0.14);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  }
+  .glass:active {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.26),
+      inset 0 0 22px rgba(255, 255, 255, 0.1);
+  }
+}
+/* Respect reduced-motion: keep the sheen flare, drop the movement. */
+@media (prefers-reduced-motion: reduce) {
+  .glass {
+    transition: box-shadow 0.13s ease;
+  }
+  .glass:active {
+    transform: none;
   }
 }
 /* Graceful fallback: if the browser can't blur the backdrop, lean opaque so
