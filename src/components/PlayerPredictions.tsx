@@ -54,7 +54,7 @@ function PastFooter({ row }: { row: PlayerPredictionRow }) {
         )}
       </span>
       {row.points != null ? (
-        <span className="rounded-full bg-pitch/15 px-2.5 py-0.5 font-black text-pitch dark:bg-pitch/25 dark:text-emerald-400">
+        <span className="rounded-full glass px-2.5 py-0.5 font-black text-pitch dark:text-emerald-400">
           +{row.points} pts
         </span>
       ) : row.result == null ? (
@@ -132,7 +132,7 @@ export function PlayerPredictions({ profile }: { profile: PlayerProfile }) {
       {profile.player.isViewer && (
         <Link
           href="/predict"
-          className="mt-2 inline-block rounded-full bg-pitch px-6 py-3 font-bold text-white shadow transition active:scale-95"
+          className="mt-2 inline-block rounded-full glass px-6 py-3 font-bold text-pitch dark:text-emerald-400 transition active:scale-95"
         >
           ⚽ Edit your predictions
         </Link>

@@ -30,7 +30,7 @@ export default function Home() {
         <div className="mt-5 flex justify-center gap-3">
           <a
             href="/join?mode=create"
-            className="rounded-full bg-pitch px-6 py-3 font-bold text-white shadow transition active:scale-95"
+            className="rounded-full glass px-6 py-3 font-bold text-pitch dark:text-emerald-400 transition active:scale-95"
           >
             Create a group
           </a>

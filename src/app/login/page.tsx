@@ -59,7 +59,7 @@ export default function LoginPage({
           <button
             type="submit"
             disabled={pending}
-            className="w-full rounded-full bg-pitch py-3.5 text-lg font-bold text-white shadow transition active:scale-95 disabled:opacity-50"
+            className="w-full rounded-full glass py-3.5 text-lg font-bold text-pitch dark:text-emerald-400 transition active:scale-95 disabled:opacity-50"
           >
             {pending ? "Sending…" : "Email me a link"}
           </button>

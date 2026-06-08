@@ -114,7 +114,7 @@ function Row({ m }: { m: AdminMatch }) {
           <button
             onClick={clear}
             disabled={pending}
-            className="rounded-full bg-stone-200 px-3 py-1.5 text-xs font-bold text-stone-700 disabled:opacity-50 dark:bg-stone-700 dark:text-stone-200"
+            className="rounded-full glass px-3 py-1.5 text-xs font-bold text-stone-700 disabled:opacity-50 dark:text-stone-200"
           >
             Clear
           </button>
@@ -122,7 +122,7 @@ function Row({ m }: { m: AdminMatch }) {
         <button
           onClick={confirm}
           disabled={pending}
-          className="rounded-full bg-pitch px-4 py-1.5 text-xs font-bold text-white shadow disabled:opacity-50"
+          className="rounded-full glass px-4 py-1.5 text-xs font-bold text-pitch dark:text-emerald-400 disabled:opacity-50"
         >
           {m.resultConfirmed ? "Update" : "Confirm result"}
         </button>
@@ -168,19 +168,19 @@ export function AdminResults({ matches }: { matches: AdminMatch[] }) {
           <button
             onClick={syncNow}
             disabled={syncing}
-            className="rounded-full bg-ocean px-4 py-2 text-sm font-bold text-white shadow disabled:opacity-50"
+            className="rounded-full glass px-4 py-2 text-sm font-bold text-ocean dark:text-sky-400 disabled:opacity-50"
           >
             {syncing ? "Syncing…" : "Sync live scores"}
           </button>
           <form action={adminLogoutAction}>
-            <button className="rounded-full bg-stone-200 px-4 py-2 text-sm font-bold text-stone-700 dark:bg-stone-700 dark:text-stone-200">
+            <button className="rounded-full glass px-4 py-2 text-sm font-bold text-stone-700 dark:text-stone-200">
               Sign out
             </button>
           </form>
         </div>
       </div>
       {syncMsg && (
-        <p className="mb-3 rounded-xl bg-ocean/10 px-4 py-2 text-sm font-bold text-ocean dark:text-sky-400">
+        <p className="mb-3 rounded-xl glass px-4 py-2 text-sm font-bold text-ocean dark:text-sky-400">
           {syncMsg}
         </p>
       )}

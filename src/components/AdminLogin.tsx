@@ -26,7 +26,7 @@ export function AdminLogin() {
         <button
           type="submit"
           disabled={pending}
-          className="w-full rounded-full bg-grape py-3 font-bold text-white shadow transition active:scale-95 disabled:opacity-50"
+          className="w-full rounded-full glass py-3 font-bold text-grape dark:text-violet-300 transition active:scale-95 disabled:opacity-50"
         >
           {pending ? "Checking…" : "Enter"}
         </button>

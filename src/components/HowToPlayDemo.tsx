@@ -76,7 +76,7 @@ export function HowToPlayDemo() {
                   {pick.home}–{pick.away}
                 </span>
               </span>
-              <span className="rounded-full bg-pitch/15 px-2.5 py-0.5 font-black text-pitch dark:bg-pitch/25 dark:text-emerald-400">
+              <span className="rounded-full glass px-2.5 py-0.5 font-black text-pitch dark:text-emerald-400">
                 +{you.total} pts
               </span>
             </div>
@@ -91,7 +91,7 @@ export function HowToPlayDemo() {
           </p>
           <button
             onClick={() => setLocked(true)}
-            className="rounded-full bg-pitch px-6 py-3 font-bold text-white shadow transition active:scale-95"
+            className="rounded-full glass px-6 py-3 font-bold text-pitch dark:text-emerald-400 transition active:scale-95"
           >
             Lock in my prediction →
           </button>
