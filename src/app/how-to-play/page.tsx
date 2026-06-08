@@ -39,7 +39,7 @@ export default function HowToPlayPage() {
       </Link>
 
       <header className="mt-3 mb-8 text-center">
-        <div className="inline-flex items-center gap-2 rounded-full bg-pitch px-4 py-1.5 text-sm font-bold text-white shadow">
+        <div className="inline-flex items-center gap-2 rounded-full glass px-4 py-1.5 text-sm font-bold text-pitch dark:text-emerald-400">
           ⚽ How to play
         </div>
         <h1 className="mt-3 bg-gradient-to-r from-flame via-grape to-ocean bg-clip-text text-4xl font-black tracking-tight text-transparent">
