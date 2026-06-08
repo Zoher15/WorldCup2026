@@ -95,7 +95,7 @@ export function PredictionList({
           <h3 className="mb-2 px-1 text-sm font-black uppercase tracking-wide text-stone-400">
             {g.date}
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-5">
             {g.items.map((m) => {
               const pick = picks[m.id];
               const open = m.state === "open";
