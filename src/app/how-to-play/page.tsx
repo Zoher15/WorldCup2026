@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { HowToPlayDemo } from "@/components/HowToPlayDemo";
 import { ADVANCE_BONUS, MAX_MATCH_POINTS } from "@/lib/scoring";
+import { BORINGBOT_NAME } from "@/lib/standings";
 
 export const metadata = {
   title: "How to play · World Cup 2026 Predictions",
@@ -126,6 +127,24 @@ export default function HowToPlayPage() {
             {ADVANCE_BONUS.final} in the final
           </strong>{" "}
           — even if it took extra time or penalties.
+        </p>
+      </section>
+
+      {/* BoringBot */}
+      <section className="mb-10 rounded-3xl glass p-6 text-center">
+        <div className="text-2xl">🤖</div>
+        <h2 className="mt-1 text-lg font-black text-grape dark:text-violet-300">
+          Beat {BORINGBOT_NAME}
+        </h2>
+        <p className="mx-auto mt-1 max-w-md text-sm font-medium text-stone-600 dark:text-stone-200">
+          Every group has one extra competitor:{" "}
+          <strong className="text-grape dark:text-violet-300">
+            {BORINGBOT_NAME}
+          </strong>
+          , which stubbornly predicts <strong>0–0</strong> in every single match.
+          It sits on your leaderboard as the line to beat — finish above the bot
+          and you&apos;ve proven you know more than nothing. Tap its name to see
+          its picks.
         </p>
       </section>
 

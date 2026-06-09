@@ -6,6 +6,7 @@ import {
   type PredictionState,
 } from "./prediction-rules";
 import { scorePrediction } from "./recompute";
+import { BORINGBOT_ID, BORINGBOT_NAME } from "./standings";
 import type { Stage } from "./types";
 
 export interface PlayerPredictionRow {
@@ -35,10 +36,16 @@ export interface PlayerPredictionRow {
 
 export interface PlayerProfile {
   group: { code: string; name: string };
-  player: { displayName: string; isViewer: boolean };
+  player: { displayName: string; isViewer: boolean; isBot: boolean };
   rows: PlayerPredictionRow[];
   summary: { predicted: number; total: number; points: number };
 }
+
+type StoredPrediction = {
+  pred_home: number;
+  pred_away: number;
+  advance_pick: string | null;
+};
 
 /**
  * One player's predictions within a group, with privacy enforced: a pick for a
@@ -62,14 +69,23 @@ export async function getPlayerProfile(opts: {
     .single();
   if (!group) return null;
 
-  // The player must belong to THIS group (also yields their per-group name).
-  const { data: membership } = await db
-    .from("memberships")
-    .select("display_name")
-    .eq("group_id", group.id)
-    .eq("user_id", opts.userId)
-    .single();
-  if (!membership) return null;
+  // BoringBot is a synthetic baseline (always predicts 0–0), not a real
+  // membership. Everyone else must belong to THIS group (which also yields
+  // their per-group display name).
+  const isBot = opts.userId === BORINGBOT_ID;
+  let displayName: string;
+  if (isBot) {
+    displayName = BORINGBOT_NAME;
+  } else {
+    const { data: membership } = await db
+      .from("memberships")
+      .select("display_name")
+      .eq("group_id", group.id)
+      .eq("user_id", opts.userId)
+      .single();
+    if (!membership) return null;
+    displayName = membership.display_name;
+  }
 
   const [matchesRes, predsRes] = await Promise.all([
     db
@@ -78,15 +94,21 @@ export async function getPlayerProfile(opts: {
         "id, match_number, stage, group_label, home_code, away_code, home_team, away_team, kickoff_at, venue, home_goals, away_goals, advanced_code, result_confirmed, is_trial",
       )
       .order("kickoff_at", { ascending: true }),
-    db
-      .from("predictions")
-      .select("match_id, pred_home, pred_away, advance_pick")
-      .eq("user_id", opts.userId),
+    isBot
+      ? Promise.resolve({ data: [] as { match_id: string }[] })
+      : db
+          .from("predictions")
+          .select("match_id, pred_home, pred_away, advance_pick")
+          .eq("user_id", opts.userId),
   ]);
   const matches = matchesRes.data ?? [];
-  const predByMatch = new Map((predsRes.data ?? []).map((p) => [p.match_id, p]));
+  const predByMatch = new Map(
+    (predsRes.data ?? []).map((p) => [p.match_id, p as StoredPrediction & { match_id: string }]),
+  );
+  // BoringBot's pick is the same 0–0 for every match.
+  const BOT_PICK: StoredPrediction = { pred_home: 0, pred_away: 0, advance_pick: null };
 
-  const isViewer = opts.viewerId === opts.userId;
+  const isViewer = opts.viewerId === opts.userId && !isBot;
   const lowerBound =
     group.late_join_policy === "start_even" ? Date.parse(group.created_at) : null;
   const countTrial = Date.now() < Date.parse(TOURNAMENT_START);
@@ -95,12 +117,13 @@ export async function getPlayerProfile(opts: {
   let points = 0;
   const rows: PlayerPredictionRow[] = matches.map((m) => {
     const state = predictionState(m.kickoff_at, new Date(), m.is_trial);
-    const pred = predByMatch.get(m.id);
+    const pred = isBot ? BOT_PICK : predByMatch.get(m.id);
     const hasPrediction = pred != null;
     if (hasPrediction) predicted++;
 
-    // Reveal the pick only to the owner, or once the match has kicked off.
-    const reveal = hasPrediction && (isViewer || state === "locked");
+    // Reveal the pick to the owner, once the match has kicked off, or always for
+    // BoringBot (its 0–0 is public and deterministic).
+    const reveal = hasPrediction && (isBot || isViewer || state === "locked");
     const pick = reveal
       ? { home: pred!.pred_home, away: pred!.pred_away, advancePick: pred!.advance_pick }
       : null;
@@ -157,7 +180,7 @@ export async function getPlayerProfile(opts: {
 
   return {
     group: { code: group.code, name: group.name },
-    player: { displayName: membership.display_name, isViewer },
+    player: { displayName, isViewer, isBot },
     rows,
     summary: { predicted, total: matches.length, points },
   };

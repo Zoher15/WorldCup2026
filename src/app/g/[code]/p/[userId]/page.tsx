@@ -60,11 +60,15 @@ export default async function PlayerPage({
           {summary.points} pts · predicted {summary.predicted} of {summary.total}{" "}
           matches
         </p>
-        {!player.isViewer && (
+        {player.isBot ? (
+          <p className="mt-2 text-xs text-stone-400">
+            The baseline bot — predicts 0–0 in every match. Beat it!
+          </p>
+        ) : !player.isViewer ? (
           <p className="mt-2 text-xs text-stone-400">
             Picks for matches that haven&apos;t kicked off stay hidden.
           </p>
-        )}
+        ) : null}
       </header>
 
       <PlayerPredictions profile={profile} />
