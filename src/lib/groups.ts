@@ -235,6 +235,17 @@ export async function getViewerMembership(
   };
 }
 
+/** A group's name by code (no auth needed) — used for invite link previews. */
+export async function getGroupName(code: string): Promise<string | null> {
+  const db = createAdminClient();
+  const { data } = await db
+    .from("groups")
+    .select("name")
+    .eq("code", normalizeCode(code))
+    .single();
+  return data?.name ?? null;
+}
+
 /** Group name + whether the viewer already belongs, for the invite-accept page. */
 export async function getGroupInvite(
   code: string,

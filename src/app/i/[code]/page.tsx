@@ -1,11 +1,35 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getUserId } from "@/lib/identity";
 import { getProfile } from "@/lib/profile";
-import { getGroupInvite } from "@/lib/groups";
+import { getGroupInvite, getGroupName } from "@/lib/groups";
 import { acceptInviteAction } from "./actions";
 
 export const dynamic = "force-dynamic";
+
+// Put the group name in the link preview (iMessage/WhatsApp/social unfurls).
+// Runs unauthenticated so preview bots get the name too.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ code: string }>;
+}): Promise<Metadata> {
+  const { code } = await params;
+  const name = await getGroupName(code);
+  const title = name
+    ? `Join “${name}” — World Cup 2026`
+    : "World Cup 2026 group invite";
+  const description = name
+    ? `You're invited to join “${name}” and predict every World Cup 2026 match. Think you know ball?`
+    : "Join a World Cup 2026 prediction group.";
+  return {
+    title,
+    description,
+    openGraph: { title, description, type: "website" },
+    twitter: { card: "summary", title, description },
+  };
+}
 
 const input =
   "w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-base font-medium outline-none focus:border-pitch focus:ring-2 focus:ring-pitch/30 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100 dark:placeholder:text-stone-500";
