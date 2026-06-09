@@ -108,18 +108,22 @@ export interface GroupStandings {
     name: string;
     lateJoinPolicy: LateJoinPolicy;
     memberCount: number;
+    creatorId: string | null;
   };
+  /** The requesting user's relationship to this group. */
+  viewer: { isMember: boolean; isAdmin: boolean };
   standings: Standings;
 }
 
 /** Load a group's live leaderboard, computed from confirmed results. */
 export async function getGroupStandings(
   code: string,
+  viewerId?: string | null,
 ): Promise<GroupStandings | null> {
   const db = createAdminClient();
   const { data: group } = await db
     .from("groups")
-    .select("id, code, name, late_join_policy, created_at")
+    .select("id, code, name, late_join_policy, created_at, created_by")
     .eq("code", normalizeCode(code))
     .single();
   if (!group) return null;
@@ -128,7 +132,7 @@ export async function getGroupStandings(
   const [membersRes, matchesRes] = await Promise.all([
     db
       .from("memberships")
-      .select("user_id, display_name, joined_at")
+      .select("user_id, display_name, joined_at, is_admin")
       .eq("group_id", group.id),
     db
       .from("matches")
@@ -181,13 +185,99 @@ export async function getGroupStandings(
     groupCreatedAt: group.created_at,
   });
 
+  const myMembership = viewerId
+    ? memberList.find((m) => m.user_id === viewerId)
+    : undefined;
+  const isMember = Boolean(myMembership);
+  const isAdmin =
+    isMember &&
+    (Boolean(myMembership?.is_admin) || group.created_by === viewerId);
+
   return {
     group: {
       code: group.code,
       name: group.name,
       lateJoinPolicy: group.late_join_policy,
       memberCount: memberList.length,
+      creatorId: group.created_by,
     },
+    viewer: { isMember, isAdmin },
     standings,
   };
+}
+
+/** The viewer's membership in a group, without computing standings. */
+export async function getViewerMembership(
+  code: string,
+  userId: string,
+): Promise<{ isMember: boolean; isAdmin: boolean }> {
+  const db = createAdminClient();
+  const { data: group } = await db
+    .from("groups")
+    .select("id, created_by")
+    .eq("code", normalizeCode(code))
+    .single();
+  if (!group) return { isMember: false, isAdmin: false };
+  const { data: m } = await db
+    .from("memberships")
+    .select("is_admin")
+    .eq("group_id", group.id)
+    .eq("user_id", userId)
+    .single();
+  if (!m) return { isMember: false, isAdmin: false };
+  return {
+    isMember: true,
+    isAdmin: Boolean(m.is_admin) || group.created_by === userId,
+  };
+}
+
+/** Verify a user may administer the group; returns the group's id. */
+async function assertGroupAdmin(
+  db: ReturnType<typeof createAdminClient>,
+  code: string,
+  userId: string,
+): Promise<{ groupId: string; creatorId: string | null }> {
+  const { data: group } = await db
+    .from("groups")
+    .select("id, created_by")
+    .eq("code", normalizeCode(code))
+    .single();
+  if (!group) throw new Error("Group not found.");
+  if (group.created_by !== userId) {
+    const { data: m } = await db
+      .from("memberships")
+      .select("is_admin")
+      .eq("group_id", group.id)
+      .eq("user_id", userId)
+      .single();
+    if (!m?.is_admin) throw new Error("Only the group's admin can do that.");
+  }
+  return { groupId: group.id, creatorId: group.created_by };
+}
+
+/** Delete a group (and its memberships, by cascade). Admin only. */
+export async function deleteGroup(code: string, userId: string): Promise<void> {
+  const db = createAdminClient();
+  const { groupId } = await assertGroupAdmin(db, code, userId);
+  const { error } = await db.from("groups").delete().eq("id", groupId);
+  if (error) throw new Error(`Could not delete the group: ${error.message}`);
+}
+
+/** Remove a member from a group. Admin only; the creator can't be removed. */
+export async function removeMember(
+  code: string,
+  adminUserId: string,
+  targetUserId: string,
+): Promise<void> {
+  const db = createAdminClient();
+  const { groupId, creatorId } = await assertGroupAdmin(db, code, adminUserId);
+  if (targetUserId === creatorId) {
+    throw new Error("The group creator can't be removed.");
+  }
+  const { error } = await db
+    .from("memberships")
+    .delete()
+    .eq("group_id", groupId)
+    .eq("user_id", targetUserId);
+  if (error) throw new Error(`Could not remove the member: ${error.message}`);
 }

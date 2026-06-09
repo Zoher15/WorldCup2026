@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getUserId } from "@/lib/identity";
+import { getViewerMembership } from "@/lib/groups";
 import { getPlayerProfile } from "@/lib/player";
 import { PlayerPredictions } from "@/components/PlayerPredictions";
 import { LoadError } from "@/components/LoadError";
@@ -13,7 +14,15 @@ export default async function PlayerPage({
   params: Promise<{ code: string; userId: string }>;
 }) {
   const { code, userId } = await params;
+
   const viewerId = await getUserId();
+  if (!viewerId) {
+    redirect(`/login?next=${encodeURIComponent(`/g/${code}/p/${userId}`)}`);
+  }
+  // Only members of the group may view a player's profile within it.
+  const membership = await getViewerMembership(code, viewerId);
+  if (!membership.isMember) redirect(`/g/${code}`);
+
   let profile;
   try {
     profile = await getPlayerProfile({ code, userId, viewerId });
