@@ -31,7 +31,7 @@ export function AccountMenu({
   return (
     <details className="relative [&_summary::-webkit-details-marker]:hidden">
       <summary className="flex cursor-pointer list-none items-center">
-        <span className="grid h-9 w-9 place-items-center rounded-full bg-grape text-sm font-black text-white shadow ring-2 ring-white/70 dark:ring-stone-900/70">
+        <span className="grid h-9 w-9 place-items-center rounded-full glass text-sm font-black text-grape dark:text-violet-300">
           {initials}
         </span>
       </summary>

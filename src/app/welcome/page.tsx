@@ -24,7 +24,7 @@ export default async function WelcomePage({
 
   return (
     <main className="mx-auto max-w-md px-4 py-12">
-      <h1 className="mb-2 bg-gradient-to-r from-flame to-grape bg-clip-text pb-1 text-3xl font-black leading-tight text-transparent">
+      <h1 className="mb-2 gradient-text pb-1 text-3xl font-black leading-tight">
         One last thing
       </h1>
       <p className="mb-6 text-sm font-medium text-stone-500 dark:text-stone-300">
