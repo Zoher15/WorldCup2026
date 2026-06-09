@@ -183,6 +183,7 @@ export async function getGroupStandings(
     })),
     lateJoinPolicy: group.late_join_policy,
     groupCreatedAt: group.created_at,
+    includeBaseline: true,
   });
 
   const myMembership = viewerId
