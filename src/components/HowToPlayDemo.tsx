@@ -107,6 +107,15 @@ export function HowToPlayDemo() {
             </p>
           </div>
 
+          <div className="mt-3 text-center">
+            <button
+              onClick={() => setLocked(false)}
+              className="rounded-full glass px-6 py-3 font-bold text-grape transition active:scale-95 dark:text-violet-300"
+            >
+              ↺ Try a different score
+            </button>
+          </div>
+
           <h3 className="mt-5 mb-2 text-center text-sm font-black uppercase tracking-wide text-stone-400">
             How everyone did
           </h3>
@@ -138,15 +147,6 @@ export function HowToPlayDemo() {
               </li>
             ))}
           </ol>
-
-          <div className="mt-4 text-center">
-            <button
-              onClick={() => setLocked(false)}
-              className="rounded-full glass px-6 py-3 font-bold text-grape transition active:scale-95 dark:text-violet-300"
-            >
-              ↺ Try a different score
-            </button>
-          </div>
         </div>
       )}
     </div>
