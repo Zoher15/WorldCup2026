@@ -1,6 +1,7 @@
 "use server";
 
 import { createServerSupabase } from "@/lib/supabase/server";
+import { appBaseUrl } from "@/lib/app-url";
 import type { LoginState } from "./login-state";
 
 export async function sendMagicLinkAction(
@@ -15,8 +16,7 @@ export async function sendMagicLinkAction(
     return { status: "error", error: "Enter a valid email address." };
   }
 
-  const appUrl =
-    process.env.NEXT_PUBLIC_APP_URL ?? "https://worldcup.kachwalas.com";
+  const appUrl = appBaseUrl();
   const supabase = await createServerSupabase();
   const { error } = await supabase.auth.signInWithOtp({
     email,

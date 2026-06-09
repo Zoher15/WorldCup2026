@@ -1,5 +1,6 @@
 import { pollIfDue, syncDay } from "@/lib/sync";
 import { footballDataDiagnostics } from "@/lib/footballdata";
+import { authorizeCron } from "@/lib/cron-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -14,16 +15,11 @@ export const dynamic = "force-dynamic";
  *   or send the secret as `Authorization: Bearer <CRON_SECRET>`
  */
 async function handle(req: Request): Promise<Response> {
-  const secret = process.env.CRON_SECRET;
-  const url = new URL(req.url);
-  const provided =
-    url.searchParams.get("secret") ??
-    req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ??
-    null;
-
-  if (!secret || provided !== secret) {
+  if (!authorizeCron(req)) {
     return new Response("Unauthorized", { status: 401 });
   }
+
+  const url = new URL(req.url);
 
   try {
     // Diagnostics: show football-data's raw responses, write nothing.
