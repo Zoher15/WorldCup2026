@@ -69,7 +69,7 @@ body {
      the frosted tint. */
   background:
     radial-gradient(
-      circle 4.5rem at var(--gx, 50%) var(--gy, 50%),
+      circle 3rem at var(--gx, 50%) var(--gy, 50%),
       rgba(255, 255, 255, calc(0.22 * var(--g-on, 0))),
       transparent 72%
     ),
@@ -94,7 +94,7 @@ body {
   .glass {
     background:
       radial-gradient(
-        circle 4.5rem at var(--gx, 50%) var(--gy, 50%),
+        circle 3rem at var(--gx, 50%) var(--gy, 50%),
         rgba(255, 255, 255, calc(0.1 * var(--g-on, 0))),
         transparent 72%
       ),
@@ -117,6 +117,32 @@ body {
     transform: none;
   }
 }
+/* Standard flag frost: the resting look for a flag layer (upcoming / live /
+   final). Heavier than the base .glass so the flags sit back until the card is
+   open or hovered. Only the flag overlay carries .glass-flag, so buttons, tiles
+   and panels keep the lighter base frost. */
+.glass.glass-flag {
+  background:
+    radial-gradient(
+      circle 3rem at var(--gx, 50%) var(--gy, 50%),
+      rgba(255, 255, 255, calc(0.22 * var(--g-on, 0))),
+      transparent 72%
+    ),
+    rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(24px) saturate(120%);
+  -webkit-backdrop-filter: blur(24px) saturate(120%);
+}
+@media (prefers-color-scheme: dark) {
+  .glass.glass-flag {
+    background:
+      radial-gradient(
+        circle 3rem at var(--gx, 50%) var(--gy, 50%),
+        rgba(255, 255, 255, calc(0.1 * var(--g-on, 0))),
+        transparent 72%
+      ),
+      rgba(52, 48, 44, 0.72);
+  }
+}
 /* Vivid glass: thinner frost + punchier saturation so the flag colours come
    forward. Used on the flag layer of an *open* (playable) match so it reads
    brighter than the still-frosted upcoming cards. */
@@ -124,7 +150,7 @@ body {
 .glass-reveal:hover .glass-flag {
   background:
     radial-gradient(
-      circle 4.5rem at var(--gx, 50%) var(--gy, 50%),
+      circle 3rem at var(--gx, 50%) var(--gy, 50%),
       rgba(255, 255, 255, calc(0.22 * var(--g-on, 0))),
       transparent 72%
     ),
@@ -137,7 +163,7 @@ body {
   .glass-reveal:hover .glass-flag {
     background:
       radial-gradient(
-        circle 4.5rem at var(--gx, 50%) var(--gy, 50%),
+        circle 3rem at var(--gx, 50%) var(--gy, 50%),
         rgba(255, 255, 255, calc(0.1 * var(--g-on, 0))),
         transparent 72%
       ),
@@ -149,23 +175,23 @@ body {
 .glass.glass-muted {
   background:
     radial-gradient(
-      circle 4.5rem at var(--gx, 50%) var(--gy, 50%),
+      circle 3rem at var(--gx, 50%) var(--gy, 50%),
       rgba(255, 255, 255, calc(0.22 * var(--g-on, 0))),
       transparent 72%
     ),
-    rgba(255, 255, 255, 0.86);
-  backdrop-filter: blur(24px) saturate(120%);
-  -webkit-backdrop-filter: blur(24px) saturate(120%);
+    rgba(255, 255, 255, 0.93);
+  backdrop-filter: blur(28px) saturate(90%);
+  -webkit-backdrop-filter: blur(28px) saturate(90%);
 }
 @media (prefers-color-scheme: dark) {
   .glass.glass-muted {
     background:
       radial-gradient(
-        circle 4.5rem at var(--gx, 50%) var(--gy, 50%),
+        circle 3rem at var(--gx, 50%) var(--gy, 50%),
         rgba(255, 255, 255, calc(0.1 * var(--g-on, 0))),
         transparent 72%
       ),
-      rgba(52, 48, 44, 0.72);
+      rgba(52, 48, 44, 0.82);
   }
 }
 /* Graceful fallback: if the browser can't blur the backdrop, lean opaque so
