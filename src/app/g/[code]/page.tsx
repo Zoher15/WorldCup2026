@@ -1,7 +1,9 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { getUserId } from "@/lib/identity";
 import { getGroupStandings } from "@/lib/groups";
 import { Leaderboard } from "@/components/Leaderboard";
+import { GroupAdmin } from "@/components/GroupAdmin";
 import { LoadError } from "@/components/LoadError";
 
 export const dynamic = "force-dynamic";
@@ -12,9 +14,13 @@ export default async function GroupPage({
   params: Promise<{ code: string }>;
 }) {
   const { code } = await params;
+
+  const userId = await getUserId();
+  if (!userId) redirect(`/login?next=${encodeURIComponent(`/g/${code}`)}`);
+
   let data;
   try {
-    data = await getGroupStandings(code);
+    data = await getGroupStandings(code, userId);
   } catch (e) {
     return (
       <LoadError
@@ -24,7 +30,41 @@ export default async function GroupPage({
     );
   }
   if (!data) notFound();
-  const { group, standings } = data;
+
+  // Only members may see a group's standings.
+  if (!data.viewer.isMember) {
+    return (
+      <main className="mx-auto max-w-md px-4 py-16 text-center">
+        <div className="text-4xl">🔒</div>
+        <h1 className="mt-3 text-xl font-black text-stone-700 dark:text-stone-100">
+          You&apos;re not in this group
+        </h1>
+        <p className="mt-2 text-sm font-medium text-stone-500 dark:text-stone-300">
+          Ask an admin for the join code, then enter it on the join page.
+        </p>
+        <div className="mt-6 flex justify-center gap-3">
+          <Link
+            href="/join"
+            className="rounded-full glass px-6 py-3 font-bold text-pitch transition active:scale-95 dark:text-emerald-400"
+          >
+            Join a group
+          </Link>
+          <Link
+            href="/groups"
+            className="rounded-full glass px-6 py-3 font-bold text-grape transition active:scale-95 dark:text-violet-300"
+          >
+            My groups
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  const { group, standings, viewer } = data;
+  const members = standings.overall.map((r) => ({
+    userId: r.userId,
+    displayName: r.displayName,
+  }));
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
@@ -33,7 +73,9 @@ export default async function GroupPage({
       </Link>
 
       <header className="mt-3 mb-6 rounded-3xl glass p-6 text-center">
-        <h1 className="text-3xl font-black text-grape dark:text-violet-300">{group.name}</h1>
+        <h1 className="text-3xl font-black text-grape dark:text-violet-300">
+          {group.name}
+        </h1>
         <p className="mt-1 text-sm font-medium text-stone-500 dark:text-stone-300">
           Invite others with the code
         </p>
@@ -49,13 +91,21 @@ export default async function GroupPage({
         </p>
         <Link
           href="/predict"
-          className="mt-4 inline-block rounded-full glass px-6 py-3 font-bold text-pitch dark:text-emerald-400 transition active:scale-95"
+          className="mt-4 inline-block rounded-full glass px-6 py-3 font-bold text-pitch transition active:scale-95 dark:text-emerald-400"
         >
           ⚽ Make your predictions
         </Link>
       </header>
 
       <Leaderboard data={standings} code={group.code} />
+
+      {viewer.isAdmin && (
+        <GroupAdmin
+          code={group.code}
+          members={members}
+          creatorId={group.creatorId}
+        />
+      )}
 
       <p className="mt-8 text-center text-xs text-stone-400">
         Standings update as match results are confirmed.
