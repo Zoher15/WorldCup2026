@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   buildStandings,
+  BORINGBOT_ID,
   type StandingMatch,
   type StandingMember,
   type StandingPrediction,
@@ -125,4 +126,51 @@ test("members with no scored predictions still appear at zero", () => {
   });
   assert.equal(s.overall.length, 2);
   assert.ok(s.overall.every((r) => r.points === 0));
+});
+
+test("BoringBot baseline scores 0-0 on every match when included", () => {
+  const s = buildStandings({
+    members,
+    matches,
+    predictions,
+    lateJoinPolicy: "carry_over",
+    groupCreatedAt: "2026-06-01T00:00:00Z",
+    includeBaseline: true,
+  });
+  const bot = s.overall.find((r) => r.userId === BORINGBOT_ID);
+  assert.ok(bot, "BoringBot should appear on the board");
+  // 0-0 vs 0-1: outcome 2 + closeness 4 = 6; 0-0 vs 2-2: outcome 5 + closeness 1 = 6
+  assert.equal(bot.points, 12);
+  // Slots in by score: Alice 18 > BoringBot 12 > Bob 10
+  assert.deepEqual(
+    s.overall.map((r) => r.displayName),
+    ["Alice", "BoringBot 🤖", "Bob"],
+  );
+  // win = outcome (7), scoreline = closeness (5)
+  assert.equal(s.win.find((r) => r.userId === BORINGBOT_ID)?.points, 7);
+  assert.equal(s.scoreline.find((r) => r.userId === BORINGBOT_ID)?.points, 5);
+});
+
+test("BoringBot respects the start_even window", () => {
+  const s = buildStandings({
+    members,
+    matches,
+    predictions,
+    lateJoinPolicy: "start_even",
+    groupCreatedAt: "2026-06-25T00:00:00Z", // excludes m1
+    includeBaseline: true,
+  });
+  // only m2 (2-2): 0-0 -> outcome 5 + closeness 1 = 6
+  assert.equal(s.overall.find((r) => r.userId === BORINGBOT_ID)?.points, 6);
+});
+
+test("baseline is opt-in (off by default)", () => {
+  const s = buildStandings({
+    members,
+    matches,
+    predictions,
+    lateJoinPolicy: "carry_over",
+    groupCreatedAt: "2026-06-01T00:00:00Z",
+  });
+  assert.equal(s.overall.find((r) => r.userId === BORINGBOT_ID), undefined);
 });

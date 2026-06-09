@@ -12,7 +12,12 @@
  */
 
 import { scorePrediction } from "./recompute.ts";
+import { scoreMatch } from "./scoring.ts";
 import type { LateJoinPolicy, Stage } from "./types.ts";
+
+/** The always-0-0 baseline competitor injected into every group's boards. */
+export const BORINGBOT_ID = "boringbot";
+export const BORINGBOT_NAME = "BoringBot 🤖";
 
 export interface StandingMember {
   userId: string;
@@ -82,6 +87,8 @@ export function buildStandings(input: {
   predictions: StandingPrediction[];
   lateJoinPolicy: LateJoinPolicy;
   groupCreatedAt: string;
+  /** Add the BoringBot 0-0 baseline competitor to every board. */
+  includeBaseline?: boolean;
 }): Standings {
   const { members, matches, predictions, lateJoinPolicy, groupCreatedAt } = input;
 
@@ -129,6 +136,38 @@ export function buildStandings(input: {
   }
 
   const list = [...totals.values()];
+
+  // BoringBot: the baseline that "predicts" 0-0 on every scorable match in the
+  // group's window. Scored by the same engine so members can see if they're
+  // beating the bot. No advance picks, so it earns no knockout bonus.
+  if (input.includeBaseline) {
+    const bot: Totals = {
+      userId: BORINGBOT_ID,
+      displayName: BORINGBOT_NAME,
+      total: 0,
+      outcome: 0,
+      closeness: 0,
+    };
+    for (const { match, kickoffMs } of matchById.values()) {
+      if (lowerBound != null && kickoffMs < lowerBound) continue;
+      if (
+        !match.resultConfirmed ||
+        match.homeGoals == null ||
+        match.awayGoals == null
+      ) {
+        continue;
+      }
+      const { outcome, closeness } = scoreMatch(
+        { homeGoals: 0, awayGoals: 0 },
+        { homeGoals: match.homeGoals, awayGoals: match.awayGoals },
+      );
+      bot.outcome += outcome;
+      bot.closeness += closeness;
+      bot.total += outcome + closeness;
+    }
+    list.push(bot);
+  }
+
   return {
     overall: rank(list, (t) => t.total),
     win: rank(list, (t) => t.outcome),

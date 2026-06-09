@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getUserId } from "@/lib/identity";
 import { getGroupStandings } from "@/lib/groups";
+import { BORINGBOT_ID } from "@/lib/standings";
 import { Leaderboard } from "@/components/Leaderboard";
 import { GroupAdmin } from "@/components/GroupAdmin";
 import { LoadError } from "@/components/LoadError";
@@ -61,10 +62,9 @@ export default async function GroupPage({
   }
 
   const { group, standings, viewer } = data;
-  const members = standings.overall.map((r) => ({
-    userId: r.userId,
-    displayName: r.displayName,
-  }));
+  const members = standings.overall
+    .filter((r) => r.userId !== BORINGBOT_ID)
+    .map((r) => ({ userId: r.userId, displayName: r.displayName }));
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
