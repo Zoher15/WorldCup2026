@@ -27,6 +27,8 @@ export interface MatchCardData {
   groupLabel?: string | null;
   /** Host city / venue, shown top-right on upcoming cards. */
   venue?: string | null;
+  /** India vs Italy practice match — shows a "Practice" tag instead of the stage. */
+  trial?: boolean;
   state: MatchCardState;
   minute?: number | null;
   homeGoals?: number | null;
@@ -273,7 +275,9 @@ export function MatchCard({ data, opensAt, entry, pick, footer, onExpire, reveal
       <div className="relative flex min-h-[9rem] flex-col justify-between gap-2 p-3 text-xs font-bold">
         <div className="flex items-center justify-between gap-2">
           <span className={`truncate rounded-full px-2.5 py-0.5 ${GLASS} text-stone-600 dark:text-stone-200`}>
-            {formatStageLabel(data.groupLabel, data.stage)}
+            {data.trial
+              ? "🎯 Practice"
+              : formatStageLabel(data.groupLabel, data.stage)}
           </span>
           <StatusPill data={data} onExpire={onExpire} />
         </div>

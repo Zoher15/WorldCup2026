@@ -33,6 +33,8 @@ export interface StandingMatch {
   homeGoals: number | null;
   awayGoals: number | null;
   advancedCode: string | null;
+  /** Practice (India vs Italy) match — only counts before the tournament starts. */
+  isTrial?: boolean;
 }
 
 export interface StandingPrediction {
@@ -89,6 +91,8 @@ export function buildStandings(input: {
   groupCreatedAt: string;
   /** Add the BoringBot 0-0 baseline competitor to every board. */
   includeBaseline?: boolean;
+  /** Whether the practice (trial) match still counts (pre-tournament only). */
+  countTrialMatches?: boolean;
 }): Standings {
   const { members, matches, predictions, lateJoinPolicy, groupCreatedAt } = input;
 
@@ -118,6 +122,7 @@ export function buildStandings(input: {
     if (!entry) continue;
     const { match, kickoffMs } = entry;
     if (lowerBound != null && kickoffMs < lowerBound) continue;
+    if (match.isTrial && !input.countTrialMatches) continue;
 
     const score = scorePrediction(
       {
@@ -150,6 +155,7 @@ export function buildStandings(input: {
     };
     for (const { match, kickoffMs } of matchById.values()) {
       if (lowerBound != null && kickoffMs < lowerBound) continue;
+      if (match.isTrial && !input.countTrialMatches) continue;
       if (
         !match.resultConfirmed ||
         match.homeGoals == null ||

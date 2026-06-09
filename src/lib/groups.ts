@@ -1,6 +1,7 @@
 import { createAdminClient } from "./supabase/admin";
 import { generateGroupCode, normalizeCode } from "./codes";
 import { buildStandings, type Standings } from "./standings";
+import { TOURNAMENT_START } from "./prediction-rules";
 import type { LateJoinPolicy } from "./types";
 
 const UNIQUE_VIOLATION = "23505";
@@ -136,7 +137,7 @@ export async function getGroupStandings(
       .eq("group_id", group.id),
     db
       .from("matches")
-      .select("id, kickoff_at, stage, home_goals, away_goals, advanced_code, result_confirmed")
+      .select("id, kickoff_at, stage, home_goals, away_goals, advanced_code, result_confirmed, is_trial")
       .eq("result_confirmed", true),
   ]);
   const memberList = membersRes.data ?? [];
@@ -173,6 +174,7 @@ export async function getGroupStandings(
       homeGoals: m.home_goals,
       awayGoals: m.away_goals,
       advancedCode: m.advanced_code,
+      isTrial: m.is_trial,
     })),
     predictions: predList.map((p) => ({
       userId: p.user_id,
@@ -184,6 +186,7 @@ export async function getGroupStandings(
     lateJoinPolicy: group.late_join_policy,
     groupCreatedAt: group.created_at,
     includeBaseline: true,
+    countTrialMatches: Date.now() < Date.parse(TOURNAMENT_START),
   });
 
   const myMembership = viewerId

@@ -1,6 +1,10 @@
 import { createAdminClient } from "./supabase/admin";
 import { normalizeCode } from "./codes";
-import { predictionState, type PredictionState } from "./prediction-rules";
+import {
+  predictionState,
+  TOURNAMENT_START,
+  type PredictionState,
+} from "./prediction-rules";
 import { scorePrediction } from "./recompute";
 import type { Stage } from "./types";
 
@@ -71,7 +75,7 @@ export async function getPlayerProfile(opts: {
     db
       .from("matches")
       .select(
-        "id, match_number, stage, group_label, home_code, away_code, home_team, away_team, kickoff_at, venue, home_goals, away_goals, advanced_code, result_confirmed",
+        "id, match_number, stage, group_label, home_code, away_code, home_team, away_team, kickoff_at, venue, home_goals, away_goals, advanced_code, result_confirmed, is_trial",
       )
       .order("kickoff_at", { ascending: true }),
     db
@@ -85,11 +89,12 @@ export async function getPlayerProfile(opts: {
   const isViewer = opts.viewerId === opts.userId;
   const lowerBound =
     group.late_join_policy === "start_even" ? Date.parse(group.created_at) : null;
+  const countTrial = Date.now() < Date.parse(TOURNAMENT_START);
 
   let predicted = 0;
   let points = 0;
   const rows: PlayerPredictionRow[] = matches.map((m) => {
-    const state = predictionState(m.kickoff_at);
+    const state = predictionState(m.kickoff_at, new Date(), m.is_trial);
     const pred = predByMatch.get(m.id);
     const hasPrediction = pred != null;
     if (hasPrediction) predicted++;
@@ -107,7 +112,8 @@ export async function getPlayerProfile(opts: {
 
     // Points count only when the match falls within the group's scoring window.
     let rowPoints: number | null = null;
-    const counts = lowerBound == null || Date.parse(m.kickoff_at) >= lowerBound;
+    const inWindow = lowerBound == null || Date.parse(m.kickoff_at) >= lowerBound;
+    const counts = inWindow && (!m.is_trial || countTrial);
     if (hasPrediction && counts) {
       const score = scorePrediction(
         {
