@@ -25,8 +25,23 @@ select cron.schedule(
   $$
 );
 
+-- Daily "predictions are open" email. Runs every 15 minutes; the endpoint emails
+-- each match-day's window-open announcement exactly once (and only while the
+-- window is open), so a coarse interval is plenty. Requires RESEND_API_KEY +
+-- EMAIL_FROM set in Vercel — otherwise the endpoint is a no-op. Same CRON_SECRET.
+select cron.schedule(
+  'worldcup-notify',
+  '*/15 * * * *',
+  $$
+  select net.http_get(
+    url := 'https://worldcup.kachwalas.com/api/notify?secret=YOUR_CRON_SECRET'
+  );
+  $$
+);
+
 -- Useful management commands:
 --   select * from cron.job;                       -- list scheduled jobs
 --   select * from cron.job_run_details
 --     order by start_time desc limit 20;          -- recent runs
 --   select cron.unschedule('worldcup-poll');      -- stop polling
+--   select cron.unschedule('worldcup-notify');    -- stop the daily email
