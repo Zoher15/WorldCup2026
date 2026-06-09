@@ -60,7 +60,7 @@ export function GroupAdmin({
                         start(() => removeMemberAction(code, m.userId));
                       }
                     }}
-                    className="rounded-full px-3 py-1 text-xs font-bold text-flame ring-1 ring-flame/40 transition active:scale-95 disabled:opacity-50"
+                    className="rounded-full glass px-3 py-1 text-xs font-bold text-flame transition active:scale-95 disabled:opacity-50"
                   >
                     Remove
                   </button>
@@ -81,7 +81,7 @@ export function GroupAdmin({
                   start(() => deleteGroupAction(code));
                 }
               }}
-              className="rounded-full bg-flame px-4 py-2 text-sm font-bold text-white shadow transition active:scale-95 disabled:opacity-50"
+              className="rounded-full glass px-4 py-2 text-sm font-bold text-flame transition active:scale-95 disabled:opacity-50"
             >
               Delete group
             </button>
