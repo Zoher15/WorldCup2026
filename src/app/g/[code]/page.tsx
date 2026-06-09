@@ -5,6 +5,7 @@ import { getGroupStandings } from "@/lib/groups";
 import { BORINGBOT_ID } from "@/lib/standings";
 import { Leaderboard } from "@/components/Leaderboard";
 import { GroupAdmin } from "@/components/GroupAdmin";
+import { LeaveGroup } from "@/components/LeaveGroup";
 import { InviteLink } from "@/components/InviteLink";
 import { LoadError } from "@/components/LoadError";
 
@@ -106,9 +107,16 @@ export default async function GroupPage({
       {viewer.isAdmin && (
         <GroupAdmin
           code={group.code}
+          name={group.name}
           members={members}
           creatorId={group.creatorId}
         />
+      )}
+
+      {userId !== group.creatorId && (
+        <div className="mt-6">
+          <LeaveGroup code={group.code} name={group.name} />
+        </div>
       )}
 
       <p className="mt-8 text-center text-xs text-stone-400">

@@ -299,6 +299,43 @@ export async function deleteGroup(code: string, userId: string): Promise<void> {
   if (error) throw new Error(`Could not delete the group: ${error.message}`);
 }
 
+/** Rename a group. Admin only. */
+export async function renameGroup(
+  code: string,
+  userId: string,
+  newName: string,
+): Promise<void> {
+  const name = newName.trim();
+  if (!name) throw new Error("Please enter a group name.");
+  if (name.length > 80) {
+    throw new Error("Group name is too long (80 characters max).");
+  }
+  const db = createAdminClient();
+  const { groupId } = await assertGroupAdmin(db, code, userId);
+  const { error } = await db.from("groups").update({ name }).eq("id", groupId);
+  if (error) throw new Error(`Could not rename the group: ${error.message}`);
+}
+
+/** Leave a group. Any member except the creator, who must delete it instead. */
+export async function leaveGroup(code: string, userId: string): Promise<void> {
+  const db = createAdminClient();
+  const { data: group } = await db
+    .from("groups")
+    .select("id, created_by")
+    .eq("code", normalizeCode(code))
+    .single();
+  if (!group) throw new Error("Group not found.");
+  if (group.created_by === userId) {
+    throw new Error("The group creator can't leave — delete the group instead.");
+  }
+  const { error } = await db
+    .from("memberships")
+    .delete()
+    .eq("group_id", group.id)
+    .eq("user_id", userId);
+  if (error) throw new Error(`Could not leave the group: ${error.message}`);
+}
+
 /** Remove a member from a group. Admin only; the creator can't be removed. */
 export async function removeMember(
   code: string,
