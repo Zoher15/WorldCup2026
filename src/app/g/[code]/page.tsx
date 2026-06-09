@@ -5,6 +5,7 @@ import { getGroupStandings } from "@/lib/groups";
 import { BORINGBOT_ID } from "@/lib/standings";
 import { Leaderboard } from "@/components/Leaderboard";
 import { GroupAdmin } from "@/components/GroupAdmin";
+import { InviteLink } from "@/components/InviteLink";
 import { LoadError } from "@/components/LoadError";
 
 export const dynamic = "force-dynamic";
@@ -81,6 +82,9 @@ export default async function GroupPage({
         </p>
         <div className="mt-2 inline-block rounded-2xl glass px-6 py-2 text-2xl font-black tracking-[0.25em] text-flame">
           {group.code}
+        </div>
+        <div className="mt-3 flex justify-center">
+          <InviteLink code={group.code} />
         </div>
         <p className="mt-3 text-xs text-stone-400">
           {group.memberCount}{" "}
