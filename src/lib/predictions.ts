@@ -23,6 +23,8 @@ export interface MatchForPrediction {
   opensAt: string;
   /** upcoming = not open yet, open = editable, locked = kickoff passed. */
   state: PredictionState;
+  /** India vs Italy practice match — open immediately, points don't count once the WC starts. */
+  isTrial: boolean;
 }
 
 export interface SavedPrediction {
@@ -54,7 +56,7 @@ export async function getPredictionBoard(userId: string): Promise<{
     db
       .from("matches")
       .select(
-        "id, match_number, stage, group_label, home_code, away_code, home_team, away_team, kickoff_at, venue",
+        "id, match_number, stage, group_label, home_code, away_code, home_team, away_team, kickoff_at, venue, is_trial",
       )
       .gte("kickoff_at", nowIso)
       .order("kickoff_at", { ascending: true }),
@@ -89,8 +91,11 @@ export async function getPredictionBoard(userId: string): Promise<{
       awayLabel: m.away_team,
       kickoffAt: m.kickoff_at,
       venue: m.venue,
-      opensAt: new Date(windowOpensAt(m.kickoff_at)).toISOString(),
-      state: predictionState(m.kickoff_at),
+      opensAt: m.is_trial
+        ? nowIso
+        : new Date(windowOpensAt(m.kickoff_at)).toISOString(),
+      state: predictionState(m.kickoff_at, new Date(), m.is_trial),
+      isTrial: Boolean(m.is_trial),
     })),
     predictions,
   };
@@ -111,14 +116,18 @@ export async function savePredictions(
   const ids = items.map((i) => i.matchId);
   const { data: rows } = await db
     .from("matches")
-    .select("id, kickoff_at")
+    .select("id, kickoff_at, is_trial")
     .in("id", ids);
-  const kickoffById = new Map((rows ?? []).map((r) => [r.id, r.kickoff_at]));
+  const matchById = new Map(
+    (rows ?? []).map((r) => [r.id, { kickoff: r.kickoff_at, isTrial: r.is_trial }]),
+  );
 
   const valid = items.filter((i) => {
-    const ko = kickoffById.get(i.matchId);
+    const m = matchById.get(i.matchId);
     return (
-      ko != null && isWindowOpen(ko) && isValidGoals(i.predHome, i.predAway)
+      m != null &&
+      isWindowOpen(m.kickoff, new Date(), m.isTrial) &&
+      isValidGoals(i.predHome, i.predAway)
     );
   });
 

@@ -112,6 +112,7 @@ export function PredictionList({
                     stage: m.stage,
                     groupLabel: m.groupLabel,
                     venue: m.venue,
+                    trial: m.isTrial,
                     state: m.state,
                   }}
                   opensAt={m.opensAt}

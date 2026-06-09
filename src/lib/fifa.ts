@@ -65,6 +65,9 @@ export const TEAMS: Record<string, TeamInfo> = {
   USA: { iso: "us", name: "United States", color: "#0A3161" },
   URU: { iso: "uy", name: "Uruguay", color: "#0038A8" },
   UZB: { iso: "uz", name: "Uzbekistan", color: "#0099B5" },
+  // Not in the 2026 field — used only by the India vs Italy practice match.
+  IND: { iso: "in", name: "India", color: "#FF9933" },
+  ITA: { iso: "it", name: "Italy", color: "#008C45" },
 };
 
 /** Neutral colour for unknown teams / knockout placeholders. */

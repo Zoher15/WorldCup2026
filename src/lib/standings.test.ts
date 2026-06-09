@@ -174,3 +174,56 @@ test("baseline is opt-in (off by default)", () => {
   });
   assert.equal(s.overall.find((r) => r.userId === BORINGBOT_ID), undefined);
 });
+
+const trialMatch: StandingMatch = {
+  id: "trial",
+  kickoffAt: "2026-06-11T18:00:00Z",
+  stage: "group",
+  resultConfirmed: true,
+  homeGoals: 2,
+  awayGoals: 1,
+  advancedCode: null,
+  isTrial: true,
+};
+const trialPrediction: StandingPrediction = {
+  userId: "u1",
+  matchId: "trial",
+  predHome: 2,
+  predAway: 1, // exact -> 10
+  advancePick: null,
+};
+
+test("trial match counts only when countTrialMatches is on", () => {
+  const on = buildStandings({
+    members,
+    matches: [trialMatch],
+    predictions: [trialPrediction],
+    lateJoinPolicy: "carry_over",
+    groupCreatedAt: "2026-06-01T00:00:00Z",
+    countTrialMatches: true,
+  });
+  assert.equal(on.overall.find((r) => r.userId === "u1")?.points, 10);
+
+  const off = buildStandings({
+    members,
+    matches: [trialMatch],
+    predictions: [trialPrediction],
+    lateJoinPolicy: "carry_over",
+    groupCreatedAt: "2026-06-01T00:00:00Z",
+    countTrialMatches: false,
+  });
+  assert.equal(off.overall.find((r) => r.userId === "u1")?.points, 0);
+});
+
+test("BoringBot also ignores the trial once it stops counting", () => {
+  const off = buildStandings({
+    members,
+    matches: [trialMatch],
+    predictions: [],
+    lateJoinPolicy: "carry_over",
+    groupCreatedAt: "2026-06-01T00:00:00Z",
+    includeBaseline: true,
+    countTrialMatches: false,
+  });
+  assert.equal(off.overall.find((r) => r.userId === BORINGBOT_ID)?.points, 0);
+});
