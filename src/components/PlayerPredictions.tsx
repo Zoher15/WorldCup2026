@@ -5,7 +5,7 @@ import { MatchCard, type MatchCardData, type MatchCardState } from "./MatchCard"
 import type { PlayerPredictionRow, PlayerProfile } from "@/lib/player";
 
 /** A single match in a player's profile, rendered as the shared scoreboard. */
-function PlayerCard({ row }: { row: PlayerPredictionRow }) {
+function PlayerCard({ row, isBot }: { row: PlayerPredictionRow; isBot: boolean }) {
   // A kicked-off match with a confirmed result reads as "final"; otherwise it
   // keeps its prediction-window state (upcoming / open / locked-awaiting).
   const state: MatchCardState =
@@ -26,7 +26,11 @@ function PlayerCard({ row }: { row: PlayerPredictionRow }) {
   };
 
   const footer =
-    row.state === "locked" ? <PastFooter row={row} /> : <FutureFooter row={row} />;
+    row.state === "locked" ? (
+      <PastFooter row={row} />
+    ) : (
+      <FutureFooter row={row} isBot={isBot} />
+    );
 
   return (
     <MatchCard
@@ -67,7 +71,11 @@ function PastFooter({ row }: { row: PlayerPredictionRow }) {
 }
 
 /** Open/upcoming match: the pick stays private — only entered-or-not is shown. */
-function FutureFooter({ row }: { row: PlayerPredictionRow }) {
+function FutureFooter({ row, isBot }: { row: PlayerPredictionRow; isBot: boolean }) {
+  if (isBot)
+    return (
+      <span className="text-grape dark:text-violet-300">Predicts 0–0</span>
+    );
   if (row.pick) return <span className="text-pitch dark:text-emerald-400">✓ You&apos;re in</span>;
   if (row.hasPrediction)
     return (
@@ -80,10 +88,12 @@ function Section({
   title,
   rows,
   empty,
+  isBot,
 }: {
   title: string;
   rows: PlayerPredictionRow[];
   empty: string;
+  isBot: boolean;
 }) {
   return (
     <section className="mb-6">
@@ -97,7 +107,7 @@ function Section({
       ) : (
         <div className="space-y-6">
           {rows.map((r) => (
-            <PlayerCard key={r.matchId} row={r} />
+            <PlayerCard key={r.matchId} row={r} isBot={isBot} />
           ))}
         </div>
       )}
@@ -106,6 +116,7 @@ function Section({
 }
 
 export function PlayerPredictions({ profile }: { profile: PlayerProfile }) {
+  const { isBot } = profile.player;
   const open = profile.rows.filter((r) => r.state === "open");
   const upcoming = profile.rows.filter((r) => r.state === "upcoming");
   // Most-recent first for finished/in-progress matches.
@@ -117,16 +128,19 @@ export function PlayerPredictions({ profile }: { profile: PlayerProfile }) {
         title="Open now"
         rows={open}
         empty="No matches are open for prediction right now."
+        isBot={isBot}
       />
       <Section
         title="Upcoming"
         rows={upcoming}
         empty="Nothing on the horizon yet."
+        isBot={isBot}
       />
       <Section
         title="Past"
         rows={past}
         empty="No matches have kicked off yet."
+        isBot={isBot}
       />
 
       {profile.player.isViewer && (

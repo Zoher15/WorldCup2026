@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { BORINGBOT_ID, type Standings, type StandingsRow } from "@/lib/standings";
+import type { Standings, StandingsRow } from "@/lib/standings";
 
 const TABS = [
   { key: "overall", label: "Overall" },
@@ -45,9 +45,8 @@ function PlayerName({
   code?: string;
   className?: string;
 }) {
-  // No profile to link to without a group, and BoringBot isn't a real player.
-  if (!code || row.userId === BORINGBOT_ID)
-    return <span className={className}>{row.displayName}</span>;
+  // No profile to link to without a group (BoringBot has a synthetic one).
+  if (!code) return <span className={className}>{row.displayName}</span>;
   return (
     <Link
       href={`/g/${code}/p/${row.userId}`}
