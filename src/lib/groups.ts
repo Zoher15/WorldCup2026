@@ -69,6 +69,39 @@ export async function joinGroupByCode(opts: {
   return { code: group.code };
 }
 
+export interface UserGroup {
+  code: string;
+  name: string;
+  memberCount: number;
+}
+
+/** Every group the user belongs to, with member counts, for their groups list. */
+export async function getUserGroups(userId: string): Promise<UserGroup[]> {
+  const db = createAdminClient();
+  const { data: mine } = await db
+    .from("memberships")
+    .select("group_id")
+    .eq("user_id", userId);
+  const groupIds = (mine ?? []).map((m) => m.group_id);
+  if (groupIds.length === 0) return [];
+
+  const [{ data: groups }, { data: members }] = await Promise.all([
+    db.from("groups").select("id, code, name").in("id", groupIds),
+    db.from("memberships").select("group_id").in("group_id", groupIds),
+  ]);
+
+  const counts = new Map<string, number>();
+  for (const m of members ?? []) {
+    counts.set(m.group_id, (counts.get(m.group_id) ?? 0) + 1);
+  }
+
+  return (groups ?? []).map((g) => ({
+    code: g.code,
+    name: g.name,
+    memberCount: counts.get(g.id) ?? 0,
+  }));
+}
+
 export interface GroupStandings {
   group: {
     code: string;
