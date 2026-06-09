@@ -128,8 +128,12 @@ export function PredictionList({
                   }}
                   onExpire={() => router.refresh()}
                   footer={
-                    open && isSaved ? (
-                      <span className="text-pitch dark:text-emerald-400">Saved ✓</span>
+                    open ? (
+                      isSaved ? (
+                        <span className="text-pitch dark:text-emerald-400">Saved ✓</span>
+                      ) : (
+                        <span className="text-stone-400 dark:text-stone-400">Unsaved</span>
+                      )
                     ) : undefined
                   }
                 />
