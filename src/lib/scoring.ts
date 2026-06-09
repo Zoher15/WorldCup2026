@@ -27,6 +27,8 @@
  *   - "Overall champion"   = sum of totals
  */
 
+import type { Stage } from "./types";
+
 /** The three possible directions of a match result. */
 export type Direction = "HOME" | "DRAW" | "AWAY";
 
@@ -51,10 +53,19 @@ export const MAX_MATCH_POINTS = 10;
 
 /**
  * Bonus for correctly predicting which team advances in a knockout match
- * (after extra time / penalties). Kept modest relative to the 10 scoreline
- * points so the scoreline stays the main event.
+ * (after extra time / penalties), scaled by round: the deeper the stage, the
+ * more a correct call is worth, so the final is the biggest prize. Group-stage
+ * matches have no advance pick (0).
  */
-export const ADVANCE_BONUS = 3;
+export const ADVANCE_BONUS: Record<Stage, number> = {
+  group: 0,
+  round_of_32: 1,
+  round_of_16: 2,
+  quarter_final: 4,
+  semi_final: 8,
+  third_place: 5,
+  final: 15,
+};
 
 const OUTCOME_FOR_CORRECT_DIRECTION = 5;
 const OUTCOME_PENALTY_PER_STEP = 3;
@@ -120,17 +131,18 @@ export function scoreMatch(prediction: Scoreline, actual: Scoreline): MatchScore
 }
 
 /**
- * Bonus points for a knockout "who advances?" pick.
+ * Bonus points for a knockout "who advances?" pick, scaled by round.
  *
- * Returns ADVANCE_BONUS if the picked team matches the team that actually
- * advanced, otherwise 0. A null/absent pick or unknown result scores 0.
- * This is added on top of the scoreline points for knockout matches, so a
- * perfect knockout prediction is worth MAX_MATCH_POINTS + ADVANCE_BONUS.
+ * Returns the stage's ADVANCE_BONUS if the picked team matches the team that
+ * actually advanced, otherwise 0. A null/absent pick or unknown result scores
+ * 0. This is added on top of the scoreline points for knockout matches, so a
+ * perfect final prediction is worth MAX_MATCH_POINTS + ADVANCE_BONUS.final.
  */
 export function advancePoints(
   pick: string | null | undefined,
   actualAdvancedCode: string | null | undefined,
+  stage: Stage,
 ): number {
   if (!pick || !actualAdvancedCode) return 0;
-  return pick === actualAdvancedCode ? ADVANCE_BONUS : 0;
+  return pick === actualAdvancedCode ? ADVANCE_BONUS[stage] : 0;
 }

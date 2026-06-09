@@ -131,12 +131,20 @@ test("outcome + closeness always equals total, and total is within 0..10", () =>
   }
 });
 
-test("advance bonus rewards the correct knockout pick", () => {
-  assert.equal(advancePoints("ARG", "ARG"), ADVANCE_BONUS);
-  assert.equal(advancePoints("ARG", "FRA"), 0);
-  assert.equal(advancePoints(null, "FRA"), 0);
-  assert.equal(advancePoints("ARG", null), 0);
-  assert.equal(advancePoints(undefined, undefined), 0);
+test("advance bonus rewards the correct knockout pick, scaled by round", () => {
+  assert.equal(advancePoints("ARG", "ARG", "round_of_32"), ADVANCE_BONUS.round_of_32);
+  assert.equal(advancePoints("ARG", "ARG", "final"), ADVANCE_BONUS.final);
+  assert.equal(advancePoints("ARG", "FRA", "final"), 0);
+  assert.equal(advancePoints(null, "FRA", "final"), 0);
+  assert.equal(advancePoints("ARG", null, "final"), 0);
+  assert.equal(advancePoints(undefined, undefined, "final"), 0);
+  // The ladder climbs every round and peaks at the final.
+  assert.ok(
+    ADVANCE_BONUS.round_of_32 < ADVANCE_BONUS.round_of_16 &&
+      ADVANCE_BONUS.round_of_16 < ADVANCE_BONUS.quarter_final &&
+      ADVANCE_BONUS.quarter_final < ADVANCE_BONUS.semi_final &&
+      ADVANCE_BONUS.semi_final < ADVANCE_BONUS.final,
+  );
 });
 
 test("invalid scorelines are rejected", () => {

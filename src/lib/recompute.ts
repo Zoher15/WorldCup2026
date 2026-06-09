@@ -59,7 +59,7 @@ export function scorePrediction(
     { homeGoals: match.homeGoals!, awayGoals: match.awayGoals! },
   );
   const advance = isKnockoutStage(match.stage)
-    ? advancePoints(prediction.advancePick, match.advancedCode)
+    ? advancePoints(prediction.advancePick, match.advancedCode, match.stage)
     : 0;
 
   return {
