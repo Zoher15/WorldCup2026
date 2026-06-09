@@ -235,6 +235,27 @@ export async function getViewerMembership(
   };
 }
 
+/** Group name + whether the viewer already belongs, for the invite-accept page. */
+export async function getGroupInvite(
+  code: string,
+  userId: string,
+): Promise<{ name: string; isMember: boolean } | null> {
+  const db = createAdminClient();
+  const { data: group } = await db
+    .from("groups")
+    .select("id, name")
+    .eq("code", normalizeCode(code))
+    .single();
+  if (!group) return null;
+  const { data: m } = await db
+    .from("memberships")
+    .select("user_id")
+    .eq("group_id", group.id)
+    .eq("user_id", userId)
+    .single();
+  return { name: group.name, isMember: Boolean(m) };
+}
+
 /** Verify a user may administer the group; returns the group's id. */
 async function assertGroupAdmin(
   db: ReturnType<typeof createAdminClient>,
