@@ -22,6 +22,7 @@
  * Days are bucketed by UTC date to match the quota reset.
  */
 
+import { utcDateKey } from "./format.ts";
 import type { Match, Stage } from "./types.ts";
 
 export interface PollingConfig {
@@ -215,11 +216,6 @@ export function planDay(
     liveBudget,
     degraded: intervalSec > config.maxIntervalSec,
   };
-}
-
-/** Format an epoch-ms instant as its UTC date key, "YYYY-MM-DD". */
-function utcDateKey(ms: number): string {
-  return new Date(ms).toISOString().slice(0, 10);
 }
 
 /**

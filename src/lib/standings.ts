@@ -115,14 +115,21 @@ export function buildStandings(input: {
   const lowerBound =
     lateJoinPolicy === "start_even" ? Date.parse(groupCreatedAt) : null;
 
+  // A match counts toward the boards unless it kicked off before a start_even
+  // group was created, or it's the trial match after the tournament has begun.
+  const counts = (match: StandingMatch, kickoffMs: number): boolean => {
+    if (lowerBound != null && kickoffMs < lowerBound) return false;
+    if (match.isTrial && !input.countTrialMatches) return false;
+    return true;
+  };
+
   for (const p of predictions) {
     const agg = totals.get(p.userId);
     if (!agg) continue; // prediction by a non-member of this group
     const entry = matchById.get(p.matchId);
     if (!entry) continue;
     const { match, kickoffMs } = entry;
-    if (lowerBound != null && kickoffMs < lowerBound) continue;
-    if (match.isTrial && !input.countTrialMatches) continue;
+    if (!counts(match, kickoffMs)) continue;
 
     const score = scorePrediction(
       {
@@ -154,8 +161,7 @@ export function buildStandings(input: {
       closeness: 0,
     };
     for (const { match, kickoffMs } of matchById.values()) {
-      if (lowerBound != null && kickoffMs < lowerBound) continue;
-      if (match.isTrial && !input.countTrialMatches) continue;
+      if (!counts(match, kickoffMs)) continue;
       if (
         !match.resultConfirmed ||
         match.homeGoals == null ||

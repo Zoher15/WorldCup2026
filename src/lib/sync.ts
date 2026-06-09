@@ -2,6 +2,7 @@ import { createAdminClient } from "./supabase/admin";
 import { fetchWorldCupMatches } from "./footballdata";
 import { resolveFdTeam } from "./fifa";
 import { expectedMatchWindow, isKnockoutStage, mergeWindows } from "./polling";
+import { utcDateKey } from "./format";
 import {
   deriveFdUpdate,
   fdStatusToOurs,
@@ -132,7 +133,7 @@ const MIN_POLL_INTERVAL_SEC = 30;
  */
 export async function pollIfDue(now: Date = new Date()): Promise<PollResult> {
   const db = createAdminClient();
-  const dateKey = now.toISOString().slice(0, 10);
+  const dateKey = utcDateKey(now.getTime());
   const nowMs = now.getTime();
 
   const { data } = await db

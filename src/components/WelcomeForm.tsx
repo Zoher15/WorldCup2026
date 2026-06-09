@@ -3,9 +3,7 @@
 import { useActionState } from "react";
 import { saveNameAction } from "@/app/welcome/actions";
 import { INITIAL_WELCOME_STATE } from "@/app/welcome/welcome-state";
-
-const input =
-  "w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-base font-medium outline-none focus:border-pitch focus:ring-2 focus:ring-pitch/30 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100 dark:placeholder:text-stone-500";
+import { inputClasses as input } from "./form-styles";
 
 export function WelcomeForm({ next }: { next: string }) {
   const [state, action, pending] = useActionState(

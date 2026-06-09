@@ -6,6 +6,7 @@ import { isAdmin, signInAdmin, signOutAdmin } from "@/lib/admin-auth";
 import { setMatchResult, clearMatchResult } from "@/lib/results";
 import { syncDay } from "@/lib/sync";
 import { isValidGoals } from "@/lib/prediction-rules";
+import { utcDateKey } from "@/lib/format";
 
 export interface AdminLoginState {
   error?: string;
@@ -71,7 +72,7 @@ export interface SyncState {
 /** Manually trigger a live-score sync for a date (defaults to today, UTC). */
 export async function syncNowAction(date?: string): Promise<SyncState> {
   if (!(await isAdmin())) return { ok: false, error: "Not authorized." };
-  const day = date ?? new Date().toISOString().slice(0, 10);
+  const day = date ?? utcDateKey();
   try {
     const s = await syncDay(day);
     revalidatePath("/admin");

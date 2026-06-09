@@ -4,10 +4,12 @@ import { useActionState, useState } from "react";
 import Link from "next/link";
 import { createGroupAction, joinGroupAction } from "@/app/actions";
 import { INITIAL_JOIN_STATE, type JoinState } from "@/app/join-state";
+import { inputClasses as input, labelClasses as label } from "./form-styles";
 
-const input =
-  "w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-base font-medium outline-none focus:border-pitch focus:ring-2 focus:ring-pitch/30 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100 dark:placeholder:text-stone-500";
-const label = "mb-1 block text-sm font-bold text-stone-600 dark:text-stone-200";
+const TABS = [
+  { key: "join", label: "Join a group" },
+  { key: "create", label: "Create a group" },
+] as const;
 
 function Success({ state }: { state: JoinState }) {
   return (
@@ -143,17 +145,17 @@ export function JoinForms({
   return (
     <div>
       <div className="mb-6 flex gap-1 rounded-full glass p-1">
-        {(["join", "create"] as const).map((t) => (
+        {TABS.map((t) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
+            key={t.key}
+            onClick={() => setTab(t.key)}
             className={`flex-1 rounded-full py-2 text-sm font-bold capitalize transition ${
-              tab === t
+              tab === t.key
                 ? "glass text-stone-800 dark:text-stone-100"
                 : "text-stone-500 dark:text-stone-300"
             }`}
           >
-            {t === "join" ? "Join a group" : "Create a group"}
+            {t.label}
           </button>
         ))}
       </div>

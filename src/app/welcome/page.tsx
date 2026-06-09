@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getUserId } from "@/lib/identity";
 import { getProfile } from "@/lib/profile";
+import { safeNextPath } from "@/lib/redirect";
 import { WelcomeForm } from "@/components/WelcomeForm";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +12,7 @@ export default async function WelcomePage({
   searchParams: Promise<{ next?: string }>;
 }) {
   const { next } = await searchParams;
-  const dest = next && next.startsWith("/") ? next : "/";
+  const dest = safeNextPath(next);
 
   const userId = await getUserId();
   if (!userId) {
