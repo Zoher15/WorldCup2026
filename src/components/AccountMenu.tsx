@@ -42,7 +42,7 @@ export function AccountMenu({
           </p>
         ) : (
           <Link
-            href="/join"
+            href="/welcome"
             className="block rounded-lg px-3 py-1.5 text-sm font-bold text-grape hover:bg-stone-100 dark:text-violet-300 dark:hover:bg-stone-700"
           >
             Finish setup →

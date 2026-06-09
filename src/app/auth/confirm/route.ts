@@ -1,12 +1,14 @@
 import { type EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
+import { getProfile } from "@/lib/profile";
 
 /**
  * Server-side magic-link verification. The email template points here with a
  * `token_hash`; we verify it and set the session cookie. Unlike the hash-
  * fragment (implicit) flow, this works fully server-side, so the user is
- * actually signed in after clicking the link.
+ * actually signed in after clicking the link. First-time users (no profile name
+ * yet) are sent to /welcome to finish setup; returning users go to `next`.
  */
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -17,11 +19,17 @@ export async function GET(request: Request) {
 
   if (tokenHash && type) {
     const supabase = await createServerSupabase();
-    const { error } = await supabase.auth.verifyOtp({
+    const { data, error } = await supabase.auth.verifyOtp({
       type,
       token_hash: tokenHash,
     });
-    if (!error) return NextResponse.redirect(`${origin}${next}`);
+    if (!error && data.user) {
+      const profile = await getProfile(data.user.id);
+      const dest = profile
+        ? next
+        : `/welcome?next=${encodeURIComponent(next)}`;
+      return NextResponse.redirect(`${origin}${dest}`);
+    }
   }
   return NextResponse.redirect(`${origin}/login?error=1`);
 }
