@@ -120,9 +120,10 @@ export default function HowToPlayPage() {
         </h2>
         <p className="mx-auto mt-1 max-w-md text-sm font-medium text-stone-600 dark:text-stone-200">
           From the Round of 32 on, also pick who goes through. Get it right and
-          it&apos;s{" "}
+          you earn a bonus that grows each round —{" "}
           <strong className="text-grape dark:text-violet-300">
-            +{ADVANCE_BONUS} bonus points
+            +{ADVANCE_BONUS.round_of_32} in the Round of 32, up to +
+            {ADVANCE_BONUS.final} in the final
           </strong>{" "}
           — even if it took extra time or penalties.
         </p>
