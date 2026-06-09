@@ -57,3 +57,8 @@ export function formatKickoffDateTime(iso: string): string {
     minute: "2-digit",
   });
 }
+
+/** UTC calendar date key ("YYYY-MM-DD") for an instant — defaults to now. */
+export function utcDateKey(ms: number = Date.now()): string {
+  return new Date(ms).toISOString().slice(0, 10);
+}

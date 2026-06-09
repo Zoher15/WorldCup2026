@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
-import { getProfile } from "@/lib/profile";
+import { postAuthDest } from "@/lib/profile";
 
 /**
  * Magic-link landing: Supabase redirects here with a one-time `code` which we
@@ -10,17 +10,13 @@ import { getProfile } from "@/lib/profile";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const nextParam = searchParams.get("next") ?? "/";
-  const next = nextParam.startsWith("/") ? nextParam : "/";
+  const nextParam = searchParams.get("next");
 
   if (code) {
     const supabase = await createServerSupabase();
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error && data.user) {
-      const profile = await getProfile(data.user.id);
-      const dest = profile
-        ? next
-        : `/welcome?next=${encodeURIComponent(next)}`;
+      const dest = await postAuthDest(data.user.id, nextParam);
       return NextResponse.redirect(`${origin}${dest}`);
     }
   }

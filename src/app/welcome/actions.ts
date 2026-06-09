@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { getUserId } from "@/lib/identity";
 import { upsertProfile } from "@/lib/profile";
+import { safeNextPath } from "@/lib/redirect";
 import type { WelcomeState } from "./welcome-state";
 
 export async function saveNameAction(
@@ -13,8 +14,7 @@ export async function saveNameAction(
   if (!userId) redirect("/login");
 
   const name = String(form.get("name") ?? "").trim();
-  const nextParam = String(form.get("next") ?? "/");
-  const next = nextParam.startsWith("/") ? nextParam : "/";
+  const next = safeNextPath(String(form.get("next") ?? "/"));
 
   if (!name) return { error: "Please enter your name." };
 

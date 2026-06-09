@@ -52,6 +52,7 @@ export function PredictionList({
         .map((m) => m.id),
     [matches, picks, savedSnapshot, openIds],
   );
+  const dirtyIdSet = useMemo(() => new Set(dirtyIds), [dirtyIds]);
 
   const setPick = (id: string, side: "home" | "away", n: number) =>
     setPicks((p) => ({ ...p, [id]: { ...p[id], [side]: n } }));
@@ -79,14 +80,18 @@ export function PredictionList({
     });
   }
 
-  // Group matches under date headings, preserving kickoff order.
-  const groups: { date: string; items: MatchForPrediction[] }[] = [];
-  for (const m of matches) {
-    const date = formatKickoffDate(m.kickoffAt);
-    const last = groups[groups.length - 1];
-    if (last && last.date === date) last.items.push(m);
-    else groups.push({ date, items: [m] });
-  }
+  // Group matches under date headings, preserving kickoff order. Memoized so
+  // editing a pick (which re-renders) doesn't rebuild the grouping.
+  const groups = useMemo(() => {
+    const out: { date: string; items: MatchForPrediction[] }[] = [];
+    for (const m of matches) {
+      const date = formatKickoffDate(m.kickoffAt);
+      const last = out[out.length - 1];
+      if (last && last.date === date) last.items.push(m);
+      else out.push({ date, items: [m] });
+    }
+    return out;
+  }, [matches]);
 
   return (
     <div className="pb-28">
@@ -99,7 +104,7 @@ export function PredictionList({
             {g.items.map((m) => {
               const pick = picks[m.id];
               const open = m.state === "open";
-              const isSaved = !dirtyIds.includes(m.id) && savedSnapshot[m.id];
+              const isSaved = !dirtyIdSet.has(m.id) && savedSnapshot[m.id];
               return (
                 <MatchCard
                   key={m.id}
