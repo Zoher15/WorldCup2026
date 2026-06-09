@@ -3,16 +3,17 @@
 import { Stepper } from "./Stepper";
 import { Countdown } from "./Countdown";
 import { teamByCode, teamColor, teamLabel } from "@/lib/fifa";
-import { formatKickoffTime, formatStageLabel } from "@/lib/format";
+import { formatHostCity, formatKickoffDateCompact, formatKickoffTime, formatStageLabel } from "@/lib/format";
 import type { Stage } from "@/lib/types";
 
 /**
- * Flat-design match card: the two teams' flags fill the whole card edge to edge
- * and butt against each other in a hard split down the middle. Everything else
- * is a crisp solid panel floating on top — no blur, no gradients — so the bold
- * flags stay the hero. The *state* drives the status pill and what sits in the
- * single focal tile (score-entry steppers, a revealed pick, the live/final
- * score, or kickoff time).
+ * Liquid-glass match card: the two teams' flags fill the whole card edge to
+ * edge and butt against each other in a hard split down the middle. Floating on
+ * top are frosted, translucent glass panels (see `.glass` in globals.css) — the
+ * vibrant flags glow through the blur while text stays crisp, so the flags stay
+ * the hero without ever fighting the copy. The *state* drives the status pill
+ * and what sits in the single focal tile (score-entry steppers, a revealed
+ * pick, the live/final score, or kickoff time).
  */
 export type MatchCardState = "upcoming" | "open" | "locked" | "live" | "final";
 
@@ -24,6 +25,8 @@ export interface MatchCardData {
   kickoffAt: string;
   stage?: Stage;
   groupLabel?: string | null;
+  /** Host city / venue, shown top-right on upcoming cards. */
+  venue?: string | null;
   state: MatchCardState;
   minute?: number | null;
   homeGoals?: number | null;
@@ -32,7 +35,8 @@ export interface MatchCardData {
 
 export interface MatchCardProps {
   data: MatchCardData;
-  /** Window-open time (ISO) for the "opens in" countdown on upcoming matches. */
+  /** Window-open time (ISO). Drives a hidden ticker that auto-refreshes an
+   *  upcoming card the moment its prediction window opens (no visible badge). */
   opensAt?: string;
   /** Interactive score entry; when present on an open match, the focal tile shows steppers. */
   entry?: {
@@ -46,49 +50,53 @@ export interface MatchCardProps {
   footer?: React.ReactNode;
   /** Fired when a header countdown reaches zero (e.g. to refresh the page). */
   onExpire?: () => void;
+  /** Brighten the flags on hover (as if unlocked) — used in the homepage preview. */
+  revealOnHover?: boolean;
 }
 
-/** Solid (flat) surface for every panel floating over the flags. */
-const SOLID = "bg-white text-stone-700 dark:bg-stone-900 dark:text-stone-100";
+/** Frosted liquid-glass surface for every text panel floating over the flags.
+ *  Keeps the same default text tones as before; the `.glass` class supplies the
+ *  translucent tint, blur, edge and sheen. */
+const GLASS = "glass text-stone-700 dark:text-stone-100";
 
 function StatusPill({
   data,
-  opensAt,
   onExpire,
 }: {
   data: MatchCardData;
-  opensAt?: string;
   onExpire?: () => void;
 }) {
   const base = "rounded-full px-2.5 py-0.5";
   switch (data.state) {
     case "live":
       return (
-        <span className={`${base} inline-flex items-center gap-1.5 bg-flame text-white`}>
-          <span className="live-dot h-2 w-2 rounded-full bg-white" />
+        <span className={`${base} glass inline-flex items-center gap-1.5 text-flame`}>
+          <span className="live-dot h-2 w-2 rounded-full bg-flame" />
           LIVE{data.minute ? ` ${data.minute}'` : ""}
         </span>
       );
     case "final":
-      return <span className={`${base} bg-pitch text-white`}>FULL TIME</span>;
+      return <span className={`${base} glass text-pitch dark:text-emerald-400`}>FULL TIME</span>;
     case "locked":
-      return <span className={`${base} ${SOLID} text-stone-500 dark:text-stone-300`}>🔒 Locked</span>;
+      return <span className={`${base} ${GLASS} text-stone-500 dark:text-stone-300`}>🔒 Locked</span>;
     case "open":
       return (
-        <span className={`${base} inline-flex items-center gap-1 bg-flame text-white`}>
+        <span className={`${base} glass inline-flex items-center gap-1 text-flame`}>
           ⏳ closes in{" "}
           <Countdown target={data.kickoffAt} expiredLabel="closed" onExpire={onExpire} />
         </span>
       );
-    case "upcoming":
-      return opensAt ? (
-        <span className={`${base} inline-flex items-center gap-1 bg-ocean text-white`}>
-          🔓 opens in{" "}
-          <Countdown target={opensAt} expiredLabel="now open" onExpire={onExpire} />
+    case "upcoming": {
+      // Top-right carries the host city. The "opens in" countdown isn't shown
+      // here — it lives on the centre tile (where the steppers will appear), so
+      // the same timing isn't duplicated in two places.
+      const city = formatHostCity(data.venue);
+      return (
+        <span className={`${base} ${GLASS} inline-flex items-center gap-1 text-ocean dark:text-sky-400`}>
+          {city ? <>📍 {city}</> : "Upcoming"}
         </span>
-      ) : (
-        <span className={`${base} ${SOLID} text-ocean`}>Upcoming</span>
       );
+    }
   }
 }
 
@@ -96,7 +104,7 @@ function StatusPill({
 function TeamName({ code, label }: { code: string | null; label?: string | null }) {
   return (
     <span
-      className={`truncate rounded-lg px-2.5 py-1 text-center text-sm font-extrabold ${SOLID} text-stone-800 dark:text-stone-50`}
+      className={`truncate rounded-lg px-2.5 py-1 text-center text-sm font-extrabold ${GLASS} text-stone-800 dark:text-stone-50`}
     >
       {teamLabel(code, label)}
     </span>
@@ -116,14 +124,14 @@ function Score({
   label?: string;
 }) {
   return (
-    <div className={`rounded-xl px-4 py-1.5 text-center ${SOLID}`}>
-      <div className={`flex items-center gap-2 text-3xl font-black tabular-nums ${tone}`}>
+    <div className={`rounded-xl px-4 py-1.5 text-center ${GLASS}`}>
+      <div className={`flex items-center justify-center gap-2 text-3xl font-black tabular-nums ${tone}`}>
         <span>{home}</span>
         <span className="text-stone-300 dark:text-stone-600">:</span>
         <span>{away}</span>
       </div>
       {label && (
-        <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400">{label}</div>
+        <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">{label}</div>
       )}
     </div>
   );
@@ -161,7 +169,7 @@ function FlagHalf({ code, side }: { code: string | null; side: "left" | "right" 
   );
 }
 
-export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: MatchCardProps) {
+export function MatchCard({ data, opensAt, entry, pick, footer, onExpire, revealOnHover }: MatchCardProps) {
   const editing = data.state === "open" && entry != null;
   const hasResult =
     (data.state === "live" || data.state === "final") &&
@@ -185,62 +193,89 @@ export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: Matc
   } else if (entry && editing) {
     // Open for editing: active steppers are the control.
     focal = (
-      <div className={`rounded-xl px-3 py-1.5 ${SOLID}`}>
+      <div className={`rounded-xl px-3 py-1.5 ${GLASS}`}>
         <div className="flex items-center justify-center gap-3">
           <Stepper size="sm" value={entry.home} onChange={(n) => entry.onChange("home", n)} />
           <span className="text-xl font-black text-stone-300 dark:text-stone-600">:</span>
           <Stepper size="sm" value={entry.away} onChange={(n) => entry.onChange("away", n)} />
         </div>
-        <div className="text-center text-[9px] font-bold uppercase tracking-wide text-stone-400">
+        <div className="text-center text-[9px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
           your call
         </div>
       </div>
     );
-  } else if (entry) {
-    // Not editable: drop the +/- and show a clear lock (or "opens soon") badge in
-    // the same spot, keeping the pick visible. Same footprint = fixed proportions.
-    const locked = data.state === "locked";
+  } else if (entry && data.state === "locked") {
+    // Window shut at kickoff: drop the +/- and show the locked-in pick.
     focal = (
-      <div className={`rounded-xl px-4 py-1.5 ${SOLID}`}>
-        <div className="flex items-center justify-center gap-2 text-2xl font-black tabular-nums text-stone-400 dark:text-stone-500">
-          <span className="text-xl leading-none">{locked ? "🔒" : "⏳"}</span>
+      <div className={`rounded-xl px-4 py-1.5 ${GLASS}`}>
+        <div className="flex items-center justify-center gap-2 text-2xl font-black tabular-nums text-stone-400 dark:text-stone-400">
+          <span className="text-xl leading-none">🔒</span>
           <span>{entry.home}</span>
           <span className="text-stone-300 dark:text-stone-600">:</span>
           <span>{entry.away}</span>
         </div>
-        <div className="text-center text-[9px] font-bold uppercase tracking-wide text-stone-400">
-          {locked ? "locked" : "opens soon"}
+        <div className="text-center text-[9px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
+          locked
         </div>
       </div>
     );
+  } else if (entry && data.state === "upcoming" && opensAt) {
+    // Not open yet: the centre tile (where the steppers will land) counts down
+    // to when play opens, and refreshes the card the moment it does — the one
+    // place this timing lives, with the host city already shown top-right.
+    focal = (
+      <div className={`rounded-xl px-4 py-2 text-center ${GLASS}`}>
+        <div className="text-xl font-black tabular-nums text-ocean dark:text-sky-400">
+          <Countdown target={opensAt} expiredLabel="open now" onExpire={onExpire} />
+        </div>
+        <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">opens in</div>
+      </div>
+    );
   } else if (pick) {
-    focal = <Score home={pick.home} away={pick.away} tone="text-grape" label="your pick" />;
+    focal = <Score home={pick.home} away={pick.away} tone="text-grape dark:text-violet-300" label="your pick" />;
   } else {
     focal = (
-      <div className={`rounded-xl px-4 py-2 text-center ${SOLID}`}>
-        <div className="text-xl font-black text-stone-700 dark:text-stone-100">
-          {formatKickoffTime(data.kickoffAt)}
+      <div className={`rounded-xl px-4 py-2 text-center ${GLASS}`}>
+        <div className="text-lg font-black leading-tight text-stone-700 dark:text-stone-100">
+          {formatKickoffDateCompact(data.kickoffAt)}
         </div>
-        <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400">kickoff</div>
+        <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
+          {formatKickoffTime(data.kickoffAt)} · kickoff
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="relative animate-pop-in overflow-hidden rounded-2xl bg-stone-200 shadow-md dark:bg-stone-800">
+    <div className={`relative animate-pop-in overflow-hidden rounded-2xl bg-stone-200 shadow-lg ring-1 ring-white/30 dark:bg-stone-800 dark:ring-white/15${revealOnHover ? " glass-reveal" : ""}`}>
       {/* The two flags fill the card and butt together at a hard centre split.
           A 1px bleed past the edges keeps the rounded clip from leaving a hairline. */}
       <div aria-hidden className="pointer-events-none absolute -inset-px">
         <FlagHalf code={data.homeCode} side="left" />
         <FlagHalf code={data.awayCode} side="right" />
       </div>
+      {/* Frost the flags into a glass surface: the colours bloom through the
+          blur so the whole card reads as one liquid-glass panel (and the
+          pointer sheen rides across it). An open (playable) match wears the
+          vivid variant — thinner frost, brighter flags — so it stands out
+          from the still-frosted upcoming cards. */}
+      <div
+        aria-hidden
+        className={`glass glass-flag absolute inset-0 rounded-2xl ${
+          data.state === "open"
+            ? "glass-vivid"
+            : data.state === "locked"
+              ? "glass-muted"
+              : ""
+        }`}
+      />
 
       <div className="relative flex min-h-[9rem] flex-col justify-between gap-2 p-3 text-xs font-bold">
         <div className="flex items-center justify-between gap-2">
-          <span className={`truncate rounded-full px-2.5 py-0.5 ${SOLID} text-stone-600 dark:text-stone-200`}>
+          <span className={`truncate rounded-full px-2.5 py-0.5 ${GLASS} text-stone-600 dark:text-stone-200`}>
             {formatStageLabel(data.groupLabel, data.stage)}
           </span>
-          <StatusPill data={data} opensAt={opensAt} onExpire={onExpire} />
+          <StatusPill data={data} onExpire={onExpire} />
         </div>
 
         <div className="flex justify-center">{focal}</div>
@@ -251,7 +286,7 @@ export function MatchCard({ data, opensAt, entry, pick, footer, onExpire }: Matc
             <TeamName code={data.awayCode} label={data.awayLabel} />
           </div>
           {footer && (
-            <div className={`rounded-lg px-3 py-1.5 ${SOLID} text-stone-700 dark:text-stone-100`}>
+            <div className={`rounded-lg px-3 py-1.5 ${GLASS} text-stone-700 dark:text-stone-100`}>
               {footer}
             </div>
           )}

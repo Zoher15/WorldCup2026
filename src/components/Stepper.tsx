@@ -24,7 +24,7 @@ export function Stepper({
         aria-label="decrease"
         disabled={value <= 0}
         onClick={() => onChange(Math.max(0, value - 1))}
-        className={`${btn} bg-stone-200 text-stone-700 disabled:opacity-40 dark:bg-stone-700 dark:text-stone-200`}
+        className={`${btn} glass text-stone-700 disabled:opacity-40 dark:text-stone-200`}
       >
         −
       </button>
@@ -35,7 +35,7 @@ export function Stepper({
         type="button"
         aria-label="increase"
         onClick={() => onChange(value + 1)}
-        className={`${btn} bg-pitch text-white`}
+        className={`${btn} glass text-pitch dark:text-emerald-400`}
       >
         +
       </button>

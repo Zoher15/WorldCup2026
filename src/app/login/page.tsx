@@ -24,7 +24,7 @@ export default function LoginPage({
       <Link href="/" className="text-sm font-bold text-stone-400">
         ← Home
       </Link>
-      <h1 className="mt-3 mb-2 bg-gradient-to-r from-flame to-grape bg-clip-text text-3xl font-black text-transparent">
+      <h1 className="mt-3 mb-2 bg-gradient-to-r from-flame to-grape bg-clip-text pb-1 text-3xl font-black leading-tight text-transparent">
         Sign in
       </h1>
       <p className="mb-6 text-sm font-medium text-stone-500 dark:text-stone-300">
@@ -33,9 +33,9 @@ export default function LoginPage({
       </p>
 
       {state.status === "sent" ? (
-        <div className="animate-pop-in rounded-3xl bg-white/90 p-6 text-center shadow-lg ring-1 ring-black/5 dark:bg-stone-800/90 dark:ring-white/10">
+        <div className="animate-pop-in rounded-3xl glass p-6 text-center">
           <div className="text-4xl">📬</div>
-          <h2 className="mt-2 text-xl font-black text-pitch">Check your email</h2>
+          <h2 className="mt-2 text-xl font-black text-pitch dark:text-emerald-400">Check your email</h2>
           <p className="mt-1 text-sm text-stone-500 dark:text-stone-300">
             We sent a sign-in link to <strong>{state.email}</strong>. Open it on
             this device to continue.
@@ -59,7 +59,7 @@ export default function LoginPage({
           <button
             type="submit"
             disabled={pending}
-            className="w-full rounded-full bg-pitch py-3.5 text-lg font-bold text-white shadow transition active:scale-95 disabled:opacity-50"
+            className="w-full rounded-full glass py-3.5 text-lg font-bold text-pitch dark:text-emerald-400 transition active:scale-95 disabled:opacity-50"
           >
             {pending ? "Sending…" : "Email me a link"}
           </button>

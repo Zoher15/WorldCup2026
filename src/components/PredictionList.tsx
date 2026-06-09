@@ -95,7 +95,7 @@ export function PredictionList({
           <h3 className="mb-2 px-1 text-sm font-black uppercase tracking-wide text-stone-400">
             {g.date}
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-6">
             {g.items.map((m) => {
               const pick = picks[m.id];
               const open = m.state === "open";
@@ -111,6 +111,7 @@ export function PredictionList({
                     kickoffAt: m.kickoffAt,
                     stage: m.stage,
                     groupLabel: m.groupLabel,
+                    venue: m.venue,
                     state: m.state,
                   }}
                   opensAt={m.opensAt}
@@ -122,7 +123,7 @@ export function PredictionList({
                   onExpire={() => router.refresh()}
                   footer={
                     open && isSaved ? (
-                      <span className="text-pitch">Saved ✓</span>
+                      <span className="text-pitch dark:text-emerald-400">Saved ✓</span>
                     ) : undefined
                   }
                 />
@@ -133,7 +134,7 @@ export function PredictionList({
       ))}
 
       {/* Sticky save bar */}
-      <div className="fixed inset-x-0 bottom-0 z-10 border-t border-black/5 bg-white/90 px-4 py-3 backdrop-blur dark:border-white/10 dark:bg-stone-900/90">
+      <div className="fixed inset-x-0 bottom-0 z-10 glass px-4 py-3">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
           <span className="text-sm font-bold text-stone-500 dark:text-stone-300">
             {flash
@@ -145,7 +146,7 @@ export function PredictionList({
           <button
             onClick={save}
             disabled={pending || dirtyIds.length === 0}
-            className="rounded-full bg-pitch px-6 py-3 font-bold text-white shadow transition active:scale-95 disabled:opacity-40"
+            className="rounded-full glass px-6 py-3 font-bold text-pitch dark:text-emerald-400 transition active:scale-95 disabled:opacity-40"
           >
             {pending ? "Saving…" : "Save predictions"}
           </button>

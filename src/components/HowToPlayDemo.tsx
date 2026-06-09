@@ -70,13 +70,13 @@ export function HowToPlayDemo() {
         footer={
           locked ? (
             <div className="flex items-center justify-between gap-2">
-              <span className="text-stone-500">
+              <span className="text-stone-500 dark:text-stone-300">
                 Your pick{" "}
-                <span className="text-grape">
+                <span className="text-grape dark:text-violet-300">
                   {pick.home}–{pick.away}
                 </span>
               </span>
-              <span className="rounded-full bg-pitch/15 px-2.5 py-0.5 font-black text-pitch">
+              <span className="rounded-full glass px-2.5 py-0.5 font-black text-pitch dark:text-emerald-400">
                 +{you.total} pts
               </span>
             </div>
@@ -91,18 +91,18 @@ export function HowToPlayDemo() {
           </p>
           <button
             onClick={() => setLocked(true)}
-            className="rounded-full bg-pitch px-6 py-3 font-bold text-white shadow transition active:scale-95"
+            className="rounded-full glass px-6 py-3 font-bold text-pitch dark:text-emerald-400 transition active:scale-95"
           >
             Lock in my prediction →
           </button>
         </div>
       ) : (
         <div className="mt-4">
-          <div className="rounded-2xl bg-grape/10 p-4 text-center dark:bg-grape/20">
+          <div className="rounded-2xl glass p-4 text-center">
             <p className="text-sm font-medium text-stone-600 dark:text-stone-200">
-              Final score <strong className="text-ocean">{RESULT.home}–{RESULT.away}</strong>. You
+              Final score <strong className="text-ocean dark:text-sky-400">{RESULT.home}–{RESULT.away}</strong>. You
               scored{" "}
-              <strong className="text-pitch">{you.total} points</strong> —{" "}
+              <strong className="text-pitch dark:text-emerald-400">{you.total} points</strong> —{" "}
               {you.outcome} for the outcome + {you.closeness} for closeness.
             </p>
           </div>
@@ -114,10 +114,10 @@ export function HowToPlayDemo() {
             {board.map((r, i) => (
               <li
                 key={r.name}
-                className={`flex items-center gap-3 rounded-2xl px-4 py-2.5 shadow ring-1 dark:text-stone-100 ${
+                className={`flex items-center gap-3 rounded-2xl px-4 py-2.5 dark:text-stone-100 ${
                   r.you
-                    ? "bg-sunburst/30 ring-flame/30"
-                    : "bg-white/85 ring-black/5 dark:bg-stone-800/85 dark:ring-white/10"
+                    ? "bg-sunburst/30 shadow ring-1 ring-flame/30"
+                    : "glass"
                 }`}
               >
                 <span className="w-6 text-center text-lg font-black">
@@ -129,10 +129,10 @@ export function HowToPlayDemo() {
                     <span className="ml-1.5 text-xs font-bold text-flame">(you)</span>
                   )}
                 </span>
-                <span className="text-sm font-bold text-grape tabular-nums">
+                <span className="text-sm font-bold text-grape dark:text-violet-300 tabular-nums">
                   {r.home}–{r.away}
                 </span>
-                <span className="w-14 text-right font-black tabular-nums text-pitch">
+                <span className="w-14 text-right font-black tabular-nums text-pitch dark:text-emerald-400">
                   {r.score.total} pts
                 </span>
               </li>
@@ -142,7 +142,7 @@ export function HowToPlayDemo() {
           <div className="mt-4 text-center">
             <button
               onClick={() => setLocked(false)}
-              className="rounded-full bg-white px-6 py-3 font-bold text-grape shadow ring-1 ring-black/5 transition active:scale-95 dark:bg-stone-800 dark:text-violet-300 dark:ring-white/10"
+              className="rounded-full glass px-6 py-3 font-bold text-grape transition active:scale-95 dark:text-violet-300"
             >
               ↺ Try a different score
             </button>

@@ -18,7 +18,8 @@ const PODIUM_BG = [
 ];
 // Render order places #1 in the middle, #2 left, #3 right.
 const PODIUM_ORDER = [1, 0, 2];
-const PODIUM_HEIGHT = ["h-20", "h-28", "h-16"];
+// Indexed by rank (0 = 1st): the winner's bar is tallest, descending from there.
+const PODIUM_HEIGHT = ["h-28", "h-20", "h-16"];
 
 function Movement({ value }: { value: number }) {
   if (value === 0)
@@ -26,7 +27,7 @@ function Movement({ value }: { value: number }) {
   const up = value > 0;
   return (
     <span
-      className={`text-xs font-bold ${up ? "text-pitch" : "text-flame"}`}
+      className={`text-xs font-bold ${up ? "text-pitch dark:text-emerald-400" : "text-flame"}`}
       title={`${up ? "Up" : "Down"} ${Math.abs(value)}`}
     >
       {up ? "▲" : "▼"} {Math.abs(value)}
@@ -62,20 +63,20 @@ export function Leaderboard({ data, code }: { data: Standings; code?: string }) 
   const rest = rows.slice(3);
 
   return (
-    <div className="rounded-3xl bg-white/85 p-5 shadow-lg ring-1 ring-black/5 backdrop-blur dark:bg-stone-800/85 dark:ring-white/10">
+    <div className="rounded-3xl glass p-5">
       <h2 className="mb-4 text-center text-2xl font-black text-grape dark:text-violet-300">
         🏆 Leaderboard
       </h2>
 
       {/* Tabs */}
-      <div className="mb-5 flex justify-center gap-1 rounded-full bg-stone-100 p-1 dark:bg-stone-700">
+      <div className="mb-5 flex justify-center gap-1 rounded-full glass p-1">
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
             className={`flex-1 rounded-full px-3 py-1.5 text-sm font-bold transition ${
               tab === t.key
-                ? "bg-grape text-white shadow"
+                ? "glass text-grape dark:text-violet-300"
                 : "text-stone-500 hover:text-stone-700 dark:text-stone-300 dark:hover:text-white"
             }`}
           >
@@ -97,10 +98,17 @@ export function Leaderboard({ data, code }: { data: Standings; code?: string }) 
                 code={code}
                 className="mb-1 max-w-full truncate text-xs font-bold"
               />
-              <div
-                className={`flex w-full ${PODIUM_HEIGHT[idx]} items-start justify-center rounded-t-xl bg-gradient-to-b ${PODIUM_BG[idx]} pt-1 font-black text-white shadow-inner`}
-              >
-                {r.points}
+              {/* Glass sheet floating over the vibrant medal gradient — the
+                  gold/silver/bronze glows through the frost, matching the
+                  "glass over flags" treatment on the match cards. */}
+              <div className={`relative w-full ${PODIUM_HEIGHT[idx]}`}>
+                <div
+                  className={`absolute inset-0 rounded-t-xl bg-gradient-to-b ${PODIUM_BG[idx]}`}
+                />
+                <div className="absolute inset-0 rounded-t-xl glass" />
+                <div className="relative flex h-full items-start justify-center pt-1 font-black text-stone-800 dark:text-stone-50">
+                  {r.points}
+                </div>
               </div>
             </div>
           );
@@ -112,7 +120,7 @@ export function Leaderboard({ data, code }: { data: Standings; code?: string }) 
         {rest.map((r, i) => (
           <li
             key={r.userId}
-            className="flex items-center gap-3 rounded-2xl bg-stone-50 px-4 py-2.5 dark:bg-stone-700/50 dark:text-stone-100"
+            className="flex items-center gap-3 rounded-2xl glass px-4 py-2.5 text-stone-700 dark:text-stone-100"
           >
             <span className="w-6 text-center font-black text-stone-400">
               {i + 4}

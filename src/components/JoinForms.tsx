@@ -7,22 +7,22 @@ import { INITIAL_JOIN_STATE, type JoinState } from "@/app/join-state";
 
 const input =
   "w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-base font-medium outline-none focus:border-pitch focus:ring-2 focus:ring-pitch/30 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100 dark:placeholder:text-stone-500";
-const label = "mb-1 block text-sm font-bold text-stone-600 dark:text-stone-300";
+const label = "mb-1 block text-sm font-bold text-stone-600 dark:text-stone-200";
 
 function Success({ state }: { state: JoinState }) {
   return (
-    <div className="animate-pop-in rounded-3xl bg-white/90 p-6 text-center shadow-lg ring-1 ring-black/5 dark:bg-stone-800/90 dark:ring-white/10">
+    <div className="animate-pop-in rounded-3xl glass p-6 text-center">
       <div className="text-4xl">🎉</div>
-      <h2 className="mt-2 text-2xl font-black text-pitch">You&apos;re in!</h2>
+      <h2 className="mt-2 text-2xl font-black text-pitch dark:text-emerald-400">You&apos;re in!</h2>
       <p className="mt-1 text-stone-500 dark:text-stone-300">
         Share this code so others can join:
       </p>
-      <div className="my-3 inline-block rounded-2xl bg-cream px-6 py-3 text-3xl font-black tracking-[0.2em] text-grape dark:bg-stone-700 dark:text-violet-300">
+      <div className="my-3 inline-block rounded-2xl glass px-6 py-3 text-3xl font-black tracking-[0.2em] text-grape dark:text-violet-300">
         {state.groupCode}
       </div>
       <Link
         href={`/g/${state.groupCode}`}
-        className="mt-5 inline-block rounded-full bg-pitch px-6 py-3 font-bold text-white shadow transition active:scale-95"
+        className="mt-5 inline-block rounded-full glass px-6 py-3 font-bold text-pitch dark:text-emerald-400 transition active:scale-95"
       >
         Go to the group →
       </Link>
@@ -78,7 +78,7 @@ function CreateForm({ defaultName }: { defaultName: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-full bg-pitch py-3.5 text-lg font-bold text-white shadow transition active:scale-95 disabled:opacity-50"
+        className="w-full rounded-full glass py-3.5 text-lg font-bold text-pitch dark:text-emerald-400 transition active:scale-95 disabled:opacity-50"
       >
         {pending ? "Creating…" : "Create group"}
       </button>
@@ -124,7 +124,7 @@ function JoinForm({ defaultName }: { defaultName: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-full bg-grape py-3.5 text-lg font-bold text-white shadow transition active:scale-95 disabled:opacity-50"
+        className="w-full rounded-full glass py-3.5 text-lg font-bold text-grape dark:text-violet-300 transition active:scale-95 disabled:opacity-50"
       >
         {pending ? "Joining…" : "Join group"}
       </button>
@@ -142,14 +142,14 @@ export function JoinForms({
   const [tab, setTab] = useState<"join" | "create">(initialTab);
   return (
     <div>
-      <div className="mb-6 flex gap-1 rounded-full bg-stone-100 p-1 dark:bg-stone-700">
+      <div className="mb-6 flex gap-1 rounded-full glass p-1">
         {(["join", "create"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`flex-1 rounded-full py-2 text-sm font-bold capitalize transition ${
               tab === t
-                ? "bg-white text-stone-800 shadow dark:bg-stone-900 dark:text-stone-100"
+                ? "glass text-stone-800 dark:text-stone-100"
                 : "text-stone-500 dark:text-stone-300"
             }`}
           >

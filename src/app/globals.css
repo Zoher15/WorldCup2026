@@ -49,3 +49,156 @@ body {
   50% { opacity: 0.35; }
 }
 .live-dot { animation: live-pulse 1.1s ease-in-out infinite; }
+
+/* Liquid-glass surface for the text panels floating over the flags. A frosted,
+   translucent tint lets the vibrant flags glow through, while the blur keeps
+   text crisp; `saturate` pushes the flag colours that bleed through, and the
+   bright edge + inner sheen give the "liquid glass" lift. Colour is left to
+   utility classes so each panel can keep its own tone. */
+/* Registered so the sheen can fade in/out smoothly (a plain custom property
+   can't be transitioned). `--gx`/`--gy` stay unregistered so the highlight
+   tracks the pointer instantly rather than easing behind it. */
+@property --g-on {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+.glass {
+  /* Top layer: the "liquid" specular highlight that follows the pointer
+     (driven by GlassGlow.tsx); invisible until `--g-on` is lit. Bottom layer:
+     the frosted tint. */
+  background:
+    radial-gradient(
+      circle 3rem at var(--gx, 50%) var(--gy, 50%),
+      rgba(255, 255, 255, calc(0.22 * var(--g-on, 0))),
+      transparent 72%
+    ),
+    rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  /* Just the bright top edge that gives the glass its sheen — no drop shadow. */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  /* Tactile feedback: every glass surface dips and its sheen flares when
+     pressed, so taps feel alive even where they don't navigate. */
+  transition: transform 0.13s ease, box-shadow 0.13s ease, --g-on 0.2s ease,
+    background-color 0.25s ease, backdrop-filter 0.25s ease;
+}
+.glass.glass-press {
+  transform: scale(0.985);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 0 22px rgba(255, 255, 255, 0.22);
+}
+@media (prefers-color-scheme: dark) {
+  .glass {
+    background:
+      radial-gradient(
+        circle 3rem at var(--gx, 50%) var(--gy, 50%),
+        rgba(255, 255, 255, calc(0.1 * var(--g-on, 0))),
+        transparent 72%
+      ),
+      rgba(52, 48, 44, 0.58);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  }
+  .glass.glass-press {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.26),
+      inset 0 0 22px rgba(255, 255, 255, 0.1);
+  }
+}
+/* Respect reduced-motion: keep the sheen, drop the press movement. */
+@media (prefers-reduced-motion: reduce) {
+  .glass {
+    transition: box-shadow 0.13s ease, --g-on 0.2s ease;
+  }
+  .glass.glass-press {
+    transform: none;
+  }
+}
+/* Standard flag frost: the resting look for a flag layer (upcoming / live /
+   final). Heavier than the base .glass so the flags sit back until the card is
+   open or hovered. Only the flag overlay carries .glass-flag, so buttons, tiles
+   and panels keep the lighter base frost. */
+.glass.glass-flag {
+  background:
+    radial-gradient(
+      circle 3rem at var(--gx, 50%) var(--gy, 50%),
+      rgba(255, 255, 255, calc(0.22 * var(--g-on, 0))),
+      transparent 72%
+    ),
+    rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(24px) saturate(120%);
+  -webkit-backdrop-filter: blur(24px) saturate(120%);
+}
+@media (prefers-color-scheme: dark) {
+  .glass.glass-flag {
+    background:
+      radial-gradient(
+        circle 3rem at var(--gx, 50%) var(--gy, 50%),
+        rgba(255, 255, 255, calc(0.1 * var(--g-on, 0))),
+        transparent 72%
+      ),
+      rgba(52, 48, 44, 0.72);
+  }
+}
+/* Vivid glass: thinner frost + punchier saturation so the flag colours come
+   forward. Used on the flag layer of an *open* (playable) match so it reads
+   brighter than the still-frosted upcoming cards. */
+.glass.glass-vivid,
+.glass-reveal:hover .glass-flag {
+  background:
+    radial-gradient(
+      circle 3rem at var(--gx, 50%) var(--gy, 50%),
+      rgba(255, 255, 255, calc(0.22 * var(--g-on, 0))),
+      transparent 72%
+    ),
+    rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(7px) saturate(210%);
+  -webkit-backdrop-filter: blur(7px) saturate(210%);
+}
+@media (prefers-color-scheme: dark) {
+  .glass.glass-vivid,
+  .glass-reveal:hover .glass-flag {
+    background:
+      radial-gradient(
+        circle 3rem at var(--gx, 50%) var(--gy, 50%),
+        rgba(255, 255, 255, calc(0.1 * var(--g-on, 0))),
+        transparent 72%
+      ),
+      rgba(40, 36, 32, 0.3);
+  }
+}
+/* Muted glass: heavier frost + low saturation for a locked match, so a card
+   whose window has closed reads paler and recedes. */
+.glass.glass-muted {
+  background:
+    radial-gradient(
+      circle 3rem at var(--gx, 50%) var(--gy, 50%),
+      rgba(255, 255, 255, calc(0.22 * var(--g-on, 0))),
+      transparent 72%
+    ),
+    rgba(255, 255, 255, 0.93);
+  backdrop-filter: blur(28px) saturate(90%);
+  -webkit-backdrop-filter: blur(28px) saturate(90%);
+}
+@media (prefers-color-scheme: dark) {
+  .glass.glass-muted {
+    background:
+      radial-gradient(
+        circle 3rem at var(--gx, 50%) var(--gy, 50%),
+        rgba(255, 255, 255, calc(0.1 * var(--g-on, 0))),
+        transparent 72%
+      ),
+      rgba(52, 48, 44, 0.82);
+  }
+}
+/* Graceful fallback: if the browser can't blur the backdrop, lean opaque so
+   text never sits on a bare flag. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass { background: rgba(255, 255, 255, 0.92); }
+  @media (prefers-color-scheme: dark) {
+    .glass { background: rgba(28, 25, 23, 0.9); }
+  }
+}

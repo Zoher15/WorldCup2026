@@ -12,6 +12,7 @@ const UPCOMING: MatchCardData[] = FIXTURES.slice(0, 6).map((f) => ({
   kickoffAt: f.kickoffAt,
   stage: f.stage,
   groupLabel: f.groupLabel,
+  venue: f.venue,
   state: "upcoming",
 }));
 
@@ -19,10 +20,7 @@ export default function Home() {
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
       <header className="mb-8 text-center">
-        <div className="inline-flex items-center gap-2 rounded-full bg-pitch px-4 py-1.5 text-sm font-bold text-white shadow">
-          ⚽ World Cup 2026
-        </div>
-        <h1 className="mt-3 bg-gradient-to-r from-flame via-grape to-ocean bg-clip-text text-4xl font-black tracking-tight text-transparent sm:text-5xl">
+        <h1 className="bg-gradient-to-r from-flame via-grape to-ocean bg-clip-text pb-1 text-4xl font-black leading-tight tracking-tight text-transparent sm:text-5xl">
           You think you know ball?
         </h1>
         <p className="mt-2 font-medium text-stone-500 dark:text-stone-300">
@@ -32,13 +30,13 @@ export default function Home() {
         <div className="mt-5 flex justify-center gap-3">
           <a
             href="/join?mode=create"
-            className="rounded-full bg-pitch px-6 py-3 font-bold text-white shadow transition active:scale-95"
+            className="rounded-full glass px-6 py-3 font-bold text-pitch dark:text-emerald-400 transition active:scale-95"
           >
             Create a group
           </a>
           <a
             href="/join"
-            className="rounded-full bg-white px-6 py-3 font-bold text-grape shadow ring-1 ring-black/5 transition active:scale-95 dark:bg-stone-800 dark:text-violet-300 dark:ring-white/10"
+            className="rounded-full glass px-6 py-3 font-bold text-grape transition active:scale-95 dark:text-violet-300"
           >
             Join a group
           </a>
@@ -56,9 +54,9 @@ export default function Home() {
           <h2 className="mb-3 px-1 text-lg font-black text-stone-700 dark:text-stone-100">
             Upcoming matches
           </h2>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-6 sm:grid-cols-2">
             {UPCOMING.map((m, i) => (
-              <MatchCard key={i} data={m} />
+              <MatchCard key={i} data={m} revealOnHover />
             ))}
           </div>
         </section>

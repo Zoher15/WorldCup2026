@@ -18,7 +18,7 @@ function Step({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl bg-white/85 p-5 text-center shadow ring-1 ring-black/5 dark:bg-stone-800/85 dark:ring-white/10">
+    <div className="rounded-2xl glass p-5 text-center">
       <div className="mx-auto mb-2 grid h-10 w-10 place-items-center rounded-full bg-grape text-lg font-black text-white">
         {n}
       </div>
@@ -39,11 +39,11 @@ export default function HowToPlayPage() {
       </Link>
 
       <header className="mt-3 mb-8 text-center">
-        <div className="inline-flex items-center gap-2 rounded-full bg-pitch px-4 py-1.5 text-sm font-bold text-white shadow">
+        <div className="inline-flex items-center gap-2 rounded-full glass px-4 py-1.5 text-sm font-bold text-pitch dark:text-emerald-400">
           ⚽ How to play
         </div>
-        <h1 className="mt-3 bg-gradient-to-r from-flame via-grape to-ocean bg-clip-text text-4xl font-black tracking-tight text-transparent">
-          Predict the scores. Beat the family.
+        <h1 className="mt-3 bg-gradient-to-r from-flame via-grape to-ocean bg-clip-text pb-1 text-4xl font-black leading-tight tracking-tight text-transparent">
+          Predict the scores. Beat your group.
         </h1>
         <p className="mt-2 font-medium text-stone-500 dark:text-stone-300">
           Call the scoreline for each match. The closer you are, the more points
@@ -69,7 +69,7 @@ export default function HowToPlayPage() {
         <h2 className="mb-3 text-center text-xl font-black text-grape dark:text-violet-300">
           How points work
         </h2>
-        <div className="rounded-3xl bg-white/85 p-6 text-center shadow-lg ring-1 ring-black/5 dark:bg-stone-800/85 dark:ring-white/10">
+        <div className="rounded-3xl glass p-6 text-center">
           <p className="text-sm font-medium text-stone-500 dark:text-stone-300">
             Every match is worth up to{" "}
             <strong className="text-stone-700 dark:text-stone-100">
@@ -78,7 +78,7 @@ export default function HowToPlayPage() {
             , split two ways:
           </p>
           <div className="mt-4 flex flex-col items-stretch justify-center gap-3 sm:flex-row">
-            <div className="flex-1 rounded-2xl bg-flame/10 p-4 dark:bg-flame/20">
+            <div className="flex-1 rounded-2xl glass p-4">
               <div className="text-2xl font-black text-flame">up to 5</div>
               <div className="text-sm font-bold text-stone-700 dark:text-stone-100">
                 Outcome
@@ -87,8 +87,8 @@ export default function HowToPlayPage() {
                 Right winner (or right draw) = 5. One step off = 2. Wrong = 0.
               </p>
             </div>
-            <div className="flex-1 rounded-2xl bg-ocean/10 p-4 dark:bg-ocean/20">
-              <div className="text-2xl font-black text-ocean">up to 5</div>
+            <div className="flex-1 rounded-2xl glass p-4">
+              <div className="text-2xl font-black text-ocean dark:text-sky-400">up to 5</div>
               <div className="text-sm font-bold text-stone-700 dark:text-stone-100">
                 Closeness
               </div>
@@ -113,7 +113,7 @@ export default function HowToPlayPage() {
       </section>
 
       {/* Knockouts */}
-      <section className="mb-10 rounded-3xl bg-grape/10 p-6 text-center dark:bg-grape/20">
+      <section className="mb-10 rounded-3xl glass p-6 text-center">
         <div className="text-2xl">🥊</div>
         <h2 className="mt-1 text-lg font-black text-grape dark:text-violet-300">
           Knockout bonus
@@ -134,14 +134,14 @@ export default function HowToPlayPage() {
           Three ways to win
         </h2>
         <div className="grid gap-3 sm:grid-cols-3">
-          <div className="rounded-2xl bg-white/85 p-4 text-center shadow ring-1 ring-black/5 dark:bg-stone-800/85 dark:ring-white/10">
+          <div className="rounded-2xl glass p-4 text-center">
             <div className="text-2xl">🏆</div>
             <div className="font-black text-stone-700 dark:text-stone-100">Overall</div>
             <p className="text-xs font-medium text-stone-500 dark:text-stone-300">
               Your total points — the main prize.
             </p>
           </div>
-          <div className="rounded-2xl bg-white/85 p-4 text-center shadow ring-1 ring-black/5 dark:bg-stone-800/85 dark:ring-white/10">
+          <div className="rounded-2xl glass p-4 text-center">
             <div className="text-2xl">🎯</div>
             <div className="font-black text-stone-700 dark:text-stone-100">
               Win predictor
@@ -150,7 +150,7 @@ export default function HowToPlayPage() {
               Best at calling the right result.
             </p>
           </div>
-          <div className="rounded-2xl bg-white/85 p-4 text-center shadow ring-1 ring-black/5 dark:bg-stone-800/85 dark:ring-white/10">
+          <div className="rounded-2xl glass p-4 text-center">
             <div className="text-2xl">🔢</div>
             <div className="font-black text-stone-700 dark:text-stone-100">
               Scoreline
@@ -168,16 +168,16 @@ export default function HowToPlayPage() {
           Good to know
         </h2>
         <ul className="mx-auto max-w-md space-y-2 text-sm font-medium text-stone-600 dark:text-stone-200">
-          <li className="rounded-2xl bg-white/70 px-4 py-3 dark:bg-stone-800/70">
+          <li className="rounded-2xl glass px-4 py-3">
             ⏱️ Each day&apos;s games open for prediction{" "}
             <strong>the day before</strong> and close at kickoff — a countdown
             shows the time left.
           </li>
-          <li className="rounded-2xl bg-white/70 px-4 py-3 dark:bg-stone-800/70">
+          <li className="rounded-2xl glass px-4 py-3">
             🔒 Everyone&apos;s picks stay hidden until kickoff, so there&apos;s no
             peeking.
           </li>
-          <li className="rounded-2xl bg-white/70 px-4 py-3 dark:bg-stone-800/70">
+          <li className="rounded-2xl glass px-4 py-3">
             👨‍👩‍👧‍👦 In more than one group? You predict once and it counts in all of
             them.
           </li>
@@ -188,13 +188,13 @@ export default function HowToPlayPage() {
       <div className="flex justify-center gap-3">
         <Link
           href="/join?mode=create"
-          className="rounded-full bg-pitch px-6 py-3 font-bold text-white shadow transition active:scale-95"
+          className="rounded-full glass px-6 py-3 font-bold text-pitch dark:text-emerald-400 transition active:scale-95"
         >
           Create a group
         </Link>
         <Link
           href="/join"
-          className="rounded-full bg-white px-6 py-3 font-bold text-grape shadow ring-1 ring-black/5 transition active:scale-95 dark:bg-stone-800 dark:text-violet-300 dark:ring-white/10"
+          className="rounded-full glass px-6 py-3 font-bold text-grape transition active:scale-95 dark:text-violet-300"
         >
           Join a group
         </Link>

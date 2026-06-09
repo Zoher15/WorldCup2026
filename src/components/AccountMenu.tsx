@@ -21,7 +21,7 @@ export function AccountMenu({
     return (
       <Link
         href="/login"
-        className="rounded-full bg-white/80 px-4 py-1.5 text-sm font-bold text-grape shadow ring-1 ring-black/5 dark:bg-stone-800/80 dark:text-violet-300 dark:ring-white/10"
+        className="rounded-full glass px-4 py-1.5 text-sm font-bold text-grape dark:text-violet-300"
       >
         Sign in
       </Link>

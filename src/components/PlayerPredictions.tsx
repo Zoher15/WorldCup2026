@@ -19,6 +19,7 @@ function PlayerCard({ row }: { row: PlayerPredictionRow }) {
     kickoffAt: row.kickoffAt,
     stage: row.stage,
     groupLabel: row.groupLabel,
+    venue: row.venue,
     state,
     homeGoals: row.result?.home,
     awayGoals: row.result?.away,
@@ -40,11 +41,11 @@ function PlayerCard({ row }: { row: PlayerPredictionRow }) {
 function PastFooter({ row }: { row: PlayerPredictionRow }) {
   return (
     <div className="flex items-center justify-between gap-2">
-      <span className="text-stone-500">
+      <span className="text-stone-500 dark:text-stone-300">
         {row.pick ? (
           <>
             Pick{" "}
-            <span className="text-grape">
+            <span className="text-grape dark:text-violet-300">
               {row.pick.home}–{row.pick.away}
             </span>
           </>
@@ -53,7 +54,7 @@ function PastFooter({ row }: { row: PlayerPredictionRow }) {
         )}
       </span>
       {row.points != null ? (
-        <span className="rounded-full bg-pitch/15 px-2.5 py-0.5 font-black text-pitch">
+        <span className="rounded-full glass px-2.5 py-0.5 font-black text-pitch dark:text-emerald-400">
           +{row.points} pts
         </span>
       ) : row.result == null ? (
@@ -67,10 +68,10 @@ function PastFooter({ row }: { row: PlayerPredictionRow }) {
 
 /** Open/upcoming match: the pick stays private — only entered-or-not is shown. */
 function FutureFooter({ row }: { row: PlayerPredictionRow }) {
-  if (row.pick) return <span className="text-pitch">✓ You&apos;re in</span>;
+  if (row.pick) return <span className="text-pitch dark:text-emerald-400">✓ You&apos;re in</span>;
   if (row.hasPrediction)
     return (
-      <span className="text-stone-500">🔒 Entered · hidden until kickoff</span>
+      <span className="text-stone-500 dark:text-stone-300">🔒 Entered · hidden until kickoff</span>
     );
   return <span className="text-stone-400">Not entered yet</span>;
 }
@@ -90,11 +91,11 @@ function Section({
         {title}
       </h2>
       {rows.length === 0 ? (
-        <p className="rounded-2xl bg-white/60 px-4 py-3 text-sm font-medium text-stone-400 dark:bg-stone-800/60">
+        <p className="rounded-2xl glass px-4 py-3 text-sm font-medium text-stone-400">
           {empty}
         </p>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-6">
           {rows.map((r) => (
             <PlayerCard key={r.matchId} row={r} />
           ))}
@@ -131,7 +132,7 @@ export function PlayerPredictions({ profile }: { profile: PlayerProfile }) {
       {profile.player.isViewer && (
         <Link
           href="/predict"
-          className="mt-2 inline-block rounded-full bg-pitch px-6 py-3 font-bold text-white shadow transition active:scale-95"
+          className="mt-2 inline-block rounded-full glass px-6 py-3 font-bold text-pitch dark:text-emerald-400 transition active:scale-95"
         >
           ⚽ Edit your predictions
         </Link>
