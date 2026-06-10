@@ -71,8 +71,8 @@ test("knockout adds the advance bonus, group stage does not", () => {
   });
   const p = pred({ predHome: 1, predAway: 1, advancePick: "ARG" });
   const s = scorePrediction(p, ko)!;
-  assert.equal(s.advancePoints, 2); // round of 16 bonus
-  assert.equal(s.totalPoints, 12); // 10 scoreline + 2 advance
+  assert.equal(s.advancePoints, 8); // round of 16 bonus
+  assert.equal(s.totalPoints, 18); // 10 scoreline + 8 advance
 
   // same prediction in a group match earns no advance bonus
   const g = scorePrediction(pred({ predHome: 1, predAway: 1, advancePick: "ARG" }), match({ homeGoals: 1, awayGoals: 1 }))!;

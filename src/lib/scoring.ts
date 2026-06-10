@@ -59,12 +59,12 @@ export const MAX_MATCH_POINTS = 10;
  */
 export const ADVANCE_BONUS: Record<Stage, number> = {
   group: 0,
-  round_of_32: 1,
-  round_of_16: 2,
-  quarter_final: 4,
-  semi_final: 8,
-  third_place: 5,
-  final: 15,
+  round_of_32: 4,
+  round_of_16: 8,
+  quarter_final: 12,
+  semi_final: 16,
+  third_place: 20,
+  final: 24,
 };
 
 const OUTCOME_FOR_CORRECT_DIRECTION = 5;
