@@ -12,9 +12,17 @@ export const alt = "World Cup 2026 leaderboard";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-const fontData = fetch(new URL("./noto-sans.ttf", import.meta.url)).then((r) =>
-  r.arrayBuffer(),
-);
+// Load the bundled font, never throwing — a font failure must degrade to a
+// (text-less) 200, not a 500.
+async function loadFont(): Promise<ArrayBuffer | null> {
+  try {
+    return await fetch(new URL("./noto-sans.ttf", import.meta.url)).then((r) =>
+      r.arrayBuffer(),
+    );
+  } catch {
+    return null;
+  }
+}
 
 // Render slots place #1 in the middle, #2 left, #3 right.
 const PODIUM_ORDER = [1, 0, 2];
@@ -69,7 +77,7 @@ export default async function Image({
   const { code } = await params;
   const [data, font] = await Promise.all([
     getGroupStandings(code).catch(() => null),
-    fontData,
+    loadFont(),
   ]);
 
   const rows = data?.standings.overall ?? [];
@@ -123,7 +131,9 @@ export default async function Image({
     ),
     {
       ...size,
-      fonts: [{ name: "Noto Sans", data: font, weight: 400, style: "normal" }],
+      ...(font
+        ? { fonts: [{ name: "Noto Sans", data: font, weight: 400 as const, style: "normal" as const }] }
+        : {}),
     },
   );
 }
