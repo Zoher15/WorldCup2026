@@ -85,7 +85,10 @@ export default function HowToPlayPage() {
                 Outcome
               </div>
               <p className="mt-1 text-xs font-medium text-stone-500 dark:text-stone-300">
-                Right winner (or right draw) = 5. One step off = 2. Wrong = 0.
+                Did you call it right? <strong>5</strong> for the correct result
+                (win, lose, or draw), <strong>2</strong> if you&apos;re close (you
+                said draw but a team won, or the other way round),{" "}
+                <strong>0</strong> for backing the wrong team.
               </p>
             </div>
             <div className="flex-1 rounded-2xl glass p-4">
@@ -94,10 +97,18 @@ export default function HowToPlayPage() {
                 Closeness
               </div>
               <p className="mt-1 text-xs font-medium text-stone-500 dark:text-stone-300">
-                Lose one point for each goal you&apos;re off the exact score.
+                How near was your score? Start at <strong>5</strong> and lose a
+                point for every goal you&apos;re off. Spot on keeps all 5.
               </p>
             </div>
           </div>
+          <p className="mx-auto mt-4 max-w-md text-xs font-medium text-stone-500 dark:text-stone-300">
+            <strong className="text-stone-700 dark:text-stone-100">Say the match ends 2–1.</strong>{" "}
+            Predict <strong>2–1</strong> and you score the full <strong>10</strong>.
+            Predict <strong>3–1</strong> — right winner (5) but one goal off (4) ={" "}
+            <strong>9</strong>. Predict <strong>1–1</strong> — a draw guess (2),
+            two goals off (3) = <strong>5</strong>.
+          </p>
         </div>
       </section>
 
@@ -120,21 +131,22 @@ export default function HowToPlayPage() {
           Knockout rounds
         </h2>
         <p className="mx-auto mt-1 max-w-md text-sm font-medium text-stone-600 dark:text-stone-200">
-          From the Round of 32 on, also pick who goes through. Get it right and
-          you bank a bonus that grows each round —{" "}
+          In the knockouts you also pick which team goes through. Get it right
+          and you earn a bonus on top — and it grows every round, from{" "}
           <strong className="text-grape dark:text-violet-300">
-            +{ADVANCE_BONUS.round_of_32} in the Round of 32, up to +
+            +{ADVANCE_BONUS.round_of_32} in the Round of 32 to +
             {ADVANCE_BONUS.final} in the final
           </strong>
           .
         </p>
         <p className="mx-auto mt-3 max-w-md text-sm font-medium text-stone-600 dark:text-stone-200">
-          And a knockout can&apos;t end level: if it&apos;s settled in extra time
-          or on penalties, the team that advances is the winner. So your{" "}
-          <strong className="text-flame">Outcome</strong> points go to whoever
-          backed them — even on a tied scoreline — while{" "}
+          Knockouts can&apos;t end in a draw. If the game is decided in extra time
+          or on penalties, the team that goes through counts as the winner — so
+          backing them still earns your{" "}
+          <strong className="text-flame">Outcome</strong> points, even if the
+          score was level. Your{" "}
           <strong className="text-ocean dark:text-sky-400">Closeness</strong>{" "}
-          still scores the goals on the board.
+          points always follow the score on the pitch.
         </p>
       </section>
 
