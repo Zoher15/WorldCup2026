@@ -14,15 +14,25 @@ export function formatStageLabel(
 }
 
 /**
- * Clean host-city label from a venue string. The fixtures carry the metro plus
- * the stadium suburb in parentheses (e.g. "Los Angeles (Inglewood)",
- * "New York/New Jersey (East Rutherford)"); for a card chip we want just the
- * city: "Los Angeles", "New York/New Jersey". Returns null for empty venues.
+ * Full host-city (metro) label from a venue string. The fixtures carry the metro
+ * plus the stadium suburb in parentheses (e.g. "Los Angeles (Inglewood)",
+ * "New York/New Jersey (East Rutherford)"); we drop the suburb and keep the
+ * metro: "Los Angeles", "New York/New Jersey". Returns null for empty venues.
  */
 export function formatHostCity(venue: string | null | undefined): string | null {
   if (!venue) return null;
   const city = venue.replace(/\s*\(.*\)\s*/, "").trim();
   return city || null;
+}
+
+/**
+ * Compact a metro label for tight spots (the card header chip): keep the lead
+ * city before a slash ("New York/New Jersey" -> "New York") and drop a trailing
+ * "Bay Area" ("San Francisco Bay Area" -> "San Francisco"). Most cities are
+ * already short and pass through unchanged.
+ */
+export function shortHostCity(city: string): string {
+  return city.split("/")[0].trim().replace(/\s+Bay Area$/i, "");
 }
 
 export function formatKickoffTime(iso: string): string {

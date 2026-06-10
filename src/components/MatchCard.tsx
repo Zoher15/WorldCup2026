@@ -3,7 +3,7 @@
 import { Stepper } from "./Stepper";
 import { Countdown } from "./Countdown";
 import { teamByCode, teamColor, teamLabel } from "@/lib/fifa";
-import { formatHostCity, formatKickoffDateCompact, formatKickoffTime, formatStageLabel } from "@/lib/format";
+import { formatHostCity, formatKickoffDateCompact, formatKickoffTime, formatStageLabel, shortHostCity } from "@/lib/format";
 import type { Stage } from "@/lib/types";
 
 /**
@@ -86,18 +86,25 @@ function StatusPill({
       return <span className={`${base} ${GLASS} text-stone-500 dark:text-stone-300`}>🔒 Locked</span>;
     case "open":
       return (
-        <span className={`${base} glass inline-flex items-center gap-1 text-flame`}>
-          ⏳ closes in{" "}
-          <Countdown target={data.kickoffAt} expiredLabel="closed" onExpire={onExpire} />
+        <span
+          title="Closes at kickoff"
+          className={`${base} glass inline-flex items-center gap-1 text-flame`}
+        >
+          ⏳ <Countdown target={data.kickoffAt} expiredLabel="closed" onExpire={onExpire} />
         </span>
       );
     case "upcoming": {
       // Top-right carries the host city. The "opens in" countdown isn't shown
       // here — it lives on the centre tile (where the steppers will appear), so
-      // the same timing isn't duplicated in two places.
-      const city = formatHostCity(data.venue);
+      // the same timing isn't duplicated in two places. Long metros are shown
+      // compact (full name on hover) so they don't crowd the header.
+      const cityFull = formatHostCity(data.venue);
+      const city = cityFull ? shortHostCity(cityFull) : null;
       return (
-        <span className={`${base} ${GLASS} inline-flex items-center gap-1 text-ocean dark:text-sky-400`}>
+        <span
+          title={cityFull ?? undefined}
+          className={`${base} ${GLASS} inline-flex items-center gap-1 text-ocean dark:text-sky-400`}
+        >
           {city ? <>📍 {city}</> : "Upcoming"}
         </span>
       );
