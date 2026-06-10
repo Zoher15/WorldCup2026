@@ -102,7 +102,7 @@ export default async function GroupPage({
         </Link>
       </header>
 
-      <Leaderboard data={standings} code={group.code} />
+      <Leaderboard data={standings} code={group.code} groupName={group.name} />
 
       {viewer.isAdmin && (
         <GroupAdmin
