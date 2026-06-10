@@ -29,9 +29,10 @@ export function ShareLeaderboard({
   async function share() {
     const url = `${window.location.origin}/s/${code}`;
     const title = groupName ? `${groupName} · Leaderboard` : "World Cup 2026 Leaderboard";
-    const text = `${groupName ? `${groupName} — ` : ""}World Cup 2026 standings\n${url}`;
+    const caption = `${groupName ? `${groupName} — ` : ""}World Cup 2026 leaderboard 🏆`;
 
-    // 1) Try to share the leaderboard image file itself.
+    // 1) Try to share the leaderboard image file itself. The caption carries the
+    //    link too, since a shared image has no link of its own.
     let file: File | null = null;
     try {
       setBusy(true);
@@ -48,7 +49,8 @@ export function ShareLeaderboard({
 
     if (file && navigator.canShare?.({ files: [file] })) {
       try {
-        await navigator.share({ files: [file], title, text });
+        await navigator.share({ files: [file], title, text: `${caption}\nSee the full standings: ${url}` });
+        flash("Shared ✓");
         return;
       } catch (e) {
         // Dismissing the sheet isn't an error; anything else falls through to
@@ -57,10 +59,12 @@ export function ShareLeaderboard({
       }
     }
 
-    // 2) Fall back to sharing/copying the link (still unfurls into the image).
+    // 2) Fall back to sharing/copying the link (still unfurls into the image, so
+    //    the caption omits the URL here).
     try {
       if (navigator.share) {
-        await navigator.share({ url, title, text });
+        await navigator.share({ url, title, text: caption });
+        flash("Shared ✓");
         return;
       }
     } catch (e) {
