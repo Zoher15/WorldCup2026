@@ -12,13 +12,17 @@ export const alt = "World Cup 2026 leaderboard";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-// Load the bundled font, never throwing — a font failure must degrade to a
-// (text-less) 200, not a 500.
+// Load the bundled font, never throwing or returning junk. On the edge bundle a
+// mis-traced asset can yield a 404 *body* (not an exception); feeding those
+// bytes to Satori as a font crashes the render. So we verify the response is OK
+// and plausibly a font, else return null — the caller then omits `fonts` and
+// next/og falls back to its own built-in font.
 async function loadFont(): Promise<ArrayBuffer | null> {
   try {
-    return await fetch(new URL("./noto-sans.ttf", import.meta.url)).then((r) =>
-      r.arrayBuffer(),
-    );
+    const res = await fetch(new URL("./noto-sans.ttf", import.meta.url));
+    if (!res.ok) return null;
+    const buf = await res.arrayBuffer();
+    return buf.byteLength > 2000 ? buf : null;
   } catch {
     return null;
   }
