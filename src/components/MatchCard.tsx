@@ -299,7 +299,10 @@ export function MatchCard({ data, opensAt, entry, pick, status, footer, onExpire
           <StatusPill data={data} onExpire={onExpire} />
         </div>
 
-        <div className="flex justify-center">{focal}</div>
+        {/* Fixed-height focal region so the card never changes length as its
+            centre swaps between the (taller) two-line steppers and a one-line
+            score/time — every state centres within the same space. */}
+        <div className="flex min-h-[4.25rem] items-center justify-center">{focal}</div>
 
         <div className="flex flex-col gap-2">
           <div className="grid grid-cols-2 gap-2">
