@@ -127,14 +127,16 @@ export function PredictionList({
                     onChange: (side, n) => setPick(m.id, side, n),
                   }}
                   onExpire={() => router.refresh()}
-                  footer={
+                  status={
                     open ? (
                       isSaved ? (
                         <span className="text-pitch dark:text-emerald-400">Saved ✓</span>
                       ) : (
-                        <span className="text-stone-400 dark:text-stone-400">Unsaved</span>
+                        <span className="text-stone-500 dark:text-stone-300">Unsaved</span>
                       )
-                    ) : undefined
+                    ) : (
+                      <span className="text-stone-500 dark:text-stone-300">🔒 Locked</span>
+                    )
                   }
                 />
               );

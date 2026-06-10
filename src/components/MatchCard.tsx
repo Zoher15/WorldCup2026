@@ -48,6 +48,9 @@ export interface MatchCardProps {
   };
   /** A revealed predicted score, shown in the focal tile when not editing or live/final. */
   pick?: { home: number; away: number } | null;
+  /** A small status chip in the header row (between the stage label and the
+   *  status pill) — e.g. the predict page's Saved / Unsaved / Locked indicator. */
+  status?: React.ReactNode;
   /** Contextual strip under the teams (saved indicator, points, privacy note). */
   footer?: React.ReactNode;
   /** Fired when a header countdown reaches zero (e.g. to refresh the page). */
@@ -171,7 +174,7 @@ function FlagHalf({ code, side }: { code: string | null; side: "left" | "right" 
   );
 }
 
-export function MatchCard({ data, opensAt, entry, pick, footer, onExpire, revealOnHover }: MatchCardProps) {
+export function MatchCard({ data, opensAt, entry, pick, status, footer, onExpire, revealOnHover }: MatchCardProps) {
   const editing = data.state === "open" && entry != null;
   const hasResult =
     (data.state === "live" || data.state === "final") &&
@@ -274,11 +277,16 @@ export function MatchCard({ data, opensAt, entry, pick, footer, onExpire, reveal
 
       <div className="relative flex min-h-[9rem] flex-col justify-between gap-2 p-3 text-xs font-bold">
         <div className="flex items-center justify-between gap-2">
-          <span className={`truncate rounded-full px-2.5 py-0.5 ${GLASS} text-stone-600 dark:text-stone-200`}>
+          <span className={`min-w-0 truncate rounded-full px-2.5 py-0.5 ${GLASS} text-stone-600 dark:text-stone-200`}>
             {data.trial
               ? "🎯 Practice"
               : formatStageLabel(data.groupLabel, data.stage)}
           </span>
+          {status && (
+            <span className={`shrink-0 rounded-full px-2.5 py-0.5 ${GLASS}`}>
+              {status}
+            </span>
+          )}
           <StatusPill data={data} onExpire={onExpire} />
         </div>
 
