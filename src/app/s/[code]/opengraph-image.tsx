@@ -11,6 +11,16 @@ export const alt = "World Cup 2026 leaderboard";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
+// Override next/og's default `immutable, max-age=31536000`. That one-year cache
+// pinned a stale/blank render on the CDN across deploys (the key is identical
+// every deploy, so a redeploy never purges it). Instead: browsers revalidate
+// every time, the edge caches for a few minutes (standings move), and serves
+// stale while refreshing. The per-deploy `?v=` on the metadata image URL
+// (page.tsx) gives each deploy a fresh key so a bad cache can't survive one.
+const CACHE_HEADERS = {
+  "cache-control": "public, max-age=0, s-maxage=300, stale-while-revalidate=86400",
+};
+
 // Decode the inlined font once. We do NOT fetch the .ttf as a bundled asset:
 // on edge that asset mis-traces and the fetch returns non-font bytes (200,
 // >2KB), which Satori parses past the end of -> "Offset is outside the bounds
@@ -104,7 +114,7 @@ function fallbackImage() {
         </div>
       </div>
     ),
-    size,
+    { ...size, headers: CACHE_HEADERS },
   );
 }
 
@@ -178,6 +188,7 @@ async function renderPodium(params: { code: string }) {
     ),
     {
       ...size,
+      headers: CACHE_HEADERS,
       ...(font
         ? { fonts: [{ name: "Noto Sans", data: font, weight: 400 as const, style: "normal" as const }] }
         : {}),

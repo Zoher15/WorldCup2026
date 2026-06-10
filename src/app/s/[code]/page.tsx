@@ -20,11 +20,22 @@ export async function generateMetadata({
   const title = `${name} · Leaderboard`;
   const description =
     "World Cup 2026 score & winner predictions — see who's topping the leaderboard, then tap in to make your own picks.";
+  // Version the OG image URL per deploy. The image's CDN cache key is otherwise
+  // identical across deploys, so a once-cached bad render would survive forever;
+  // a new `?v=` each deploy guarantees crawlers fetch a fresh render.
+  const ver = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 8) ?? "1";
+  const image = `/s/${code}/opengraph-image?v=${ver}`;
   return {
     title,
     description,
-    openGraph: { title, description, type: "website", siteName: "World Cup 2026 Predictions" },
-    twitter: { card: "summary_large_image", title, description },
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      siteName: "World Cup 2026 Predictions",
+      images: [{ url: image, width: 1200, height: 630, alt: "World Cup 2026 leaderboard" }],
+    },
+    twitter: { card: "summary_large_image", title, description, images: [image] },
   };
 }
 
