@@ -137,7 +137,7 @@ export async function getGroupStandings(
       .eq("group_id", group.id),
     db
       .from("matches")
-      .select("id, kickoff_at, stage, home_goals, away_goals, advanced_code, result_confirmed, is_trial")
+      .select("id, kickoff_at, stage, home_code, away_code, home_goals, away_goals, advanced_code, result_confirmed, is_trial")
       .eq("result_confirmed", true),
   ]);
   const memberList = membersRes.data ?? [];
@@ -174,6 +174,8 @@ export async function getGroupStandings(
       homeGoals: m.home_goals,
       awayGoals: m.away_goals,
       advancedCode: m.advanced_code,
+      homeCode: m.home_code,
+      awayCode: m.away_code,
       isTrial: m.is_trial,
     })),
     predictions: predList.map((p) => ({

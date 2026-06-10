@@ -126,7 +126,10 @@ export default function HowToPlayPage() {
             +{ADVANCE_BONUS.round_of_32} in the Round of 32, up to +
             {ADVANCE_BONUS.final} in the final
           </strong>{" "}
-          — even if it took extra time or penalties.
+          — even if it took extra time or penalties. In a knockout the side that
+          goes through counts as the winner for your <em>result</em> points too,
+          so a tie settled on penalties is scored as a win for that team, not a
+          draw.
         </p>
       </section>
 

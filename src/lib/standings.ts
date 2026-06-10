@@ -11,7 +11,7 @@
  * No database imports — fed already-loaded rows so it's easy to unit-test.
  */
 
-import { scorePrediction } from "./recompute.ts";
+import { scorePrediction, actualWinnerDirection } from "./recompute.ts";
 import { scoreMatch } from "./scoring.ts";
 import type { LateJoinPolicy, Stage } from "./types.ts";
 
@@ -33,6 +33,8 @@ export interface StandingMatch {
   homeGoals: number | null;
   awayGoals: number | null;
   advancedCode: string | null;
+  homeCode: string | null;
+  awayCode: string | null;
   /** Practice (India vs Italy) match — only counts before the tournament starts. */
   isTrial?: boolean;
 }
@@ -172,6 +174,7 @@ export function buildStandings(input: {
       const { outcome, closeness } = scoreMatch(
         { homeGoals: 0, awayGoals: 0 },
         { homeGoals: match.homeGoals, awayGoals: match.awayGoals },
+        actualWinnerDirection(match),
       );
       bot.outcome += outcome;
       bot.closeness += closeness;

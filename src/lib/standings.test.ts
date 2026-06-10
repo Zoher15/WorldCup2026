@@ -22,6 +22,8 @@ const matches: StandingMatch[] = [
     homeGoals: 0,
     awayGoals: 1,
     advancedCode: null,
+    homeCode: null,
+    awayCode: null,
   },
   {
     id: "m2", // later match, 2-2
@@ -31,6 +33,8 @@ const matches: StandingMatch[] = [
     homeGoals: 2,
     awayGoals: 2,
     advancedCode: null,
+    homeCode: null,
+    awayCode: null,
   },
   {
     id: "m3", // not confirmed yet — must never count
@@ -40,6 +44,8 @@ const matches: StandingMatch[] = [
     homeGoals: null,
     awayGoals: null,
     advancedCode: null,
+    homeCode: null,
+    awayCode: null,
   },
 ];
 
@@ -183,6 +189,8 @@ const trialMatch: StandingMatch = {
   homeGoals: 2,
   awayGoals: 1,
   advancedCode: null,
+  homeCode: null,
+  awayCode: null,
   isTrial: true,
 };
 const trialPrediction: StandingPrediction = {
