@@ -67,19 +67,11 @@ export function HowToPlayDemo() {
                 onChange: (side, n) => setPick((p) => ({ ...p, [side]: n })),
               }
         }
-        footer={
+        status={
           locked ? (
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-stone-500 dark:text-stone-300">
-                Your pick{" "}
-                <span className="text-grape dark:text-violet-300">
-                  {pick.home}–{pick.away}
-                </span>
-              </span>
-              <span className="rounded-full glass px-2.5 py-0.5 font-black text-pitch dark:text-emerald-400">
-                +{you.total} pts
-              </span>
-            </div>
+            <span className="font-black text-pitch dark:text-emerald-400">
+              +{you.total} pts
+            </span>
           ) : undefined
         }
       />

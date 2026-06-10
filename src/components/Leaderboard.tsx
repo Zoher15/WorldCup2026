@@ -74,16 +74,9 @@ export function Leaderboard({
 
   return (
     <div className="rounded-3xl glass p-5">
-      <div className="relative mb-4 flex items-center justify-center">
-        <h2 className="text-center text-2xl font-black text-grape dark:text-violet-300">
-          🏆 Leaderboard
-        </h2>
-        {code && (
-          <div className="absolute right-0">
-            <ShareLeaderboard code={code} tab={tab} groupName={groupName} />
-          </div>
-        )}
-      </div>
+      <h2 className="mb-4 text-center text-2xl font-black text-grape dark:text-violet-300">
+        🏆 Leaderboard
+      </h2>
 
       {/* Tabs */}
       <div className="mb-5 flex justify-center gap-1 rounded-full glass p-1">
@@ -150,6 +143,12 @@ export function Leaderboard({
           </li>
         ))}
       </ol>
+
+      {code && (
+        <div className="mt-5 flex justify-center">
+          <ShareLeaderboard code={code} tab={tab} groupName={groupName} />
+        </div>
+      )}
     </div>
   );
 }
