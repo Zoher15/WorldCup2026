@@ -146,7 +146,7 @@ export function Leaderboard({
 
       {code && (
         <div className="mt-5 flex justify-center">
-          <ShareLeaderboard code={code} tab={tab} groupName={groupName} />
+          <ShareLeaderboard code={code} groupName={groupName} />
         </div>
       )}
     </div>
