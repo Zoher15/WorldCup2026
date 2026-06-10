@@ -25,63 +25,49 @@ function PlayerCard({ row, isBot }: { row: PlayerPredictionRow; isBot: boolean }
     awayGoals: row.result?.away,
   };
 
-  const footer =
+  const status =
     row.state === "locked" ? (
-      <PastFooter row={row} />
+      <PastStatus row={row} />
     ) : (
-      <FutureFooter row={row} isBot={isBot} />
+      <FutureStatus row={row} isBot={isBot} />
     );
 
   return (
     <MatchCard
       data={data}
       pick={row.pick ? { home: row.pick.home, away: row.pick.away } : null}
-      footer={footer}
+      status={status}
     />
   );
 }
 
-/** Past (kicked-off) match: the pick and points earned are revealed to everyone. */
-function PastFooter({ row }: { row: PlayerPredictionRow }) {
-  return (
-    <div className="flex items-center justify-between gap-2">
-      <span className="text-stone-500 dark:text-stone-300">
-        {row.pick ? (
-          <>
-            Pick{" "}
-            <span className="text-grape dark:text-violet-300">
-              {row.pick.home}–{row.pick.away}
-            </span>
-          </>
-        ) : (
-          <span className="text-stone-400">No prediction</span>
-        )}
-      </span>
-      {row.points != null ? (
-        <span className="rounded-full glass px-2.5 py-0.5 font-black text-pitch dark:text-emerald-400">
-          +{row.points} pts
+/**
+ * Past (kicked-off) match: the pick is revealed, so the header chip shows their
+ * call alongside the points earned (the focal tile carries the actual result).
+ */
+function PastStatus({ row }: { row: PlayerPredictionRow }) {
+  if (row.pick && row.points != null) {
+    return (
+      <span className="inline-flex items-center gap-1.5">
+        <span className="text-grape dark:text-violet-300">
+          {row.pick.home}–{row.pick.away}
         </span>
-      ) : row.result == null ? (
-        <span className="text-stone-400">awaiting result</span>
-      ) : row.hasPrediction ? (
-        <span className="text-stone-400">before you joined</span>
-      ) : null}
-    </div>
-  );
+        <span className="font-black text-pitch dark:text-emerald-400">+{row.points}</span>
+      </span>
+    );
+  }
+  if (!row.pick) return <span className="text-stone-400">No pick</span>;
+  if (row.result == null) return <span className="text-stone-400">Awaiting</span>;
+  return <span className="text-stone-400">Pre-join</span>;
 }
 
 /** Open/upcoming match: the pick stays private — only entered-or-not is shown. */
-function FutureFooter({ row, isBot }: { row: PlayerPredictionRow; isBot: boolean }) {
-  if (isBot)
-    return (
-      <span className="text-grape dark:text-violet-300">Predicts 0–0</span>
-    );
-  if (row.pick) return <span className="text-pitch dark:text-emerald-400">✓ You&apos;re in</span>;
+function FutureStatus({ row, isBot }: { row: PlayerPredictionRow; isBot: boolean }) {
+  if (isBot) return <span className="text-grape dark:text-violet-300">Predicts 0–0</span>;
+  if (row.pick) return <span className="text-pitch dark:text-emerald-400">✓ Entered</span>;
   if (row.hasPrediction)
-    return (
-      <span className="text-stone-500 dark:text-stone-300">🔒 Entered · hidden until kickoff</span>
-    );
-  return <span className="text-stone-400">Not entered yet</span>;
+    return <span className="text-stone-500 dark:text-stone-300">🔒 Hidden</span>;
+  return <span className="text-stone-400">Not entered</span>;
 }
 
 function Section({
