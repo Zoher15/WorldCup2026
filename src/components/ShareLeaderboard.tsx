@@ -5,8 +5,9 @@ import { useState } from "react";
 /**
  * Shares a PNG snapshot of the leaderboard (rendered by /g/[code]/share). On
  * mobile this opens the native share sheet with the image attached via the Web
- * Share API; where file sharing isn't supported (most desktops) it falls back
- * to downloading the image.
+ * Share API; where file sharing isn't supported or the browser blocks it (most
+ * desktops), it falls back to downloading the image so the user always gets the
+ * picture. Only a genuine server-side render failure surfaces an error.
  */
 export function ShareLeaderboard({
   code,
@@ -22,17 +23,43 @@ export function ShareLeaderboard({
 
   function flash(text: string) {
     setMsg(text);
-    setTimeout(() => setMsg(null), 2000);
+    setTimeout(() => setMsg(null), 2500);
+  }
+
+  function download(file: File) {
+    const url = URL.createObjectURL(file);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = file.name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   }
 
   async function share() {
     setBusy(true);
+    setMsg(null);
+
+    // 1) Build the image on the server. This is the only step that can be a
+    //    genuine error worth showing.
+    let file: File;
     try {
       const res = await fetch(`/g/${code}/share?tab=${tab}`);
-      if (!res.ok) throw new Error("render failed");
+      if (!res.ok) throw new Error(`status ${res.status}`);
       const blob = await res.blob();
-      const file = new File([blob], `${code}-leaderboard.png`, { type: "image/png" });
+      if (!blob.size) throw new Error("empty image");
+      file = new File([blob], `${code}-leaderboard.png`, { type: "image/png" });
+    } catch {
+      setBusy(false);
+      flash("Couldn't build image");
+      return;
+    }
 
+    // 2) Offer the native share sheet. If it's unsupported, or the browser
+    //    blocks it (e.g. no file share targets, or lost user activation after
+    //    the fetch), fall through to saving the file instead.
+    try {
       if (navigator.canShare?.({ files: [file] }) && navigator.share) {
         await navigator.share({
           files: [file],
@@ -41,22 +68,21 @@ export function ShareLeaderboard({
             ? `${groupName} — World Cup 2026 standings`
             : "World Cup 2026 standings",
         });
-      } else {
-        // No file-share support (typically desktop): save the image instead.
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = file.name;
-        a.click();
-        URL.revokeObjectURL(url);
-        flash("Saved ✓");
+        setBusy(false);
+        return;
       }
     } catch (e) {
-      // The user dismissing the native share sheet isn't an error.
-      if ((e as Error)?.name !== "AbortError") flash("Couldn't share");
-    } finally {
-      setBusy(false);
+      // The user dismissing the sheet isn't an error — leave it at that.
+      if ((e as Error)?.name === "AbortError") {
+        setBusy(false);
+        return;
+      }
+      // Any other share failure: fall back to a download below.
     }
+
+    download(file);
+    setBusy(false);
+    flash("Saved ✓");
   }
 
   return (
