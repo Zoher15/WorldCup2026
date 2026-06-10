@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { ShareLeaderboard } from "./ShareLeaderboard";
 import type { Standings, StandingsRow } from "@/lib/standings";
 
 const TABS = [
@@ -57,7 +58,15 @@ function PlayerName({
   );
 }
 
-export function Leaderboard({ data, code }: { data: Standings; code?: string }) {
+export function Leaderboard({
+  data,
+  code,
+  groupName,
+}: {
+  data: Standings;
+  code?: string;
+  groupName?: string;
+}) {
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("overall");
   const rows = data[tab];
   const top3 = rows.slice(0, 3);
@@ -65,9 +74,16 @@ export function Leaderboard({ data, code }: { data: Standings; code?: string }) 
 
   return (
     <div className="rounded-3xl glass p-5">
-      <h2 className="mb-4 text-center text-2xl font-black text-grape dark:text-violet-300">
-        🏆 Leaderboard
-      </h2>
+      <div className="relative mb-4 flex items-center justify-center">
+        <h2 className="text-center text-2xl font-black text-grape dark:text-violet-300">
+          🏆 Leaderboard
+        </h2>
+        {code && (
+          <div className="absolute right-0">
+            <ShareLeaderboard code={code} tab={tab} groupName={groupName} />
+          </div>
+        )}
+      </div>
 
       {/* Tabs */}
       <div className="mb-5 flex justify-center gap-1 rounded-full glass p-1">
