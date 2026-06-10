@@ -16,7 +16,8 @@
  * the returned rows into `match_scores`.
  */
 
-import { scoreMatch, advancePoints } from "./scoring.ts";
+import { scoreMatch, advancePoints, direction } from "./scoring.ts";
+import type { Direction } from "./scoring.ts";
 import { isKnockoutStage } from "./polling.ts";
 import type { Match, Prediction } from "./types.ts";
 
@@ -30,8 +31,35 @@ export interface ComputedScore {
 
 type ScorableMatch = Pick<
   Match,
-  "resultConfirmed" | "homeGoals" | "awayGoals" | "stage" | "advancedCode"
+  | "resultConfirmed"
+  | "homeGoals"
+  | "awayGoals"
+  | "stage"
+  | "advancedCode"
+  | "homeCode"
+  | "awayCode"
 >;
+
+/**
+ * The direction the outcome should be graded against. Normally just the
+ * scoreline's direction — but a knockout tie level after extra time is decided
+ * on penalties, and we store that pre-shootout draw as the scoreline. There the
+ * real outcome is the team that advanced, so we map it back to HOME/AWAY. Group
+ * games (where a draw is a genuine result) and knockouts won in normal/extra
+ * time fall through to the scoreline's own direction.
+ */
+export function actualWinnerDirection(match: ScorableMatch): Direction {
+  const score = { homeGoals: match.homeGoals!, awayGoals: match.awayGoals! };
+  if (
+    isKnockoutStage(match.stage) &&
+    score.homeGoals === score.awayGoals &&
+    match.advancedCode
+  ) {
+    if (match.advancedCode === match.homeCode) return "HOME";
+    if (match.advancedCode === match.awayCode) return "AWAY";
+  }
+  return direction(score);
+}
 
 /**
  * A match counts toward scores only once an admin has confirmed the result and
@@ -57,6 +85,7 @@ export function scorePrediction(
   const { outcome, closeness } = scoreMatch(
     { homeGoals: prediction.predHome, awayGoals: prediction.predAway },
     { homeGoals: match.homeGoals!, awayGoals: match.awayGoals! },
+    actualWinnerDirection(match),
   );
   const advance = isKnockoutStage(match.stage)
     ? advancePoints(prediction.advancePick, match.advancedCode, match.stage)

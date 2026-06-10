@@ -59,12 +59,12 @@ export const MAX_MATCH_POINTS = 10;
  */
 export const ADVANCE_BONUS: Record<Stage, number> = {
   group: 0,
-  round_of_32: 1,
-  round_of_16: 2,
-  quarter_final: 4,
-  semi_final: 8,
-  third_place: 5,
-  final: 15,
+  round_of_32: 4,
+  round_of_16: 8,
+  quarter_final: 12,
+  semi_final: 16,
+  third_place: 20,
+  final: 24,
 };
 
 const OUTCOME_FOR_CORRECT_DIRECTION = 5;
@@ -103,9 +103,9 @@ function directionSteps(a: Direction, b: Direction): 0 | 1 | 2 {
   return Math.abs(rank[a] - rank[b]) as 0 | 1 | 2;
 }
 
-/** Outcome points (0, 3, or 6) for a prediction vs the actual result. */
-function outcomePoints(prediction: Scoreline, actual: Scoreline): number {
-  const steps = directionSteps(direction(prediction), direction(actual));
+/** Outcome points (0, 2, or 5) for a predicted vs actual direction. */
+function outcomePoints(predicted: Direction, actual: Direction): number {
+  const steps = directionSteps(predicted, actual);
   return Math.max(0, OUTCOME_FOR_CORRECT_DIRECTION - OUTCOME_PENALTY_PER_STEP * steps);
 }
 
@@ -120,12 +120,23 @@ function closenessPoints(prediction: Scoreline, actual: Scoreline): number {
 /**
  * Scores a single match prediction against the actual result, returning the
  * full breakdown. Throws on invalid (non-integer or negative) scorelines.
+ *
+ * `actualWinner` overrides the direction the outcome is graded against. It
+ * exists for knockout ties decided on penalties: the stored scoreline is the
+ * pre-shootout draw, but the tie HAD a winner (the team that advanced), so the
+ * caller passes that side and a prediction backing it earns full outcome
+ * points. Closeness is always graded against the literal scoreline. Defaults to
+ * the scoreline's own direction (the right behaviour for group games).
  */
-export function scoreMatch(prediction: Scoreline, actual: Scoreline): MatchScore {
+export function scoreMatch(
+  prediction: Scoreline,
+  actual: Scoreline,
+  actualWinner: Direction = direction(actual),
+): MatchScore {
   assertValidScoreline("prediction", prediction);
   assertValidScoreline("actual", actual);
 
-  const outcome = outcomePoints(prediction, actual);
+  const outcome = outcomePoints(direction(prediction), actualWinner);
   const closeness = closenessPoints(prediction, actual);
   return { outcome, closeness, total: outcome + closeness };
 }

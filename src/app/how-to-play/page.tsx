@@ -117,16 +117,24 @@ export default function HowToPlayPage() {
       <section className="mb-10 rounded-3xl glass p-6 text-center">
         <div className="text-2xl">🥊</div>
         <h2 className="mt-1 text-lg font-black text-grape dark:text-violet-300">
-          Knockout bonus
+          Knockout rounds
         </h2>
         <p className="mx-auto mt-1 max-w-md text-sm font-medium text-stone-600 dark:text-stone-200">
           From the Round of 32 on, also pick who goes through. Get it right and
-          you earn a bonus that grows each round —{" "}
+          you bank a bonus that grows each round —{" "}
           <strong className="text-grape dark:text-violet-300">
             +{ADVANCE_BONUS.round_of_32} in the Round of 32, up to +
             {ADVANCE_BONUS.final} in the final
-          </strong>{" "}
-          — even if it took extra time or penalties.
+          </strong>
+          .
+        </p>
+        <p className="mx-auto mt-3 max-w-md text-sm font-medium text-stone-600 dark:text-stone-200">
+          And a knockout can&apos;t end level: if it&apos;s settled in extra time
+          or on penalties, the team that advances is the winner. So your{" "}
+          <strong className="text-flame">Outcome</strong> points go to whoever
+          backed them — even on a tied scoreline — while{" "}
+          <strong className="text-ocean dark:text-sky-400">Closeness</strong>{" "}
+          still scores the goals on the board.
         </p>
       </section>
 

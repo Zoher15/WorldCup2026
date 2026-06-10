@@ -151,6 +151,8 @@ export async function getPlayerProfile(opts: {
           awayGoals: m.away_goals,
           stage: m.stage,
           advancedCode: m.advanced_code,
+          homeCode: m.home_code,
+          awayCode: m.away_code,
         },
       );
       if (score) {

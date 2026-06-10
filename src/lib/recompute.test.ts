@@ -63,20 +63,57 @@ test("scorePrediction scores an exact group prediction", () => {
 });
 
 test("knockout adds the advance bonus, group stage does not", () => {
+  // ARG (home) wins 2-1 in regulation; a perfect 2-1 + correct advance pick.
   const ko = match({
     stage: "round_of_16",
-    homeGoals: 1,
+    homeGoals: 2,
     awayGoals: 1,
     advancedCode: "ARG",
   });
-  const p = pred({ predHome: 1, predAway: 1, advancePick: "ARG" });
+  const p = pred({ predHome: 2, predAway: 1, advancePick: "ARG" });
   const s = scorePrediction(p, ko)!;
-  assert.equal(s.advancePoints, 2); // round of 16 bonus
-  assert.equal(s.totalPoints, 12); // 10 scoreline + 2 advance
+  assert.equal(s.advancePoints, 8); // round of 16 bonus
+  assert.equal(s.totalPoints, 18); // 10 scoreline + 8 advance
 
   // same prediction in a group match earns no advance bonus
-  const g = scorePrediction(pred({ predHome: 1, predAway: 1, advancePick: "ARG" }), match({ homeGoals: 1, awayGoals: 1 }))!;
+  const g = scorePrediction(pred({ predHome: 2, predAway: 1, advancePick: "ARG" }), match({ homeGoals: 2, awayGoals: 1 }))!;
   assert.equal(g.advancePoints, 0);
+});
+
+test("a knockout decided on penalties is graded as a win, not the drawn scoreline", () => {
+  // Tie level 1-1 after extra time; ARG (home) win the shootout and advance.
+  const ko = match({
+    stage: "quarter_final",
+    homeGoals: 1,
+    awayGoals: 1,
+    advancedCode: "ARG", // homeCode in the factory
+  });
+
+  // Backed ARG 2-1: wrong scoreline, but right side of a real win now.
+  const backedWinner = scorePrediction(
+    pred({ predHome: 2, predAway: 1, advancePick: "ARG" }),
+    ko,
+  )!;
+  assert.equal(backedWinner.outcomePoints, 5); // ARG won the tie
+  assert.equal(backedWinner.closenessPoints, 4); // |2-1| + |1-1| = 1 off
+  assert.equal(backedWinner.advancePoints, 12); // quarter-final bonus
+  assert.equal(backedWinner.totalPoints, 21);
+
+  // Predicted the literal 1-1 draw: nails closeness, but a draw was not the
+  // outcome of the tie, so the outcome is one step off.
+  const predictedDraw = scorePrediction(
+    pred({ predHome: 1, predAway: 1, advancePick: "ARG" }),
+    ko,
+  )!;
+  assert.equal(predictedDraw.outcomePoints, 2);
+  assert.equal(predictedDraw.closenessPoints, 5);
+
+  // The SAME 1-1 in a group game is a genuine draw — full outcome credit.
+  const groupDraw = scorePrediction(
+    pred({ predHome: 1, predAway: 1 }),
+    match({ stage: "group", homeGoals: 1, awayGoals: 1 }),
+  )!;
+  assert.equal(groupDraw.outcomePoints, 5);
 });
 
 test("recomputeAll is deterministic and idempotent", () => {
