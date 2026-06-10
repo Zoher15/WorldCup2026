@@ -230,10 +230,10 @@ export function MatchCard({ data, opensAt, entry, pick, status, footer, onExpire
     // place this timing lives, with the host city already shown top-right.
     focal = (
       <div className={`rounded-xl px-4 py-2 text-center ${GLASS}`}>
+        <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">opens in</div>
         <div className="text-xl font-black tabular-nums text-ocean dark:text-sky-400">
           <Countdown target={opensAt} expiredLabel="open now" onExpire={onExpire} />
         </div>
-        <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">opens in</div>
       </div>
     );
   } else if (pick) {
@@ -276,14 +276,16 @@ export function MatchCard({ data, opensAt, entry, pick, status, footer, onExpire
       />
 
       <div className="relative flex min-h-[9rem] flex-col justify-between gap-2 p-3 text-xs font-bold">
-        <div className="flex items-center justify-between gap-2">
+        <div className="relative flex items-center justify-between gap-2">
           <span className={`min-w-0 truncate rounded-full px-2.5 py-0.5 ${GLASS} text-stone-600 dark:text-stone-200`}>
             {data.trial
               ? "🎯 Practice"
               : formatStageLabel(data.groupLabel, data.stage)}
           </span>
           {status && (
-            <span className={`shrink-0 rounded-full px-2.5 py-0.5 ${GLASS}`}>
+            <span
+              className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full px-2.5 py-0.5 ${GLASS}`}
+            >
               {status}
             </span>
           )}
