@@ -18,11 +18,12 @@ export async function generateMetadata({
   const data = await getGroupStandings(code);
   const name = data?.group.name ?? "World Cup 2026";
   const title = `${name} · Leaderboard`;
-  const description = "World Cup 2026 predictions — see who's on top.";
+  const description =
+    "World Cup 2026 score & winner predictions — see who's topping the leaderboard, then tap in to make your own picks.";
   return {
     title,
     description,
-    openGraph: { title, description, type: "website" },
+    openGraph: { title, description, type: "website", siteName: "World Cup 2026 Predictions" },
     twitter: { card: "summary_large_image", title, description },
   };
 }

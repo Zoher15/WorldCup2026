@@ -1,28 +1,34 @@
 import { ImageResponse } from "next/og";
 import { getGroupStandings } from "@/lib/groups";
 import { BORINGBOT_ID, type StandingsRow } from "@/lib/standings";
+import { NOTO_SANS_BASE64 } from "./noto-sans-font";
 
 // Edge runtime: next/og's renderer ships for edge here (the Node serverless
-// bundle 500s on this deployment). The font is bundled alongside this file and
-// loaded via import.meta.url — no runtime network fetch — so text always draws
-// (the earlier blank image was a missing font on edge).
+// bundle 500s on this deployment).
 export const runtime = "edge";
 
 export const alt = "World Cup 2026 leaderboard";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-// Load the bundled font, never throwing or returning junk. On the edge bundle a
-// mis-traced asset can yield a 404 *body* (not an exception); feeding those
-// bytes to Satori as a font crashes the render. So we verify the response is OK
-// and plausibly a font, else return null — the caller then omits `fonts` and
-// next/og falls back to its own built-in font.
-async function loadFont(): Promise<ArrayBuffer | null> {
+// Decode the inlined font once. We do NOT fetch the .ttf as a bundled asset:
+// on edge that asset mis-traces and the fetch returns non-font bytes (200,
+// >2KB), which Satori parses past the end of -> "Offset is outside the bounds
+// of the DataView" and the whole render throws. The bytes live in the JS bundle
+// instead (noto-sans-font.ts), and we still verify the sfnt signature so only a
+// real font is ever handed to Satori; on any doubt we return null and next/og
+// falls back to its built-in font rather than crashing.
+function loadFont(): ArrayBuffer | null {
   try {
-    const res = await fetch(new URL("./noto-sans.ttf", import.meta.url));
-    if (!res.ok) return null;
-    const buf = await res.arrayBuffer();
-    return buf.byteLength > 2000 ? buf : null;
+    const bin = atob(NOTO_SANS_BASE64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    if (bytes.byteLength < 2000) return null;
+    // Valid TrueType/OpenType sfnt signatures.
+    const magic =
+      (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
+    const SFNT = [0x00010000, 0x4f54544f, 0x74727565]; // TTF, 'OTTO', 'true'
+    return SFNT.includes(magic >>> 0) ? bytes.buffer : null;
   } catch {
     return null;
   }
@@ -77,15 +83,48 @@ function PodiumColumn({ row, idx }: { row: StandingsRow | undefined; idx: number
   );
 }
 
+// A dead-simple, font-free, fetch-free frame. Used if anything in the main
+// render throws, so the route always returns a valid PNG (a blank/broken card
+// is what we're trying to escape) instead of a 500.
+function fallbackImage() {
+  return new ImageResponse(
+    (
+      <div
+        style={{
+          width: size.width,
+          height: size.height,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "linear-gradient(160deg, #fff8ec 0%, #ffeede 45%, #ffe7f0 100%)",
+        }}
+      >
+        <div style={{ display: "flex", fontSize: 64, fontWeight: 700, color: "#6b2fb3" }}>
+          World Cup 2026 · Leaderboard
+        </div>
+      </div>
+    ),
+    size,
+  );
+}
+
 export default async function Image({
   params,
 }: {
   params: Promise<{ code: string }>;
 }) {
-  const { code } = await params;
+  try {
+    return await renderPodium(await params);
+  } catch {
+    return fallbackImage();
+  }
+}
+
+async function renderPodium(params: { code: string }) {
+  const { code } = params;
   const [data, font] = await Promise.all([
     getGroupStandings(code).catch(() => null),
-    loadFont(),
+    Promise.resolve(loadFont()),
   ]);
 
   const rows = data?.standings.overall ?? [];
