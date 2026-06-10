@@ -1,13 +1,13 @@
 import { ImageResponse } from "next/og";
-import { BORINGBOT_ID, type StandingsRow } from "./standings";
+import { type StandingsRow } from "./standings";
 import { NOTO_SANS_BASE64 } from "./noto-sans-font";
 
-// Renders the leaderboard share image (1200x630 podium PNG) on the Node runtime.
-// This runs server-side during the poll / on group creation — never on a
-// crawler's request — so the share endpoint only ever serves stored bytes and
-// can't blank. The font is inlined (see noto-sans-font.ts) so the renderer
-// always gets valid bytes; on any doubt we omit it and next/og falls back to
-// its built-in font rather than crashing.
+// Renders the leaderboard share image (1200x630) on the Node runtime. This runs
+// server-side during the poll / on group creation / lazily on first view —
+// never on a crawler's request to the cached endpoint — so the share endpoint
+// only ever serves stored bytes and can't blank. The font is inlined (see
+// noto-sans-font.ts) so the renderer always gets valid bytes; on any doubt we
+// omit it and next/og falls back to its built-in font rather than crashing.
 export const OG_SIZE = { width: 1200, height: 630 };
 
 function loadFont(): ArrayBuffer | null {
@@ -24,69 +24,78 @@ function loadFont(): ArrayBuffer | null {
   }
 }
 
-// Render slots place #1 in the middle, #2 left, #3 right.
-const PODIUM_ORDER = [1, 0, 2];
-const PODIUM_HEIGHT = [250, 200, 176]; // indexed by rank (0 = 1st)
-const PODIUM_GRADIENT = [
-  "linear-gradient(180deg, #ffd23f 0%, #ff5a36 100%)",
-  "linear-gradient(180deg, #e7e5e4 0%, #a8a29e 100%)",
-  "linear-gradient(180deg, #fdba74 0%, #f97316 100%)",
-];
-const PODIUM_INK = ["#b45309", "#78716c", "#c2410c"];
-const PLACE = ["1st", "2nd", "3rd"];
+// Gold / silver / bronze for the top three ranks; everyone else is neutral.
+const RANK_INK = ["#d97706", "#78716c", "#c2410c"];
+const MAX_ROWS = 16; // up to two columns of eight; rare to exceed in a pool
 
-// Note: no `text-overflow: ellipsis`. Satori splits an ellipsized string into
-// multiple internal nodes, which trips its "a <div> with >1 child needs
-// display:flex" rule. We clip instead (names here are short), and every div
-// that uses this also sets display:flex.
+// Satori: a <div> with more than one child must declare display:flex, and an
+// ellipsized string splits into multiple nodes (so we clip instead). Every div
+// below that holds text also sets display:flex via this.
 const clip = {
   display: "flex",
   overflow: "hidden",
   whiteSpace: "nowrap",
 } as const;
 
-function PodiumColumn({ row, idx }: { row: StandingsRow | undefined; idx: number }) {
-  if (!row) return <div style={{ display: "flex", width: 240 }} />;
+function PlayerRow({ row, rank }: { row: StandingsRow; rank: number }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 240 }}>
-      <div style={{ fontSize: 30, fontWeight: 700, color: PODIUM_INK[idx] }}>{PLACE[idx]}</div>
-      <div style={{ fontSize: 34, fontWeight: 700, color: "#292524", maxWidth: 224, marginTop: 4, marginBottom: 10, ...clip }}>
-        {row.displayName}
-      </div>
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 14,
+        padding: "6px 16px",
+        borderRadius: 14,
+        background: "rgba(255,255,255,0.5)",
+      }}
+    >
       <div
         style={{
           display: "flex",
-          width: 200,
-          height: PODIUM_HEIGHT[idx],
-          borderTopLeftRadius: 24,
-          borderTopRightRadius: 24,
-          background: PODIUM_GRADIENT[idx],
-          alignItems: "flex-start",
+          width: 44,
           justifyContent: "center",
-          paddingTop: 14,
-          boxShadow: "inset 0 2px 0 rgba(255,255,255,0.6)",
+          fontSize: 26,
+          fontWeight: 700,
+          color: RANK_INK[rank - 1] ?? "#a8a29e",
         }}
       >
-        <div style={{ fontSize: 56, fontWeight: 700, color: "#1c1917" }}>{row.points}</div>
+        {rank}
+      </div>
+      <div style={{ fontSize: 26, fontWeight: 700, color: "#292524", flex: 1, ...clip }}>
+        {row.displayName}
+      </div>
+      <div style={{ display: "flex", fontSize: 26, fontWeight: 700, color: "#1c1917" }}>
+        {row.points}
       </div>
     </div>
   );
 }
 
+function Column({ rows, startRank }: { rows: StandingsRow[]; startRank: number }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 6 }}>
+      {rows.map((r, i) => (
+        <PlayerRow key={r.userId} row={r} rank={startRank + i} />
+      ))}
+    </div>
+  );
+}
+
 /**
- * Render a group's overall-standings podium to PNG bytes. `groupName` null and
- * empty `overall` still produce a valid branded frame (the generic default).
+ * Render a group's full overall leaderboard (every player, name + points, in up
+ * to two columns) to PNG bytes. A null name / empty list still produces a valid
+ * branded frame (the generic default).
  */
 export async function renderLeaderboardPng(
   groupName: string | null,
   overall: StandingsRow[],
 ): Promise<Uint8Array> {
-  const top3 = overall.slice(0, 3);
-  // A compact "also-rans" line under the podium (skip the bot to keep it human).
-  const rest = overall
-    .slice(3)
-    .filter((r) => r.userId !== BORINGBOT_ID)
-    .slice(0, 3);
+  const shown = overall.slice(0, MAX_ROWS);
+  const twoCol = shown.length > 8;
+  const per = twoCol ? Math.ceil(shown.length / 2) : shown.length;
+  const col1 = shown.slice(0, per);
+  const col2 = shown.slice(per);
+  const overflow = overall.length - shown.length;
   const font = loadFont();
 
   const res = new ImageResponse(
@@ -97,34 +106,41 @@ export async function renderLeaderboardPng(
           height: OG_SIZE.height,
           display: "flex",
           flexDirection: "column",
-          padding: 56,
+          padding: 48,
           fontFamily: "Noto Sans",
           background: "linear-gradient(160deg, #fff8ec 0%, #ffeede 45%, #ffe7f0 100%)",
         }}
       >
         {/* Header */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-          <div style={{ fontSize: 56, fontWeight: 700, color: "#6b2fb3", maxWidth: 1040, ...clip }}>
+          <div style={{ fontSize: 46, fontWeight: 700, color: "#6b2fb3", maxWidth: 1080, ...clip }}>
             {groupName ?? "World Cup 2026"}
           </div>
-          <div style={{ fontSize: 26, fontWeight: 400, color: "#78716c", marginTop: 4 }}>
+          <div style={{ fontSize: 22, fontWeight: 400, color: "#78716c", marginTop: 2 }}>
             World Cup 2026 · Leaderboard
           </div>
         </div>
 
-        {/* Podium */}
-        <div style={{ display: "flex", flex: 1, alignItems: "flex-end", justifyContent: "center", gap: 36, marginTop: 24 }}>
-          {PODIUM_ORDER.map((idx, slot) => (
-            <PodiumColumn key={slot} row={top3[idx]} idx={idx} />
-          ))}
+        {/* Ranked players */}
+        <div style={{ display: "flex", flex: 1, gap: 32, marginTop: 18, alignItems: "flex-start" }}>
+          {shown.length === 0 ? (
+            <div style={{ display: "flex", flex: 1, alignItems: "center", justifyContent: "center", fontSize: 28, color: "#a8a29e" }}>
+              No players yet
+            </div>
+          ) : (
+            <>
+              <Column rows={col1} startRank={1} />
+              {col2.length > 0 && <Column rows={col2} startRank={per + 1} />}
+            </>
+          )}
         </div>
 
-        {/* Compact also-rans + footer */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 20 }}>
-          <div style={{ fontSize: 24, fontWeight: 400, color: "#78716c", maxWidth: 760, ...clip }}>
-            {rest.map((r, i) => `${i + 4}. ${r.displayName} · ${r.points}`).join("     ")}
+        {/* Footer */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14 }}>
+          <div style={{ display: "flex", fontSize: 22, fontWeight: 400, color: "#78716c" }}>
+            {overflow > 0 ? `+${overflow} more` : `${overall.length} on the board`}
           </div>
-          <div style={{ display: "flex", fontSize: 24, fontWeight: 400, color: "#a8a29e" }}>
+          <div style={{ display: "flex", fontSize: 22, fontWeight: 400, color: "#a8a29e" }}>
             worldcup.kachwalas.com
           </div>
         </div>

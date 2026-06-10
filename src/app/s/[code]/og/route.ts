@@ -1,4 +1,4 @@
-import { getGroupOgImage } from "@/lib/og-images";
+import { getGroupOgImage, regenerateGroupOgImage } from "@/lib/og-images";
 import { OG_DEFAULT_BASE64 } from "@/lib/og-default";
 
 // Serves a group's pre-rendered leaderboard PNG (the OG/Twitter share image).
@@ -16,6 +16,14 @@ export async function GET(
   let stored: string | null = null;
   try {
     stored = await getGroupOgImage(code);
+    // First view of a group that predates this feature (or has no result yet):
+    // render its board now, store it, and serve it. Best-effort — if rendering
+    // fails we fall back to the default rather than erroring. Later renders are
+    // pure byte reads; the poll keeps the stored image fresh as scores move.
+    if (!stored) {
+      await regenerateGroupOgImage(code);
+      stored = await getGroupOgImage(code);
+    }
   } catch {
     // fall through to the default
   }
