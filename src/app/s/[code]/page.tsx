@@ -1,8 +1,11 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { getGroupStandings } from "@/lib/groups";
-import { BORINGBOT_ID } from "@/lib/standings";
+import { getUserId } from "@/lib/identity";
+import { getProfile } from "@/lib/profile";
+import { getGroupInvite, getGroupName, getGroupStandings } from "@/lib/groups";
+import { acceptInviteAction } from "@/app/i/[code]/actions";
+import { inputClasses as input } from "@/components/form-styles";
 
 export const dynamic = "force-dynamic";
 
@@ -37,61 +40,79 @@ export async function generateMetadata({
   };
 }
 
-const MEDALS = ["🥇", "🥈", "🥉"];
-
+// The shared link is handed around to people who may or may not be in the group,
+// so the page acts like the invite: members are sent straight to the live
+// leaderboard, everyone else gets the join prompt. (The OG metadata above still
+// carries the leaderboard image, so the link unfurls into the podium regardless
+// — preview bots are always signed-out and just read the head.)
 export default async function SharePage({
   params,
 }: {
   params: Promise<{ code: string }>;
 }) {
   const { code } = await params;
-  const data = await getGroupStandings(code);
-  if (!data) notFound();
+  const userId = await getUserId();
 
-  const rows = data.standings.overall.slice(0, 8);
-
-  return (
-    <main className="mx-auto max-w-md px-4 py-10">
-      <header className="mb-6 rounded-3xl glass p-6 text-center">
-        <div className="text-3xl">🏆</div>
-        <h1 className="mt-1 text-2xl font-black text-grape dark:text-violet-300">
-          {data.group.name}
+  // Signed-out visitors (and link-preview bots) get the invite prompt. Signing
+  // in returns them here to either join or view the standings.
+  if (!userId) {
+    const name = await getGroupName(code);
+    if (!name) notFound();
+    return (
+      <main className="mx-auto max-w-md px-4 py-12">
+        <h1 className="mb-2 gradient-text pb-1 text-3xl font-black leading-tight">
+          You&apos;re invited!
         </h1>
-        <p className="mt-1 text-sm font-medium text-stone-500 dark:text-stone-300">
-          World Cup 2026 · Leaderboard
+        <p className="mb-6 text-sm font-medium text-stone-500 dark:text-stone-300">
+          Join <strong className="text-grape dark:text-violet-300">{name}</strong> and
+          start predicting World Cup 2026 matches.
         </p>
-      </header>
-
-      <ol className="space-y-2">
-        {rows.map((r, i) => (
-          <li
-            key={r.userId}
-            className="flex items-center gap-3 rounded-2xl glass px-4 py-2.5 text-stone-700 dark:text-stone-100"
-          >
-            <span className="w-7 text-center text-lg font-black">
-              {MEDALS[i] ?? <span className="text-stone-400">{i + 1}</span>}
-            </span>
-            <span className="flex-1 truncate font-bold">
-              {r.displayName}
-              {r.userId === BORINGBOT_ID && (
-                <span className="ml-1.5 text-xs font-bold text-stone-400">bot</span>
-              )}
-            </span>
-            <span className="w-10 text-right text-lg font-extrabold tabular-nums">
-              {r.points}
-            </span>
-          </li>
-        ))}
-      </ol>
-
-      <div className="mt-8 flex justify-center">
         <Link
-          href={`/g/${data.group.code}`}
-          className="rounded-full glass px-6 py-3 font-bold text-pitch transition active:scale-95 dark:text-emerald-400"
+          href={`/login?next=${encodeURIComponent(`/s/${code}`)}`}
+          className="block w-full rounded-full glass py-3.5 text-center text-lg font-bold text-pitch transition active:scale-95 dark:text-emerald-400"
         >
-          Open the full leaderboard →
+          Sign in to join →
         </Link>
-      </div>
+      </main>
+    );
+  }
+
+  // Signed in but no profile name yet: finish setup first, then come back.
+  const profile = await getProfile(userId);
+  if (!profile) redirect(`/welcome?next=${encodeURIComponent(`/s/${code}`)}`);
+
+  const invite = await getGroupInvite(code, userId);
+  if (!invite) notFound();
+
+  // Already a member → straight to the live leaderboard.
+  if (invite.isMember) redirect(`/g/${code}`);
+
+  // Signed-in non-member → the join form (same as the invite page).
+  return (
+    <main className="mx-auto max-w-md px-4 py-12">
+      <h1 className="mb-2 gradient-text pb-1 text-3xl font-black leading-tight">
+        You&apos;re invited!
+      </h1>
+      <p className="mb-6 text-sm font-medium text-stone-500 dark:text-stone-300">
+        Join <strong className="text-grape dark:text-violet-300">{invite.name}</strong> and
+        start predicting.
+      </p>
+
+      <form action={acceptInviteAction} className="space-y-4">
+        <input type="hidden" name="code" value={code} />
+        <div>
+          <label className="mb-1 block text-sm font-bold text-stone-600 dark:text-stone-200">
+            Your nickname in this group (optional)
+          </label>
+          <input name="displayName" className={input} placeholder={profile.name} />
+        </div>
+        <button
+          type="submit"
+          className="w-full rounded-full glass py-3.5 text-lg font-bold text-pitch transition active:scale-95 dark:text-emerald-400"
+        >
+          Join {invite.name} →
+        </button>
+      </form>
     </main>
   );
 }
