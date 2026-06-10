@@ -12,12 +12,65 @@ import { NOTO_SANS_BASE64 } from "./noto-sans-font";
 // This mirrors the on-page dark "glass" leaderboard. Note: Satori has no
 // backdrop-filter, so glass is approximated with translucent fills + hairline
 // borders + top highlights over a dark violet glow (not literal blur).
-export const OG_SIZE = { width: 1200, height: 630 };
+// The image is a fixed 1200 wide; its height grows with the group so every name
+// bubble keeps a uniform size (big groups extend the canvas downward instead of
+// cramming) and small groups don't trail empty space (a 630 floor keeps the
+// link-unfurl aspect sane). ogImageSize() is the single source of truth — both
+// the renderer and the page's generateMetadata size from it.
+export const OG_WIDTH = 1200;
+const OG_MIN_HEIGHT = 630;
 
 // Bump when the layout changes. The /s/<code>/og endpoint compares this to each
 // stored image's render_version (migration 0006) and re-renders anything older,
 // so a design change reaches already-cached groups on their next view.
-export const OG_RENDER_VERSION = 2;
+export const OG_RENDER_VERSION = 3;
+
+// Below-podium rows shown (ranks 4..). Beyond this the footer reads "+N more".
+// Two columns, so this is an even cap of how many names the card lists.
+const MAX_LIST = 30;
+
+// Section heights used to size the canvas to its content. Biased slightly high so
+// the content always fits (the card is vertically centred, so any slack lands as
+// balanced padding rather than a bottom gap or a clipped edge).
+const CANVAS_PAD = 28; // outer frame padding (all sides)
+const CARD_VPAD = 18; // glass card top+bottom padding
+const HEADER_H = 54;
+const SUB_H = 30;
+const PODIUM_H = 226; // medal + name + tallest bar + its margin-top
+const LIST_MARGIN_TOP = 10;
+const ROW_H = 44; // one name bubble
+const ROW_GAP = 8; // between bubbles in a column
+const FOOTER_H = 30;
+const HEIGHT_SLACK = 24;
+
+/** How the below-podium rows split into columns, shared by the renderer and the
+ *  height calc so both agree on row counts. */
+function listLayout(total: number) {
+  const listCount = Math.min(Math.max(total - 3, 0), MAX_LIST);
+  const twoCol = listCount > 3;
+  const rowsPerCol = twoCol ? Math.ceil(listCount / 2) : listCount;
+  return { listCount, twoCol, rowsPerCol };
+}
+
+/** The PNG dimensions for a group of `total` members. Height grows with the
+ *  number of listed rows and never dips below OG_MIN_HEIGHT. */
+export function ogImageSize(total: number): { width: number; height: number } {
+  const { rowsPerCol } = listLayout(total);
+  const listH =
+    rowsPerCol > 0
+      ? LIST_MARGIN_TOP + rowsPerCol * ROW_H + (rowsPerCol - 1) * ROW_GAP
+      : 0;
+  const content =
+    2 * CANVAS_PAD +
+    2 * CARD_VPAD +
+    HEADER_H +
+    SUB_H +
+    (total > 0 ? PODIUM_H : 0) +
+    listH +
+    FOOTER_H +
+    HEIGHT_SLACK;
+  return { width: OG_WIDTH, height: Math.max(OG_MIN_HEIGHT, content) };
+}
 
 function loadFont(): ArrayBuffer | null {
   try {
@@ -57,7 +110,6 @@ const PODIUM_GRADIENT = [
 ];
 const MEDAL_COLOR = ["#f59e0b", "#cbd5e1", "#d97706"];
 const RANK_INK = ["#fbbf24", "#cbd5e1", "#d6914a"];
-const MAX_LIST = 6; // ranks 4..9 below the podium (two columns of three); "+N more" beyond
 
 // A numbered medal with a little blue ribbon, like the on-page podium.
 function Medal({ idx }: { idx: number }) {
@@ -118,7 +170,7 @@ function PodiumColumn({ row, idx }: { row: StandingsRow | undefined; idx: number
 // Satori a percentage/flex-grow child inside a flex-sized parent doesn't resolve,
 // which collapsed the name cell to zero. Fixed widths — like the podium, which
 // always rendered correctly — and space-between for the points avoid that.
-const CARD_CONTENT_W = OG_SIZE.width - 2 * 28 - 2 * 34; // 1076
+const CARD_CONTENT_W = OG_WIDTH - 2 * 28 - 2 * 34; // 1076
 const COL_GAP = 22;
 const ONE_COL_W = CARD_CONTENT_W;
 const TWO_COL_W = Math.floor((CARD_CONTENT_W - COL_GAP) / 2);
@@ -129,9 +181,10 @@ function ListRow({ row, rank, colW }: { row: StandingsRow; rank: number; colW: n
       style={{
         display: "flex",
         width: colW,
+        height: ROW_H,
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "6px 18px",
+        padding: "0 18px",
         borderRadius: 16,
         background: GLASS,
         border: GLASS_BORDER,
@@ -150,7 +203,7 @@ function ListRow({ row, rank, colW }: { row: StandingsRow; rank: number; colW: n
 
 function ListColumn({ rows, colW }: { rows: { row: StandingsRow; rank: number }[]; colW: number }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", width: colW, gap: 8 }}>
+    <div style={{ display: "flex", flexDirection: "column", width: colW, gap: ROW_GAP }}>
       {rows.map(({ row, rank }) => (
         <ListRow key={row.userId} row={row} rank={rank} colW={colW} />
       ))}
@@ -169,22 +222,22 @@ export async function renderLeaderboardPng(
   overall: StandingsRow[],
 ): Promise<Uint8Array> {
   const top3 = overall.slice(0, 3);
+  const { listCount, twoCol, rowsPerCol } = listLayout(overall.length);
   const restRows = overall
-    .slice(3, 3 + MAX_LIST)
+    .slice(3, 3 + listCount)
     .map((row, i) => ({ row, rank: i + 4 }));
   const overflow = Math.max(0, overall.length - 3 - restRows.length);
-  const twoCol = restRows.length > 3;
-  const per = twoCol ? Math.ceil(restRows.length / 2) : restRows.length;
-  const col1 = restRows.slice(0, per);
-  const col2 = restRows.slice(per);
+  const col1 = restRows.slice(0, rowsPerCol);
+  const col2 = restRows.slice(rowsPerCol);
+  const size = ogImageSize(overall.length);
   const font = loadFont();
 
   const res = new ImageResponse(
     (
       <div
         style={{
-          width: OG_SIZE.width,
-          height: OG_SIZE.height,
+          width: size.width,
+          height: size.height,
           display: "flex",
           padding: 28,
           fontFamily: "Noto Sans",
@@ -197,6 +250,7 @@ export async function renderLeaderboardPng(
           style={{
             display: "flex",
             flexDirection: "column",
+            justifyContent: "center",
             width: "100%",
             height: "100%",
             padding: "18px 34px",
@@ -226,16 +280,12 @@ export async function renderLeaderboardPng(
           )}
 
           {/* Ranked glass rows for everyone else */}
-          <div style={{ display: "flex", flex: 1, gap: COL_GAP, marginTop: 10, alignItems: "flex-start", justifyContent: "center" }}>
-            {restRows.length === 0 ? (
-              <div style={{ display: "flex" }} />
-            ) : (
-              <>
-                <ListColumn rows={col1} colW={twoCol ? TWO_COL_W : ONE_COL_W} />
-                {col2.length > 0 && <ListColumn rows={col2} colW={TWO_COL_W} />}
-              </>
-            )}
-          </div>
+          {restRows.length > 0 && (
+            <div style={{ display: "flex", gap: COL_GAP, marginTop: LIST_MARGIN_TOP, alignItems: "flex-start", justifyContent: "center" }}>
+              <ListColumn rows={col1} colW={twoCol ? TWO_COL_W : ONE_COL_W} />
+              {col2.length > 0 && <ListColumn rows={col2} colW={TWO_COL_W} />}
+            </div>
+          )}
 
           {/* Footer */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
@@ -250,7 +300,7 @@ export async function renderLeaderboardPng(
       </div>
     ),
     {
-      ...OG_SIZE,
+      ...size,
       ...(font
         ? { fonts: [{ name: "Noto Sans", data: font, weight: 400 as const, style: "normal" as const }] }
         : {}),

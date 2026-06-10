@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { getUserId } from "@/lib/identity";
 import { getProfile } from "@/lib/profile";
 import { getGroupInvite, getGroupName, getGroupStandings } from "@/lib/groups";
+import { ogImageSize } from "@/lib/og-render";
 import { acceptInviteAction } from "@/app/i/[code]/actions";
 import { inputClasses as input } from "@/components/form-styles";
 
@@ -25,7 +26,10 @@ export async function generateMetadata({
     "World Cup 2026 score & winner predictions — see who's topping the leaderboard, then tap in to make your own picks.";
   // The share image is served from /s/<code>/og — pre-rendered bytes stored by
   // the poll (and on group creation), never rendered on the crawler's request.
+  // Its height grows with the group, so declare the matching size here (the
+  // renderer and this share the same ogImageSize()).
   const image = `/s/${code}/og`;
+  const { width, height } = ogImageSize(data?.standings.overall.length ?? 0);
   return {
     title,
     description,
@@ -34,7 +38,7 @@ export async function generateMetadata({
       description,
       type: "website",
       siteName: "World Cup 2026 Predictions",
-      images: [{ url: image, width: 1200, height: 630, alt: "World Cup 2026 leaderboard" }],
+      images: [{ url: image, width, height, alt: "World Cup 2026 leaderboard" }],
     },
     twitter: { card: "summary_large_image", title, description, images: [image] },
   };
