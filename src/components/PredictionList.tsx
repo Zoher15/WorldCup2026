@@ -146,7 +146,7 @@ export function PredictionList({
       ))}
 
       {/* Sticky save bar */}
-      <div className="fixed inset-x-0 bottom-0 z-10 glass px-4 py-3">
+      <div className="fixed inset-x-0 bottom-0 z-10 glass glass-frost px-4 py-3">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
           <span className="text-sm font-bold text-stone-500 dark:text-stone-300">
             {flash
