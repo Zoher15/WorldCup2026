@@ -51,6 +51,12 @@ function PlayerName({
   return (
     <Link
       href={`/g/${code}/p/${row.userId}`}
+      // Don't prefetch: a leaderboard renders one of these per player, and each
+      // target is a force-dynamic profile page. Eagerly prefetching them all at
+      // once floods the connection with RSC requests; on mobile one gets
+      // cancelled mid-stream and the router throws "Connection closed". Profiles
+      // are an occasional tap, so load them on click instead.
+      prefetch={false}
       className={`${className ?? ""} hover:underline`}
     >
       {row.displayName}
