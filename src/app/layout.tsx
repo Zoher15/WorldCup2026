@@ -4,10 +4,15 @@ import "flag-icons/css/flag-icons.min.css";
 import "./globals.css";
 import { getAuthUser } from "@/lib/identity";
 import { getProfile, initials } from "@/lib/profile";
+import { appBaseUrl } from "@/lib/app-url";
 import { AccountMenu } from "@/components/AccountMenu";
 import { GlassGlow } from "@/components/GlassGlow";
 
 export const metadata: Metadata = {
+  // Absolute base for OG/Twitter image URLs — without this Next emits a
+  // localhost URL that link-preview crawlers (WhatsApp, iMessage…) can't fetch,
+  // so the leaderboard share image never shows.
+  metadataBase: new URL(appBaseUrl()),
   title: "World Cup 2026 Predictions",
   description:
     "Predict scorelines and winners, compete with family and friends.",

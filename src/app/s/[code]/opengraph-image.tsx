@@ -2,9 +2,10 @@ import { ImageResponse } from "next/og";
 import { getGroupStandings } from "@/lib/groups";
 import { BORINGBOT_ID, type StandingsRow } from "@/lib/standings";
 
-// next/og's renderer is happiest on the edge runtime (its wasm + bundled font
-// ship for edge); the Node serverless bundle is where it tends to 500 in prod.
-export const runtime = "edge";
+// next/og renders reliably on the Node runtime here (verified locally); the edge
+// build produced a blank image (no font / empty draw). getGroupStandings is a
+// plain Supabase read, so Node is fine.
+export const runtime = "nodejs";
 
 export const alt = "World Cup 2026 leaderboard";
 export const size = { width: 1200, height: 630 };
@@ -26,6 +27,26 @@ const truncate = {
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
 } as const;
+
+/**
+ * Load a Poppins weight as TTF for Satori. Google serves WOFF2 to modern
+ * browsers (which Satori can't parse), so we spoof an old user-agent to get
+ * TTF. Returns null on any failure — the caller then falls back to next/og's
+ * built-in font, so text always renders.
+ */
+async function loadFont(weight: number): Promise<ArrayBuffer | null> {
+  try {
+    const css = await fetch(
+      `https://fonts.googleapis.com/css2?family=Poppins:wght@${weight}`,
+      { headers: { "User-Agent": "Mozilla/4.0 (compatible; MSIE 6.0)" } },
+    ).then((r) => r.text());
+    const url = css.match(/src:\s*url\((https:[^)]+)\)/)?.[1];
+    if (!url) return null;
+    return await fetch(url).then((r) => r.arrayBuffer());
+  } catch {
+    return null;
+  }
+}
 
 function PodiumColumn({ row, idx }: { row: StandingsRow | undefined; idx: number }) {
   if (!row) return <div style={{ display: "flex", width: 240 }} />;
@@ -61,7 +82,12 @@ export default async function Image({
   params: Promise<{ code: string }>;
 }) {
   const { code } = await params;
-  const data = await getGroupStandings(code);
+  const [data, bold, extrabold] = await Promise.all([
+    getGroupStandings(code).catch(() => null),
+    loadFont(600),
+    loadFont(800),
+  ]);
+
   const rows = data?.standings.overall ?? [];
   const top3 = rows.slice(0, 3);
   // A compact "also-rans" line under the podium (skip the bot to keep it human).
@@ -69,6 +95,12 @@ export default async function Image({
     .slice(3)
     .filter((r) => r.userId !== BORINGBOT_ID)
     .slice(0, 3);
+
+  const fonts = [
+    bold && { name: "Poppins", data: bold, weight: 600 as const, style: "normal" as const },
+    extrabold && { name: "Poppins", data: extrabold, weight: 800 as const, style: "normal" as const },
+  ].filter(Boolean) as { name: string; data: ArrayBuffer; weight: 600 | 800; style: "normal" }[];
+  const fontFamily = fonts.length ? "Poppins" : "sans-serif";
 
   return new ImageResponse(
     (
@@ -79,7 +111,7 @@ export default async function Image({
           display: "flex",
           flexDirection: "column",
           padding: 56,
-          fontFamily: "sans-serif",
+          fontFamily,
           background: "linear-gradient(160deg, #fff8ec 0%, #ffeede 45%, #ffe7f0 100%)",
         }}
       >
@@ -105,12 +137,12 @@ export default async function Image({
           <div style={{ display: "flex", fontSize: 24, fontWeight: 600, color: "#78716c", maxWidth: 760, ...truncate }}>
             {rest.map((r, i) => `${i + 4}. ${r.displayName} · ${r.points}`).join("     ")}
           </div>
-          <div style={{ display: "flex", fontSize: 24, fontWeight: 700, color: "#a8a29e" }}>
+          <div style={{ display: "flex", fontSize: 24, fontWeight: 600, color: "#a8a29e" }}>
             worldcup.kachwalas.com
           </div>
         </div>
       </div>
     ),
-    { ...size },
+    { ...size, ...(fonts.length ? { fonts } : {}) },
   );
 }
