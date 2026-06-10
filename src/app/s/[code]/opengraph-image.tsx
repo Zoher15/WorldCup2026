@@ -35,9 +35,13 @@ const PODIUM_GRADIENT = [
 const PODIUM_INK = ["#b45309", "#78716c", "#c2410c"];
 const PLACE = ["1st", "2nd", "3rd"];
 
-const truncate = {
+// Note: no `text-overflow: ellipsis`. Satori splits an ellipsized string into
+// multiple internal nodes, which trips its "a <div> with >1 child needs
+// display:flex" rule. We clip instead (names here are short), and every div
+// that uses this also sets display:flex.
+const clip = {
+  display: "flex",
   overflow: "hidden",
-  textOverflow: "ellipsis",
   whiteSpace: "nowrap",
 } as const;
 
@@ -46,7 +50,7 @@ function PodiumColumn({ row, idx }: { row: StandingsRow | undefined; idx: number
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 240 }}>
       <div style={{ fontSize: 30, fontWeight: 700, color: PODIUM_INK[idx] }}>{PLACE[idx]}</div>
-      <div style={{ fontSize: 34, fontWeight: 700, color: "#292524", maxWidth: 224, marginTop: 4, marginBottom: 10, ...truncate }}>
+      <div style={{ fontSize: 34, fontWeight: 700, color: "#292524", maxWidth: 224, marginTop: 4, marginBottom: 10, ...clip }}>
         {row.displayName}
       </div>
       <div
@@ -103,7 +107,7 @@ export default async function Image({
       >
         {/* Header */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-          <div style={{ fontSize: 56, fontWeight: 700, color: "#6b2fb3", maxWidth: 1040, ...truncate }}>
+          <div style={{ fontSize: 56, fontWeight: 700, color: "#6b2fb3", maxWidth: 1040, ...clip }}>
             {data?.group.name ?? "World Cup 2026"}
           </div>
           <div style={{ fontSize: 26, fontWeight: 400, color: "#78716c", marginTop: 4 }}>
@@ -120,7 +124,7 @@ export default async function Image({
 
         {/* Compact also-rans + footer */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 20 }}>
-          <div style={{ display: "flex", fontSize: 24, fontWeight: 400, color: "#78716c", maxWidth: 760, ...truncate }}>
+          <div style={{ fontSize: 24, fontWeight: 400, color: "#78716c", maxWidth: 760, ...clip }}>
             {rest.map((r, i) => `${i + 4}. ${r.displayName} · ${r.points}`).join("     ")}
           </div>
           <div style={{ display: "flex", fontSize: 24, fontWeight: 400, color: "#a8a29e" }}>
