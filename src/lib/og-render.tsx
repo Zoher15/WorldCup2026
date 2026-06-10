@@ -17,7 +17,7 @@ export const OG_SIZE = { width: 1200, height: 630 };
 // Bump when the layout changes. The /s/<code>/og endpoint compares this to each
 // stored image's render_version (migration 0006) and re-renders anything older,
 // so a design change reaches already-cached groups on their next view.
-export const OG_RENDER_VERSION = 1;
+export const OG_RENDER_VERSION = 2;
 
 function loadFont(): ArrayBuffer | null {
   try {
@@ -114,36 +114,45 @@ function PodiumColumn({ row, idx }: { row: StandingsRow | undefined; idx: number
   );
 }
 
-function ListRow({ row, rank }: { row: StandingsRow; rank: number }) {
+// Layout widths. Columns get an explicit pixel width (not flex:1): on Vercel's
+// Satori a percentage/flex-grow child inside a flex-sized parent doesn't resolve,
+// which collapsed the name cell to zero. Fixed widths — like the podium, which
+// always rendered correctly — and space-between for the points avoid that.
+const CARD_CONTENT_W = OG_SIZE.width - 2 * 28 - 2 * 34; // 1076
+const COL_GAP = 22;
+const ONE_COL_W = CARD_CONTENT_W;
+const TWO_COL_W = Math.floor((CARD_CONTENT_W - COL_GAP) / 2);
+
+function ListRow({ row, rank, colW }: { row: StandingsRow; rank: number; colW: number }) {
   return (
     <div
       style={{
         display: "flex",
-        width: "100%", // pin full width so the flex name cell always has room
+        width: colW,
         alignItems: "center",
-        gap: 14,
+        justifyContent: "space-between",
         padding: "6px 18px",
         borderRadius: 16,
         background: GLASS,
         border: GLASS_BORDER,
       }}
     >
-      <div style={{ display: "flex", width: 34, justifyContent: "center", fontSize: 25, fontWeight: 700, color: RANK_INK[rank - 1] ?? MUTED }}>
-        {rank}
-      </div>
-      <div style={{ fontSize: 25, fontWeight: 700, color: INK, flexGrow: 1, flexShrink: 1, minWidth: 0, ...clip }}>
-        {row.displayName}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, maxWidth: colW - 110, overflow: "hidden" }}>
+        <div style={{ display: "flex", width: 30, justifyContent: "center", fontSize: 25, fontWeight: 700, color: RANK_INK[rank - 1] ?? MUTED }}>
+          {rank}
+        </div>
+        <div style={{ fontSize: 25, fontWeight: 700, color: INK, ...clip }}>{row.displayName}</div>
       </div>
       <div style={{ display: "flex", fontSize: 25, fontWeight: 700, color: "#fafaf9" }}>{row.points}</div>
     </div>
   );
 }
 
-function ListColumn({ rows }: { rows: { row: StandingsRow; rank: number }[] }) {
+function ListColumn({ rows, colW }: { rows: { row: StandingsRow; rank: number }[]; colW: number }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 8 }}>
+    <div style={{ display: "flex", flexDirection: "column", width: colW, gap: 8 }}>
       {rows.map(({ row, rank }) => (
-        <ListRow key={row.userId} row={row} rank={rank} />
+        <ListRow key={row.userId} row={row} rank={rank} colW={colW} />
       ))}
     </div>
   );
@@ -217,13 +226,13 @@ export async function renderLeaderboardPng(
           )}
 
           {/* Ranked glass rows for everyone else */}
-          <div style={{ display: "flex", flex: 1, gap: 22, marginTop: 10, alignItems: "flex-start" }}>
+          <div style={{ display: "flex", flex: 1, gap: COL_GAP, marginTop: 10, alignItems: "flex-start", justifyContent: "center" }}>
             {restRows.length === 0 ? (
               <div style={{ display: "flex" }} />
             ) : (
               <>
-                <ListColumn rows={col1} />
-                {col2.length > 0 && <ListColumn rows={col2} />}
+                <ListColumn rows={col1} colW={twoCol ? TWO_COL_W : ONE_COL_W} />
+                {col2.length > 0 && <ListColumn rows={col2} colW={TWO_COL_W} />}
               </>
             )}
           </div>
