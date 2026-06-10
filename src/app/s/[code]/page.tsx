@@ -20,11 +20,9 @@ export async function generateMetadata({
   const title = `${name} · Leaderboard`;
   const description =
     "World Cup 2026 score & winner predictions — see who's topping the leaderboard, then tap in to make your own picks.";
-  // Version the OG image URL per deploy. The image's CDN cache key is otherwise
-  // identical across deploys, so a once-cached bad render would survive forever;
-  // a new `?v=` each deploy guarantees crawlers fetch a fresh render.
-  const ver = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 8) ?? "1";
-  const image = `/s/${code}/opengraph-image?v=${ver}`;
+  // The share image is served from /s/<code>/og — pre-rendered bytes stored by
+  // the poll (and on group creation), never rendered on the crawler's request.
+  const image = `/s/${code}/og`;
   return {
     title,
     description,

@@ -34,6 +34,16 @@ export async function createGroupWithOwner(opts: {
         is_admin: true,
       });
       if (mErr) throw new Error(`Could not add you to the group: ${mErr.message}`);
+      // Render the group's share image up front so its link unfurls immediately.
+      // Best-effort and dynamically imported (avoids an import cycle and keeps
+      // the next/og renderer off this module's load path); the share endpoint
+      // falls back to the default until this lands.
+      try {
+        const { regenerateGroupOgImage } = await import("./og-images");
+        await regenerateGroupOgImage(code);
+      } catch {
+        // ignore — the /s/<code>/og endpoint serves the default meanwhile
+      }
       return { code };
     }
     if (error && error.code !== UNIQUE_VIOLATION) {

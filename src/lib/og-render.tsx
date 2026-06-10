@@ -1,42 +1,22 @@
 import { ImageResponse } from "next/og";
-import { getGroupStandings } from "@/lib/groups";
-import { BORINGBOT_ID, type StandingsRow } from "@/lib/standings";
+import { BORINGBOT_ID, type StandingsRow } from "./standings";
 import { NOTO_SANS_BASE64 } from "./noto-sans-font";
 
-// Edge runtime: next/og's renderer ships for edge here (the Node serverless
-// bundle 500s on this deployment).
-export const runtime = "edge";
+// Renders the leaderboard share image (1200x630 podium PNG) on the Node runtime.
+// This runs server-side during the poll / on group creation — never on a
+// crawler's request — so the share endpoint only ever serves stored bytes and
+// can't blank. The font is inlined (see noto-sans-font.ts) so the renderer
+// always gets valid bytes; on any doubt we omit it and next/og falls back to
+// its built-in font rather than crashing.
+export const OG_SIZE = { width: 1200, height: 630 };
 
-export const alt = "World Cup 2026 leaderboard";
-export const size = { width: 1200, height: 630 };
-export const contentType = "image/png";
-
-// Override next/og's default `immutable, max-age=31536000`. That one-year cache
-// pinned a stale/blank render on the CDN across deploys (the key is identical
-// every deploy, so a redeploy never purges it). Instead: browsers revalidate
-// every time, the edge caches for a few minutes (standings move), and serves
-// stale while refreshing. The per-deploy `?v=` on the metadata image URL
-// (page.tsx) gives each deploy a fresh key so a bad cache can't survive one.
-const CACHE_HEADERS = {
-  "cache-control": "public, max-age=0, s-maxage=300, stale-while-revalidate=86400",
-};
-
-// Decode the inlined font once. We do NOT fetch the .ttf as a bundled asset:
-// on edge that asset mis-traces and the fetch returns non-font bytes (200,
-// >2KB), which Satori parses past the end of -> "Offset is outside the bounds
-// of the DataView" and the whole render throws. The bytes live in the JS bundle
-// instead (noto-sans-font.ts), and we still verify the sfnt signature so only a
-// real font is ever handed to Satori; on any doubt we return null and next/og
-// falls back to its built-in font rather than crashing.
 function loadFont(): ArrayBuffer | null {
   try {
     const bin = atob(NOTO_SANS_BASE64);
     const bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
     if (bytes.byteLength < 2000) return null;
-    // Valid TrueType/OpenType sfnt signatures.
-    const magic =
-      (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
+    const magic = (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
     const SFNT = [0x00010000, 0x4f54544f, 0x74727565]; // TTF, 'OTTO', 'true'
     return SFNT.includes(magic >>> 0) ? bytes.buffer : null;
   } catch {
@@ -93,64 +73,28 @@ function PodiumColumn({ row, idx }: { row: StandingsRow | undefined; idx: number
   );
 }
 
-// A dead-simple, font-free, fetch-free frame. Used if anything in the main
-// render throws, so the route always returns a valid PNG (a blank/broken card
-// is what we're trying to escape) instead of a 500.
-function fallbackImage() {
-  return new ImageResponse(
-    (
-      <div
-        style={{
-          width: size.width,
-          height: size.height,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "linear-gradient(160deg, #fff8ec 0%, #ffeede 45%, #ffe7f0 100%)",
-        }}
-      >
-        <div style={{ display: "flex", fontSize: 64, fontWeight: 700, color: "#6b2fb3" }}>
-          World Cup 2026 · Leaderboard
-        </div>
-      </div>
-    ),
-    { ...size, headers: CACHE_HEADERS },
-  );
-}
-
-export default async function Image({
-  params,
-}: {
-  params: Promise<{ code: string }>;
-}) {
-  try {
-    return await renderPodium(await params);
-  } catch {
-    return fallbackImage();
-  }
-}
-
-async function renderPodium(params: { code: string }) {
-  const { code } = params;
-  const [data, font] = await Promise.all([
-    getGroupStandings(code).catch(() => null),
-    Promise.resolve(loadFont()),
-  ]);
-
-  const rows = data?.standings.overall ?? [];
-  const top3 = rows.slice(0, 3);
+/**
+ * Render a group's overall-standings podium to PNG bytes. `groupName` null and
+ * empty `overall` still produce a valid branded frame (the generic default).
+ */
+export async function renderLeaderboardPng(
+  groupName: string | null,
+  overall: StandingsRow[],
+): Promise<Uint8Array> {
+  const top3 = overall.slice(0, 3);
   // A compact "also-rans" line under the podium (skip the bot to keep it human).
-  const rest = rows
+  const rest = overall
     .slice(3)
     .filter((r) => r.userId !== BORINGBOT_ID)
     .slice(0, 3);
+  const font = loadFont();
 
-  return new ImageResponse(
+  const res = new ImageResponse(
     (
       <div
         style={{
-          width: size.width,
-          height: size.height,
+          width: OG_SIZE.width,
+          height: OG_SIZE.height,
           display: "flex",
           flexDirection: "column",
           padding: 56,
@@ -161,7 +105,7 @@ async function renderPodium(params: { code: string }) {
         {/* Header */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
           <div style={{ fontSize: 56, fontWeight: 700, color: "#6b2fb3", maxWidth: 1040, ...clip }}>
-            {data?.group.name ?? "World Cup 2026"}
+            {groupName ?? "World Cup 2026"}
           </div>
           <div style={{ fontSize: 26, fontWeight: 400, color: "#78716c", marginTop: 4 }}>
             World Cup 2026 · Leaderboard
@@ -187,11 +131,11 @@ async function renderPodium(params: { code: string }) {
       </div>
     ),
     {
-      ...size,
-      headers: CACHE_HEADERS,
+      ...OG_SIZE,
       ...(font
         ? { fonts: [{ name: "Noto Sans", data: font, weight: 400 as const, style: "normal" as const }] }
         : {}),
     },
   );
+  return new Uint8Array(await res.arrayBuffer());
 }

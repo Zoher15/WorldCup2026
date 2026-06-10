@@ -12,7 +12,9 @@ worldcup.kachwalas.com  → Vercel (this app)  ──>  Supabase (Postgres)
 ## 1. Supabase (database)
 
 1. Create a free project at https://supabase.com.
-2. In the SQL editor, run the migration in `supabase/migrations/0001_init.sql`.
+2. In the SQL editor, run every file in `supabase/migrations/` in order
+   (`0001_init.sql` … `0005_og_images.sql`). On an existing database, apply just
+   the ones you haven't run yet — each is written to be safe to re-run.
 3. From **Settings → API**, copy the **Project URL**, the **anon** key, and the
    **service_role** key (keep this one secret).
 

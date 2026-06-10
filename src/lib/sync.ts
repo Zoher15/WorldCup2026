@@ -107,6 +107,18 @@ export async function syncDay(_date?: string): Promise<SyncSummary> {
     patches.map((p) => db.from("matches").update(p.patch).eq("id", p.id)),
   );
   summary.updated = results.filter((r) => !r.error).length;
+
+  // A confirmed result is the only thing that moves the standings, so refresh
+  // every group's stored share image now. Best-effort and dynamically imported
+  // so the (next/og) renderer never weighs on the poll's hot path or fails it.
+  if (summary.confirmed > 0) {
+    try {
+      const { regenerateAllGroupOgImages } = await import("./og-images");
+      await regenerateAllGroupOgImages();
+    } catch {
+      // leave the previous images in place; the endpoint still serves them
+    }
+  }
   return summary;
 }
 
