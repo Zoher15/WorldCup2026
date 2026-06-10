@@ -1,4 +1,5 @@
 import { getGroupOgImage, regenerateGroupOgImage } from "@/lib/og-images";
+import { OG_RENDER_VERSION } from "@/lib/og-render";
 import { OG_DEFAULT_BASE64 } from "@/lib/og-default";
 
 // Serves a group's pre-rendered leaderboard PNG (the OG/Twitter share image).
@@ -13,21 +14,24 @@ export async function GET(
   { params }: { params: Promise<{ code: string }> },
 ) {
   const { code } = await params;
-  let stored: string | null = null;
+  let png: string | null = null;
   try {
-    stored = await getGroupOgImage(code);
-    // First view of a group that predates this feature (or has no result yet):
-    // render its board now, store it, and serve it. Best-effort — if rendering
-    // fails we fall back to the default rather than erroring. Later renders are
-    // pure byte reads; the poll keeps the stored image fresh as scores move.
-    if (!stored) {
+    const stored = await getGroupOgImage(code);
+    // Render now when there's nothing stored (a group predating this feature, or
+    // with no result yet) or when the stored image is from an older layout
+    // (render_version bumped). Best-effort — a render failure falls back to the
+    // default rather than erroring. Otherwise it's a pure byte read; the poll
+    // keeps the stored image fresh as scores move.
+    if (!stored || stored.renderVersion !== OG_RENDER_VERSION) {
       await regenerateGroupOgImage(code);
-      stored = await getGroupOgImage(code);
+      png = (await getGroupOgImage(code))?.pngBase64 ?? stored?.pngBase64 ?? null;
+    } else {
+      png = stored.pngBase64;
     }
   } catch {
     // fall through to the default
   }
-  const bytes = Buffer.from(stored ?? OG_DEFAULT_BASE64, "base64");
+  const bytes = Buffer.from(png ?? OG_DEFAULT_BASE64, "base64");
   return new Response(new Uint8Array(bytes), {
     headers: {
       "content-type": "image/png",

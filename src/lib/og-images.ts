@@ -1,20 +1,28 @@
 import { createAdminClient } from "./supabase/admin";
 import { normalizeCode } from "./codes";
 import { getGroupStandings } from "./groups";
-import { renderLeaderboardPng } from "./og-render";
+import { renderLeaderboardPng, OG_RENDER_VERSION } from "./og-render";
 
 /**
  * Pre-rendered leaderboard share images, stored per group (see migration 0005).
  *
  * Generation runs server-side on the Node runtime — during the poll when a
- * result is confirmed, and on group creation — never on a crawler's request.
- * The /s/<code>/og endpoint only reads these stored bytes, so a link preview
- * can't blank or crash (no rendering at request time). Generation is always
- * best-effort: if it fails, the endpoint falls back to the static default.
+ * result is confirmed, on group creation, and lazily on first view — never on a
+ * crawler's request. The /s/<code>/og endpoint only reads these stored bytes,
+ * so a link preview can't blank or crash (no rendering at request time).
+ * Generation is always best-effort: if it fails, the endpoint falls back to the
+ * static default.
  */
 
-/** The stored base64 PNG for a group, or null if none has been rendered yet. */
-export async function getGroupOgImage(code: string): Promise<string | null> {
+export interface StoredOgImage {
+  pngBase64: string;
+  /** The render version that produced it (migration 0006); a mismatch with the
+   *  current OG_RENDER_VERSION tells the endpoint to re-render. */
+  renderVersion: number;
+}
+
+/** The stored image for a group, or null if none has been rendered yet. */
+export async function getGroupOgImage(code: string): Promise<StoredOgImage | null> {
   const db = createAdminClient();
   const { data: group } = await db
     .from("groups")
@@ -24,14 +32,15 @@ export async function getGroupOgImage(code: string): Promise<string | null> {
   if (!group) return null;
   const { data } = await db
     .from("group_og_images")
-    .select("png_base64")
+    .select("png_base64, render_version")
     .eq("group_id", group.id)
     .single();
-  return data?.png_base64 ?? null;
+  if (!data) return null;
+  return { pngBase64: data.png_base64, renderVersion: data.render_version ?? 0 };
 }
 
-/** Render a single group's podium and store it. Throws on failure (callers
- *  decide whether to swallow it — the poll and group-creation paths do). */
+/** Render a single group's board and store it (stamped with the current render
+ *  version). Throws on failure — callers decide whether to swallow it. */
 export async function regenerateGroupOgImage(code: string): Promise<void> {
   const db = createAdminClient();
   const { data: group } = await db
@@ -52,6 +61,7 @@ export async function regenerateGroupOgImage(code: string): Promise<void> {
       {
         group_id: group.id,
         png_base64: Buffer.from(png).toString("base64"),
+        render_version: OG_RENDER_VERSION,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "group_id" },
