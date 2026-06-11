@@ -65,7 +65,7 @@ export default async function GroupPage({
     );
   }
 
-  const { group, standings, viewer } = data;
+  const { group, standings, viewer, live } = data;
   const members = standings.overall
     .filter((r) => r.userId !== BORINGBOT_ID)
     .map((r) => ({ userId: r.userId, displayName: r.displayName }));
@@ -105,7 +105,7 @@ export default async function GroupPage({
         </Link>
       </header>
 
-      <Leaderboard data={standings} code={group.code} groupName={group.name} />
+      <Leaderboard data={standings} code={group.code} groupName={group.name} live={live} />
 
       <GroupMatches code={group.code} matches={boardMatches} />
 

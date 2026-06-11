@@ -86,6 +86,39 @@ test("the unconfirmed match never contributes points", () => {
   assert.equal(s.overall[0].points, 0);
 });
 
+test("a live (unconfirmed) score counts provisionally when flagged", () => {
+  // m3 is unconfirmed, but in play with a score and the live flag set — it
+  // should grade exactly like a confirmed result.
+  const liveMatches: StandingMatch[] = [
+    { ...matches[2], homeGoals: 3, awayGoals: 0, live: true }, // Alice predicted 3-0
+  ];
+  const s = buildStandings({
+    members: [members[0]],
+    matches: liveMatches,
+    predictions: predictions.filter((p) => p.matchId === "m3"),
+    lateJoinPolicy: "carry_over",
+    groupCreatedAt: "2026-06-01T00:00:00Z",
+    includeBaseline: true,
+  });
+  // Alice nailed the live 3-0 -> a full exact-score 10.
+  assert.equal(s.overall.find((r) => r.userId === "u1")?.points, 10);
+  // BoringBot's 0-0 also scores against the live 3-0 (outcome 2 + closeness 2 = 4).
+  assert.equal(s.overall.find((r) => r.userId === BORINGBOT_ID)?.points, 4);
+});
+
+test("an unflagged unconfirmed score still never counts", () => {
+  // Same scoreline, but without the live flag (not in play / not yet trusted):
+  // it must stay out of the totals.
+  const s = buildStandings({
+    members: [members[0]],
+    matches: [{ ...matches[2], homeGoals: 3, awayGoals: 0 }],
+    predictions: predictions.filter((p) => p.matchId === "m3"),
+    lateJoinPolicy: "carry_over",
+    groupCreatedAt: "2026-06-01T00:00:00Z",
+  });
+  assert.equal(s.overall[0].points, 0);
+});
+
 test("start_even ignores matches before the group was created", () => {
   const s = buildStandings({
     members,

@@ -136,6 +136,9 @@ export interface GroupStandings {
   /** The requesting user's relationship to this group. */
   viewer: { isMember: boolean; isAdmin: boolean };
   standings: Standings;
+  /** True while an in-play match is being counted provisionally, so the board
+   *  can show a LIVE cue and refresh itself. */
+  live: boolean;
 }
 
 /** Load a group's live leaderboard, computed from confirmed results. */
@@ -159,8 +162,10 @@ export async function getGroupStandings(
       .eq("group_id", group.id),
     db
       .from("matches")
-      .select("id, kickoff_at, stage, home_code, away_code, home_goals, away_goals, advanced_code, result_confirmed, is_trial")
-      .eq("result_confirmed", true),
+      .select("id, kickoff_at, stage, home_code, away_code, home_goals, away_goals, advanced_code, result_confirmed, status, is_trial")
+      // Confirmed results, plus in-play/just-finished matches so live scores
+      // count provisionally on the board (the auto-confirm settles them at FT).
+      .or("result_confirmed.eq.true,status.eq.live,status.eq.finished"),
   ]);
   const memberList = membersRes.data ?? [];
   const userIds = memberList.map((m) => m.user_id);
@@ -182,6 +187,14 @@ export async function getGroupStandings(
     predList = preds ?? [];
   }
 
+  // An in-play / just-finished match with a score, not yet officially confirmed:
+  // counted provisionally so the board moves live.
+  const isProvisional = (m: (typeof matchList)[number]): boolean =>
+    !m.result_confirmed &&
+    (m.status === "live" || m.status === "finished") &&
+    m.home_goals != null &&
+    m.away_goals != null;
+
   const standings = buildStandings({
     members: memberList.map((m) => ({
       userId: m.user_id,
@@ -199,6 +212,7 @@ export async function getGroupStandings(
       homeCode: m.home_code,
       awayCode: m.away_code,
       isTrial: m.is_trial,
+      live: isProvisional(m),
     })),
     predictions: predList.map((p) => ({
       userId: p.user_id,
@@ -231,6 +245,7 @@ export async function getGroupStandings(
     },
     viewer: { isMember, isAdmin },
     standings,
+    live: matchList.some(isProvisional),
   };
 }
 
