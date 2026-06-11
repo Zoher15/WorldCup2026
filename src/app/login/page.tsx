@@ -83,6 +83,18 @@ export default function LoginPage({
             your phone&apos;s default browser, so use the code here if you want to
             play in this one.
           </p>
+
+          <form action={action} className="mt-5 text-center">
+            <input type="hidden" name="email" value={state.email} />
+            <input type="hidden" name="next" value={next ?? "/"} />
+            <button
+              type="submit"
+              disabled={pending}
+              className="text-sm font-bold text-grape underline-offset-2 hover:underline disabled:opacity-50 dark:text-violet-300"
+            >
+              {pending ? "Sending a new code…" : "Didn't get it? Resend code"}
+            </button>
+          </form>
         </div>
       ) : (
         <form action={action} className="space-y-4">
