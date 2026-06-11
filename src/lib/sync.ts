@@ -15,6 +15,9 @@ export interface SyncSummary {
   updated: number;
   confirmed: number;
   unmatched: number;
+  /** How many matches had their live score/status actually move this sync —
+   *  the trigger to warm share images even before a result is confirmed. */
+  scoreChanges: number;
 }
 
 /**
@@ -42,7 +45,9 @@ export async function syncDay(_date?: string): Promise<SyncSummary> {
 
   const { data: localRows } = await db
     .from("matches")
-    .select("id, external_ref, kickoff_at, stage, home_code, away_code, result_confirmed");
+    .select(
+      "id, external_ref, kickoff_at, stage, home_code, away_code, result_confirmed, status, home_goals, away_goals",
+    );
   const locals = localRows ?? [];
   const byId = new Map(locals.map((l) => [l.id, l]));
   const byRef = new Map(
@@ -60,6 +65,7 @@ export async function syncDay(_date?: string): Promise<SyncSummary> {
     updated: 0,
     confirmed: 0,
     unmatched: 0,
+    scoreChanges: 0,
   };
   const syncedAt = new Date().toISOString();
 
@@ -81,6 +87,17 @@ export async function syncDay(_date?: string): Promise<SyncSummary> {
 
     const isKnockout = isKnockoutStage(local.stage);
     const u = deriveFdUpdate(fx, { isKnockout, resolveTeam: resolveFdTeam });
+
+    // Did the live score/status actually move since we last stored it? Only
+    // not-yet-confirmed matches reach here (confirmed ones are skipped above),
+    // so this is inherently scoped to the live matches — never the full schedule.
+    if (
+      u.homeGoals !== local.home_goals ||
+      u.awayGoals !== local.away_goals ||
+      u.status !== local.status
+    ) {
+      summary.scoreChanges++;
+    }
 
     const patch: Record<string, unknown> = {
       external_ref: refId,
@@ -108,10 +125,13 @@ export async function syncDay(_date?: string): Promise<SyncSummary> {
   );
   summary.updated = results.filter((r) => !r.error).length;
 
-  // A confirmed result is the only thing that moves the standings, so refresh
-  // every group's stored share image now. Best-effort and dynamically imported
-  // so the (next/og) renderer never weighs on the poll's hot path or fails it.
-  if (summary.confirmed > 0) {
+  // Any score move (live or confirmed) can shift the standings now that live
+  // scores count provisionally, so warm every group's stored share image when
+  // something actually changed — and only then, so quiet polls cost nothing.
+  // Best-effort and dynamically imported so the (next/og) renderer never weighs
+  // on the poll's hot path or fails it; unchanged boards short-circuit on the
+  // content hash without re-rendering.
+  if (summary.confirmed > 0 || summary.scoreChanges > 0) {
     try {
       const { regenerateAllGroupOgImages } = await import("./og-images");
       await regenerateAllGroupOgImages();

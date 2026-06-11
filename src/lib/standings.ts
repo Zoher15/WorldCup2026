@@ -37,6 +37,10 @@ export interface StandingMatch {
   awayCode: string | null;
   /** Practice (India vs Italy) match — only counts before the tournament starts. */
   isTrial?: boolean;
+  /** An in-play / just-finished score to count provisionally, before the result
+   *  is officially confirmed. Graded the same as a confirmed result; the board
+   *  re-settles when confirmation lands (which the auto-confirm does at FT). */
+  live?: boolean;
 }
 
 export interface StandingPrediction {
@@ -133,6 +137,9 @@ export function buildStandings(input: {
     const { match, kickoffMs } = entry;
     if (!counts(match, kickoffMs)) continue;
 
+    // A live (in-play) score counts provisionally: grade it as if confirmed so
+    // the board moves with the match, then it re-settles when the result lands.
+    const gradable = match.live ? { ...match, resultConfirmed: true } : match;
     const score = scorePrediction(
       {
         id: "",
@@ -140,7 +147,7 @@ export function buildStandings(input: {
         predAway: p.predAway,
         advancePick: p.advancePick,
       },
-      match,
+      gradable,
     );
     if (!score) continue; // match not scorable yet
 
@@ -165,7 +172,7 @@ export function buildStandings(input: {
     for (const { match, kickoffMs } of matchById.values()) {
       if (!counts(match, kickoffMs)) continue;
       if (
-        !match.resultConfirmed ||
+        (!match.resultConfirmed && !match.live) ||
         match.homeGoals == null ||
         match.awayGoals == null
       ) {

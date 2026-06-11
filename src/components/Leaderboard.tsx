@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ShareLeaderboard } from "./ShareLeaderboard";
+import { useLiveRefresh } from "./useLiveRefresh";
 import type { Standings, StandingsRow } from "@/lib/standings";
 
 const TABS = [
@@ -68,21 +69,39 @@ export function Leaderboard({
   data,
   code,
   groupName,
+  live = false,
 }: {
   data: Standings;
   code?: string;
   groupName?: string;
+  /** A match is in play — points are provisional; tick the board on a timer and
+   *  flag it so people know the totals can still move. */
+  live?: boolean;
 }) {
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("overall");
   const rows = data[tab];
   const top3 = rows.slice(0, 3);
   const rest = rows.slice(3);
 
+  // Refresh the board while a match is live so provisional points keep up.
+  useLiveRefresh(live);
+
   return (
     <div className="rounded-3xl glass p-5">
-      <h2 className="mb-4 text-center text-2xl font-black text-grape dark:text-violet-300">
+      <h2 className="mb-4 flex items-center justify-center gap-2 text-center text-2xl font-black text-grape dark:text-violet-300">
         🏆 Leaderboard
+        {live && (
+          <span className="inline-flex items-center gap-1 rounded-full glass px-2.5 py-0.5 text-xs font-bold text-flame">
+            <span className="live-dot h-2 w-2 rounded-full bg-flame" />
+            LIVE
+          </span>
+        )}
       </h2>
+      {live && (
+        <p className="-mt-2 mb-4 text-center text-xs font-medium text-stone-400">
+          Points are provisional while matches are in play.
+        </p>
+      )}
 
       {/* Tabs */}
       <div className="mb-5 flex justify-center gap-1 rounded-full glass p-1">
