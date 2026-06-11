@@ -84,6 +84,14 @@ export default async function PlayerPage({
             Picks for matches that haven&apos;t kicked off stay hidden.
           </p>
         ) : null}
+        <div className="mt-3">
+          <Link
+            href={`/g/${group.code}/p/${userId}/past`}
+            className="text-sm font-bold text-grape underline-offset-2 hover:underline dark:text-violet-300"
+          >
+            Past results →
+          </Link>
+        </div>
       </header>
 
       <PlayerPredictions profile={profile} />

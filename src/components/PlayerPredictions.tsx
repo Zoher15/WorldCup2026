@@ -128,16 +128,46 @@ function Section({
   );
 }
 
-export function PlayerPredictions({ profile }: { profile: PlayerProfile }) {
+export function PlayerPredictions({
+  profile,
+  view = "current",
+}: {
+  profile: PlayerProfile;
+  /** "current" shows live/open/upcoming (plus the edit button on your own
+   *  profile); "past" shows only finished matches — their own page, mirroring
+   *  the predict → past-results split. */
+  view?: "current" | "past";
+}) {
   const { isBot } = profile.player;
   const live = profile.rows.filter(isLive);
+
+  // Tick live scores forward while any match on this profile is in play (only
+  // the current view carries live cards; the past page never does).
+  useLiveRefresh(view === "current" && live.length > 0);
+
+  if (view === "past") {
+    // Finished / awaiting (locked but not currently live), most-recent first.
+    const past = profile.rows
+      .filter((r) => r.state === "locked" && !isLive(r))
+      .reverse();
+    if (past.length === 0) {
+      return (
+        <p className="rounded-2xl glass p-6 text-center font-medium text-stone-500 dark:text-stone-300">
+          No finished matches yet — they&apos;ll appear here after kickoff.
+        </p>
+      );
+    }
+    return (
+      <div className="space-y-6">
+        {past.map((r) => (
+          <PlayerCard key={r.matchId} row={r} isBot={isBot} />
+        ))}
+      </div>
+    );
+  }
+
   const open = profile.rows.filter((r) => r.state === "open");
   const upcoming = profile.rows.filter((r) => r.state === "upcoming");
-  // Finished / awaiting (locked but not currently live), most-recent first.
-  const past = profile.rows.filter((r) => r.state === "locked" && !isLive(r)).reverse();
-
-  // Tick live scores forward while any match on this profile is in play.
-  useLiveRefresh(live.length > 0);
 
   return (
     <div>
@@ -154,12 +184,6 @@ export function PlayerPredictions({ profile }: { profile: PlayerProfile }) {
         title="Upcoming"
         rows={upcoming}
         empty="Nothing on the horizon yet."
-        isBot={isBot}
-      />
-      <Section
-        title="Past"
-        rows={past}
-        empty="No matches have kicked off yet."
         isBot={isBot}
       />
 
