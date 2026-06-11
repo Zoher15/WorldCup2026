@@ -2,7 +2,6 @@ import { createAdminClient } from "./supabase/admin";
 import { fetchWorldCupMatches } from "./footballdata";
 import { resolveFdTeam } from "./fifa";
 import { expectedMatchWindow, isKnockoutStage, mergeWindows } from "./polling";
-import { utcDateKey } from "./format";
 import {
   deriveFdUpdate,
   fdStatusToOurs,
@@ -158,31 +157,55 @@ const MIN_POLL_INTERVAL_SEC = 30;
 
 /**
  * Poll guard, meant to be called frequently (e.g. a once-a-minute cron). It
- * only calls football-data when a match is actually live — using each match's
- * expected window, which covers stoppage/extra time/penalties — and de-dupes
- * polls closer than MIN_POLL_INTERVAL_SEC. Outside live windows it returns
- * immediately without touching the API.
+ * calls football-data when a match is in (or near) its expected window, AND
+ * keeps polling past that window for any kicked-off match we haven't confirmed
+ * yet — the feed's FINISHED can lag, and we must keep checking until it lands so
+ * a finished game never stays stuck on "live". A recent-kickoff floor caps the
+ * tail so a data gap can't poll forever, and considering all recent matches (not
+ * just today's, UTC) keeps games that span midnight updating. De-dupes polls
+ * closer than MIN_POLL_INTERVAL_SEC; otherwise returns without touching the API.
  */
 export async function pollIfDue(now: Date = new Date()): Promise<PollResult> {
   const db = createAdminClient();
-  const dateKey = utcDateKey(now.getTime());
   const nowMs = now.getTime();
+  // Don't chase ancient fixtures: only matches kicked off within this window
+  // (longer than the longest possible knockout + extra time + penalties) can
+  // still be live or awaiting a final whistle.
+  const recentFloorMs = nowMs - 4 * 60 * 60 * 1000;
 
   const { data } = await db
     .from("matches")
-    .select("kickoff_at, stage, last_synced_at");
+    .select("kickoff_at, stage, last_synced_at, status, result_confirmed");
   const rows = data ?? [];
-  const todays = rows.filter((r) => String(r.kickoff_at).slice(0, 10) === dateKey);
+  // Recent or imminent matches — the only ones that can need a poll right now.
+  const recent = rows.filter((r) => {
+    const ko = Date.parse(r.kickoff_at);
+    return ko >= recentFloorMs && ko <= nowMs + 10 * 60_000;
+  });
 
   const windows = mergeWindows(
-    todays.map((r) => expectedMatchWindow({ kickoffAt: r.kickoff_at, stage: r.stage })),
+    recent.map((r) => expectedMatchWindow({ kickoffAt: r.kickoff_at, stage: r.stage })),
   );
-  const live = windows.some((w) => nowMs >= w.startMs && nowMs < w.endMs);
-  if (!live) {
+  const inWindow = windows.some((w) => nowMs >= w.startMs && nowMs < w.endMs);
+
+  // Past its window but kicked off and still unconfirmed: keep polling until the
+  // feed reports the finish (auto-confirms) — this is what stops a delayed or
+  // missed FINISHED from leaving a game stuck on "live".
+  const awaitingFinish = recent.some((r) => {
+    const ko = Date.parse(r.kickoff_at);
+    return (
+      ko <= nowMs &&
+      !r.result_confirmed &&
+      r.status !== "cancelled" &&
+      r.status !== "postponed"
+    );
+  });
+
+  if (!inWindow && !awaitingFinish) {
     return { synced: false, reason: "no live window" };
   }
 
-  const lastSynced = todays.reduce((max, r) => {
+  const lastSynced = recent.reduce((max, r) => {
     const t = r.last_synced_at ? Date.parse(r.last_synced_at) : 0;
     return t > max ? t : max;
   }, 0);
@@ -190,6 +213,6 @@ export async function pollIfDue(now: Date = new Date()): Promise<PollResult> {
     return { synced: false, reason: "paced" };
   }
 
-  const summary = await syncDay(dateKey);
+  const summary = await syncDay();
   return { synced: true, summary };
 }
