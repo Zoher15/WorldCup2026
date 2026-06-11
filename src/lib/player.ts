@@ -2,7 +2,7 @@ import { createAdminClient } from "./supabase/admin";
 import { normalizeCode } from "./codes";
 import {
   predictionState,
-  TOURNAMENT_START,
+  isTrialActive,
   type PredictionState,
 } from "./prediction-rules";
 import { scorePrediction } from "./recompute";
@@ -126,7 +126,12 @@ export async function getPlayerProfile(opts: {
           .select("match_id, pred_home, pred_away, advance_pick")
           .eq("user_id", opts.userId),
   ]);
-  const matches = matchesRes.data ?? [];
+  // Once the practice match retires (an hour before kickoff) its card is gone
+  // everywhere — drop it from the profile too, in step with it no longer counting.
+  const trialActive = isTrialActive();
+  const matches = (matchesRes.data ?? []).filter(
+    (m) => trialActive || !m.is_trial,
+  );
   const predByMatch = new Map(
     (predsRes.data ?? []).map((p) => [p.match_id, p as StoredPrediction & { match_id: string }]),
   );
@@ -136,7 +141,7 @@ export async function getPlayerProfile(opts: {
   const isViewer = opts.viewerId === opts.userId && !isBot;
   const lowerBound =
     group.late_join_policy === "start_even" ? Date.parse(group.created_at) : null;
-  const countTrial = Date.now() < Date.parse(TOURNAMENT_START);
+  const countTrial = trialActive;
 
   let predicted = 0;
   let points = 0;

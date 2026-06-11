@@ -22,11 +22,25 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export type PredictionState = "upcoming" | "open" | "locked";
 
 /**
- * The World Cup's first kickoff. The India vs Italy practice match counts
- * toward the (pre-tournament) leaderboard only before this instant; once the
- * real tournament begins, the trial stops counting.
+ * The World Cup's first kickoff. The India vs Italy practice match retires one
+ * hour before this (see TRIAL_RETIRES_AT) — its card is removed from every page
+ * and it stops counting — so there's a clean slate before real play begins.
  */
 export const TOURNAMENT_START = "2026-06-11T19:00:00.000Z";
+
+/**
+ * When the India vs Italy practice match retires: one hour before the first real
+ * kickoff. From this instant its card disappears everywhere and it no longer
+ * contributes to any leaderboard. (It's also the trial's own kickoff time.)
+ */
+export const TRIAL_RETIRES_AT = new Date(
+  Date.parse(TOURNAMENT_START) - 60 * 60 * 1000,
+).toISOString();
+
+/** Whether the practice match is still live (shown + counting). */
+export function isTrialActive(now: Date = new Date()): boolean {
+  return now.getTime() < Date.parse(TRIAL_RETIRES_AT);
+}
 
 /**
  * Epoch ms when a match's day opens for prediction: midnight (UTC+14) of the

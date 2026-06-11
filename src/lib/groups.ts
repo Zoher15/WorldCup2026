@@ -1,7 +1,7 @@
 import { createAdminClient } from "./supabase/admin";
 import { generateGroupCode, normalizeCode } from "./codes";
 import { buildStandings, type Standings } from "./standings";
-import { TOURNAMENT_START } from "./prediction-rules";
+import { isTrialActive } from "./prediction-rules";
 import type { LateJoinPolicy } from "./types";
 
 const UNIQUE_VIOLATION = "23505";
@@ -210,7 +210,7 @@ export async function getGroupStandings(
     lateJoinPolicy: group.late_join_policy,
     groupCreatedAt: group.created_at,
     includeBaseline: true,
-    countTrialMatches: Date.now() < Date.parse(TOURNAMENT_START),
+    countTrialMatches: isTrialActive(),
   });
 
   const myMembership = viewerId

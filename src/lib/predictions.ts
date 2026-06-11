@@ -4,7 +4,7 @@ import {
   isValidGoals,
   predictionState,
   windowOpensAt,
-  TOURNAMENT_START,
+  isTrialActive,
   type PredictionState,
 } from "./prediction-rules";
 import type { Stage } from "./types";
@@ -58,7 +58,7 @@ export async function getPredictionBoard(userId: string): Promise<{
   const db = createAdminClient();
   const now = new Date();
   const nowIso = now.toISOString();
-  const beforeTournament = now.getTime() < Date.parse(TOURNAMENT_START);
+  const trialActive = isTrialActive(now);
   // Keep a kicked-off match on the board until its result is confirmed, so a
   // live game stays visible (with locked steppers + the in-play score) instead of
   // vanishing at kickoff. The lower bound drops long-past unconfirmed matches so
@@ -98,9 +98,9 @@ export async function getPredictionBoard(userId: string): Promise<{
 
   return {
     matches: (matches ?? [])
-      // The trial is editable practice until its kickoff, a live demo from then
-      // until the tournament begins, and afterwards belongs to the past page.
-      .filter((m) => !m.is_trial || beforeTournament)
+      // The trial is editable practice / a live demo until it retires one hour
+      // before the tournament, at which point its card disappears entirely.
+      .filter((m) => !m.is_trial || trialActive)
       .map((m) => {
         const naturalState = predictionState(m.kickoff_at, now, m.is_trial);
         // Practice match during the warm-up: once you've made a pick, run it as a
@@ -108,7 +108,7 @@ export async function getPredictionBoard(userId: string): Promise<{
         // layout — your call vs the live score, tap for provisional math — is
         // visible right away. Without a pick yet it stays open so you can make one.
         const trialLiveDemo =
-          m.is_trial && beforeTournament && predictions[m.id] != null;
+          m.is_trial && trialActive && predictions[m.id] != null;
         const state = trialLiveDemo ? "locked" : naturalState;
         return {
           id: m.id,
@@ -162,7 +162,6 @@ export async function getPastPredictionBoard(
   userId: string,
 ): Promise<PastPrediction[]> {
   const db = createAdminClient();
-  const beforeTournament = Date.now() < Date.parse(TOURNAMENT_START);
 
   const [matchesRes, predsRes] = await Promise.all([
     db
@@ -187,14 +186,8 @@ export async function getPastPredictionBoard(
   );
 
   return (matches ?? [])
-    // While the trial is still a live demo on the predictions page, keep it off
-    // the past page; it moves here once the tournament starts.
-    .filter(
-      (m) =>
-        m.home_goals != null &&
-        m.away_goals != null &&
-        (!m.is_trial || !beforeTournament),
-    )
+    // The practice match never lands here — it's retired (deleted), not history.
+    .filter((m) => m.home_goals != null && m.away_goals != null && !m.is_trial)
     .map((m) => {
       const p = predByMatch.get(m.id);
       return {
