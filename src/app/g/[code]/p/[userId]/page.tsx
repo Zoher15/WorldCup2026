@@ -56,6 +56,11 @@ export default async function PlayerPage({
             </span>
           )}
         </h1>
+        {player.realName && (
+          <p className="mt-1 text-sm font-semibold text-stone-500 dark:text-stone-400">
+            {player.realName}
+          </p>
+        )}
         <p className="mt-2 text-sm font-medium text-stone-500 dark:text-stone-300">
           {summary.points} pts · predicted {summary.predicted} of {summary.total}{" "}
           matches

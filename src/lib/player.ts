@@ -36,7 +36,14 @@ export interface PlayerPredictionRow {
 
 export interface PlayerProfile {
   group: { code: string; name: string };
-  player: { displayName: string; isViewer: boolean; isBot: boolean };
+  player: {
+    displayName: string;
+    /** The player's real name (from their profile). null for the bot, or when
+     *  it's identical to the display name (nothing extra worth showing). */
+    realName: string | null;
+    isViewer: boolean;
+    isBot: boolean;
+  };
   rows: PlayerPredictionRow[];
   summary: { predicted: number; total: number; points: number };
 }
@@ -74,17 +81,27 @@ export async function getPlayerProfile(opts: {
   // their per-group display name).
   const isBot = opts.userId === BORINGBOT_ID;
   let displayName: string;
+  let realName: string | null = null;
   if (isBot) {
     displayName = BORINGBOT_NAME;
   } else {
-    const { data: membership } = await db
-      .from("memberships")
-      .select("display_name")
-      .eq("group_id", group.id)
-      .eq("user_id", opts.userId)
-      .single();
-    if (!membership) return null;
-    displayName = membership.display_name;
+    // Fetch the per-group alias and the user's real name together. The alias
+    // (display_name) is what the leaderboard shows; the real name (users.real_name,
+    // set at signup) is surfaced on the profile so group-mates know who's who.
+    const [membershipRes, userRes] = await Promise.all([
+      db
+        .from("memberships")
+        .select("display_name")
+        .eq("group_id", group.id)
+        .eq("user_id", opts.userId)
+        .single(),
+      db.from("users").select("real_name").eq("id", opts.userId).single(),
+    ]);
+    if (!membershipRes.data) return null;
+    displayName = membershipRes.data.display_name;
+    const real = userRes.data?.real_name?.trim() ?? "";
+    // Only worth showing when it adds information beyond the display name.
+    realName = real && real !== displayName ? real : null;
   }
 
   const [matchesRes, predsRes] = await Promise.all([
@@ -182,7 +199,7 @@ export async function getPlayerProfile(opts: {
 
   return {
     group: { code: group.code, name: group.name },
-    player: { displayName, isViewer, isBot },
+    player: { displayName, realName, isViewer, isBot },
     rows,
     summary: { predicted, total: matches.length, points },
   };
