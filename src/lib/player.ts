@@ -126,12 +126,10 @@ export async function getPlayerProfile(opts: {
           .select("match_id, pred_home, pred_away, advance_pick")
           .eq("user_id", opts.userId),
   ]);
-  // Once the practice match retires (an hour before kickoff) its card is gone
-  // everywhere — drop it from the profile too, in step with it no longer counting.
+  // The retired practice match stays on the profile as history — a finished
+  // match showing the pick and result — but no longer counts (see countTrial).
   const trialActive = isTrialActive();
-  const matches = (matchesRes.data ?? []).filter(
-    (m) => trialActive || !m.is_trial,
-  );
+  const matches = matchesRes.data ?? [];
   const predByMatch = new Map(
     (predsRes.data ?? []).map((p) => [p.match_id, p as StoredPrediction & { match_id: string }]),
   );
@@ -146,7 +144,12 @@ export async function getPlayerProfile(opts: {
   let predicted = 0;
   let points = 0;
   const rows: PlayerPredictionRow[] = matches.map((m) => {
-    const state = predictionState(m.kickoff_at, new Date(), m.is_trial);
+    // A retired trial renders as a finished match (locked → pick revealed,
+    // result shown), regardless of its scheduled practice kickoff.
+    const state =
+      m.is_trial && !trialActive
+        ? "locked"
+        : predictionState(m.kickoff_at, new Date(), m.is_trial);
     const pred = isBot ? BOT_PICK : predByMatch.get(m.id);
     const hasPrediction = pred != null;
     if (hasPrediction) predicted++;

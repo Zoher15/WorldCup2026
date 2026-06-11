@@ -155,13 +155,15 @@ export interface PastPrediction {
  * the result — the "past predictions" page. Global (predictions belong to the
  * person, not a group), so points here are the raw match points; a group's
  * late-join policy only affects whether they count on that group's board.
- * The practice match joins this page once the tournament starts (until then it's
- * a live demo on the predictions page).
+ * Once the India–Italy practice match retires it lands here as history (it's a
+ * confirmed result); while it's still a live demo on the predictions page it's
+ * kept off this page.
  */
 export async function getPastPredictionBoard(
   userId: string,
 ): Promise<PastPrediction[]> {
   const db = createAdminClient();
+  const trialActive = isTrialActive();
 
   const [matchesRes, predsRes] = await Promise.all([
     db
@@ -186,8 +188,14 @@ export async function getPastPredictionBoard(
   );
 
   return (matches ?? [])
-    // The practice match never lands here — it's retired (deleted), not history.
-    .filter((m) => m.home_goals != null && m.away_goals != null && !m.is_trial)
+    // The retired practice match shows here as history; while it's still a live
+    // demo on the predictions page it's kept off this page.
+    .filter(
+      (m) =>
+        m.home_goals != null &&
+        m.away_goals != null &&
+        (!m.is_trial || !trialActive),
+    )
     .map((m) => {
       const p = predByMatch.get(m.id);
       return {

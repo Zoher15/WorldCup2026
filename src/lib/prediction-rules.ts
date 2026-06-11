@@ -21,25 +21,21 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 export type PredictionState = "upcoming" | "open" | "locked";
 
-/**
- * The World Cup's first kickoff. The India vs Italy practice match retires one
- * hour before this (see TRIAL_RETIRES_AT) — its card is removed from every page
- * and it stops counting — so there's a clean slate before real play begins.
- */
+/** The World Cup's first kickoff. */
 export const TOURNAMENT_START = "2026-06-11T19:00:00.000Z";
 
 /**
- * When the India vs Italy practice match retires: one hour before the first real
- * kickoff. From this instant its card disappears everywhere and it no longer
- * contributes to any leaderboard. (It's also the trial's own kickoff time.)
+ * Whether the India vs Italy practice match is still live — i.e. a predictable
+ * demo on the predictions page that counts on leaderboards.
+ *
+ * The practice period is now OVER: the match has been retired ahead of the
+ * tournament. It's closed (off the predictions page), shown on the past-
+ * predictions page as history, and no longer counts on any leaderboard — so the
+ * boards start fresh for real play. The `now` parameter is kept for call-site
+ * compatibility (the gate used to be time-based) but the answer is now fixed.
  */
-export const TRIAL_RETIRES_AT = new Date(
-  Date.parse(TOURNAMENT_START) - 60 * 60 * 1000,
-).toISOString();
-
-/** Whether the practice match is still live (shown + counting). */
-export function isTrialActive(now: Date = new Date()): boolean {
-  return now.getTime() < Date.parse(TRIAL_RETIRES_AT);
+export function isTrialActive(_now: Date = new Date()): boolean {
+  return false;
 }
 
 /**
