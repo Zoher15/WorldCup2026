@@ -52,11 +52,22 @@ export async function verifyEmailOtpAction(
   }
 
   const supabase = await createServerSupabase();
-  const { data, error } = await supabase.auth.verifyOtp({
+  // A returning user's code is an "email" (magic-link) OTP; a brand-new user's
+  // code is a "signup" confirmation OTP. We can't tell which from here, and the
+  // 6-digit token is the same either way, so try the magic-link type first and
+  // fall back to signup. Both verify the same token, so the fallback is safe.
+  let { data, error } = await supabase.auth.verifyOtp({
     email,
     token,
     type: "email",
   });
+  if (error || !data.user) {
+    ({ data, error } = await supabase.auth.verifyOtp({
+      email,
+      token,
+      type: "signup",
+    }));
+  }
   if (error || !data.user) {
     return {
       status: "error",
