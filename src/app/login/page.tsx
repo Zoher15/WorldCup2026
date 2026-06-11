@@ -35,8 +35,8 @@ export default function LoginPage({
         Sign in
       </h1>
       <p className="mb-6 text-sm font-medium text-stone-500 dark:text-stone-300">
-        Enter your email and we&apos;ll send you a 6-digit sign-in code — no
-        password to remember. You&apos;ll stay signed in on this device.
+        Enter your email and we&apos;ll send you a sign-in code — no password to
+        remember. You&apos;ll stay signed in on this device.
       </p>
 
       {state.status === "sent" ? (
@@ -46,8 +46,8 @@ export default function LoginPage({
             Check your email
           </h2>
           <p className="mt-1 text-center text-sm text-stone-500 dark:text-stone-300">
-            We sent a 6-digit code to <strong>{state.email}</strong>. Enter it
-            below to sign in.
+            We sent a code to <strong>{state.email}</strong>. Enter it below to
+            sign in.
           </p>
 
           <form action={verifyAction} className="mt-5 space-y-3">
@@ -58,10 +58,10 @@ export default function LoginPage({
               inputMode="numeric"
               autoComplete="one-time-code"
               pattern="[0-9]*"
-              maxLength={6}
+              maxLength={10}
               className={codeInput}
-              placeholder="••••••"
-              aria-label="6-digit code"
+              placeholder="••••••••"
+              aria-label="Sign-in code"
               required
               autoFocus
             />

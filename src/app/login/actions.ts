@@ -120,8 +120,10 @@ export async function verifyEmailOtpAction(
     .toLowerCase();
   const token = String(form.get("token") ?? "").replace(/\D/g, "");
   const next = String(form.get("next") ?? "/");
-  if (token.length !== 6) {
-    return { status: "error", error: "Enter the 6-digit code from your email." };
+  // Supabase's email OTP length is a project setting (6–10 digits); accept the
+  // whole range rather than hard-coding one length.
+  if (token.length < 6 || token.length > 10) {
+    return { status: "error", error: "Enter the code from your email." };
   }
 
   const supabase = await createServerSupabase();
