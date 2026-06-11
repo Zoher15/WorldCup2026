@@ -1,0 +1,39 @@
+<!--
+  Supabase Auth email — "Confirm signup" template (brand-new users).
+  signInWithOtp({ shouldCreateUser: true }) sends THIS template the first time an
+  address signs in, and the "Magic Link" template thereafter — so both must carry
+  the code. Paste into Supabase Dashboard → Authentication → Emails → Templates →
+  Confirm signup → Message body. Set the Subject to:
+    Your World Cup 2026 sign-in code: {{ .Token }}
+
+  Identical to magic_link.html on purpose: same code-first flow, same fallback.
+-->
+<h2 style="font-family:system-ui,sans-serif;margin:0 0 8px">Your World Cup 2026 sign-in code</h2>
+
+<p style="font-family:system-ui,sans-serif;font-size:15px;color:#444;margin:0 0 16px">
+  Enter this code in the tab where you started signing in:
+</p>
+
+<p style="font-family:ui-monospace,Menlo,monospace;font-size:34px;font-weight:800;
+          letter-spacing:10px;background:#f3f0fa;color:#1c1917;
+          padding:16px 20px;border-radius:14px;text-align:center;
+          margin:0 0 8px;user-select:all">{{ .Token }}</p>
+
+<p style="font-family:system-ui,sans-serif;font-size:13px;color:#777;margin:0 0 28px">
+  Typing the code keeps you signed in <strong>in the browser you want to play in</strong>.
+  The code expires shortly — request a new one if it does.
+</p>
+
+<hr style="border:none;border-top:1px solid #eee;margin:0 0 20px">
+
+<p style="font-family:system-ui,sans-serif;font-size:13px;color:#777;margin:0 0 12px">
+  Prefer to just tap? Use this link — but it opens your device's
+  <strong>default</strong> browser, so only use it if that's where you want to play:
+</p>
+
+<p style="margin:0">
+  <a href="{{ .ConfirmationURL }}"
+     style="font-family:system-ui,sans-serif;display:inline-block;background:#0b8a3e;
+            color:#fff;font-weight:700;font-size:15px;text-decoration:none;
+            padding:12px 22px;border-radius:999px">Sign in →</a>
+</p>
