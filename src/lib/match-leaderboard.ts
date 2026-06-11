@@ -321,17 +321,17 @@ export async function listBoardMatches(
     resultConfirmed: m.result_confirmed,
   });
 
-  const live = all.filter((m) => m.status === "live");
-  const liveIds = new Set(live.map((m) => m.id));
-  const locked = all.filter(
-    (m) => !liveIds.has(m.id) && predictionState(m.kickoff_at, now, false) === "locked",
-  );
-  const upcoming = all.filter(
-    (m) => predictionState(m.kickoff_at, now, false) !== "locked",
-  );
+  const isLocked = (m: (typeof all)[number]) =>
+    predictionState(m.kickoff_at, now, false) === "locked";
+  // In play: kicked off but not yet finalized — mirrors the profile/predict
+  // views so a live match isn't lumped in with finished ones before its result
+  // is confirmed. Finished means the result is in.
+  const inPlay = all.filter((m) => isLocked(m) && !m.result_confirmed);
+  const finished = all.filter((m) => m.result_confirmed);
+  const upcoming = all.filter((m) => !isLocked(m));
 
-  // Most recent finished first, then the soonest upcoming.
-  const recent = locked.slice(-limitEach).reverse();
+  // In play first, then most-recent finished, then the soonest upcoming.
+  const recent = finished.slice(-limitEach).reverse();
   const next = upcoming.slice(0, limitEach);
-  return [...live, ...recent, ...next].map(toSummary);
+  return [...inPlay.reverse(), ...recent, ...next].map(toSummary);
 }
