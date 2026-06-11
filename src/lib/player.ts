@@ -41,6 +41,8 @@ export interface PlayerProfile {
     /** The player's real name (from their profile). null for the bot, or when
      *  it's identical to the display name (nothing extra worth showing). */
     realName: string | null;
+    /** The player's sign-in email (from Supabase Auth). null for the bot. */
+    email: string | null;
     isViewer: boolean;
     isBot: boolean;
   };
@@ -82,13 +84,15 @@ export async function getPlayerProfile(opts: {
   const isBot = opts.userId === BORINGBOT_ID;
   let displayName: string;
   let realName: string | null = null;
+  let email: string | null = null;
   if (isBot) {
     displayName = BORINGBOT_NAME;
   } else {
-    // Fetch the per-group alias and the user's real name together. The alias
-    // (display_name) is what the leaderboard shows; the real name (users.real_name,
-    // set at signup) is surfaced on the profile so group-mates know who's who.
-    const [membershipRes, userRes] = await Promise.all([
+    // Fetch the per-group alias, the user's real name, and their sign-in email
+    // together. The alias (display_name) is what the leaderboard shows; the real
+    // name (users.real_name, set at signup) and email (from Supabase Auth) are
+    // surfaced on the profile so group-mates know who's who.
+    const [membershipRes, userRes, authRes] = await Promise.all([
       db
         .from("memberships")
         .select("display_name")
@@ -96,12 +100,14 @@ export async function getPlayerProfile(opts: {
         .eq("user_id", opts.userId)
         .single(),
       db.from("users").select("real_name").eq("id", opts.userId).single(),
+      db.auth.admin.getUserById(opts.userId),
     ]);
     if (!membershipRes.data) return null;
     displayName = membershipRes.data.display_name;
     const real = userRes.data?.real_name?.trim() ?? "";
     // Only worth showing when it adds information beyond the display name.
     realName = real && real !== displayName ? real : null;
+    email = authRes.data?.user?.email ?? null;
   }
 
   const [matchesRes, predsRes] = await Promise.all([
@@ -199,7 +205,7 @@ export async function getPlayerProfile(opts: {
 
   return {
     group: { code: group.code, name: group.name },
-    player: { displayName, realName, isViewer, isBot },
+    player: { displayName, realName, email, isViewer, isBot },
     rows,
     summary: { predicted, total: matches.length, points },
   };

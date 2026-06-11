@@ -61,6 +61,16 @@ export default async function PlayerPage({
             {player.realName}
           </p>
         )}
+        {player.email && (
+          <p className="mt-0.5 text-xs font-medium text-stone-400 dark:text-stone-500">
+            <a
+              href={`mailto:${player.email}`}
+              className="underline-offset-2 hover:underline"
+            >
+              {player.email}
+            </a>
+          </p>
+        )}
         <p className="mt-2 text-sm font-medium text-stone-500 dark:text-stone-300">
           {summary.points} pts · predicted {summary.predicted} of {summary.total}{" "}
           matches
