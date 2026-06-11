@@ -12,7 +12,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "./supabase/admin";
-import { windowOpensAt } from "./prediction-rules";
+import { groupMatchDays, openMatchDays } from "./notify-windows";
 import { teamLabel } from "./fifa";
 import { formatStageLabel } from "./format";
 import { isEmailConfigured, sendEmail } from "./email";
@@ -55,7 +55,6 @@ export async function notifyOpenWindows(
   }
 
   const db = createAdminClient();
-  const nowMs = now.getTime();
 
   const { data: matchData } = await db
     .from("matches")
@@ -65,41 +64,31 @@ export async function notifyOpenWindows(
     .eq("is_trial", false);
   const matches = (matchData ?? []) as MatchRow[];
 
-  // Group matches by the instant their match-day opened for prediction.
-  const byOpen = new Map<number, MatchRow[]>();
-  for (const m of matches) {
-    const opensAt = windowOpensAt(m.kickoff_at);
-    const arr = byOpen.get(opensAt);
-    if (arr) arr.push(m);
-    else byOpen.set(opensAt, [m]);
-  }
-
-  // The match-day to announce: window already open, first kickoff still ahead.
-  // Picking the earliest such day (and only one per call) keeps it to one email
-  // a day and avoids back-blasting days that already kicked off.
-  let dueOpen: number | null = null;
-  let dueMatches: MatchRow[] = [];
-  for (const [opensAt, group] of [...byOpen.entries()].sort((a, b) => a[0] - b[0])) {
-    const earliestKickoff = Math.min(...group.map((m) => Date.parse(m.kickoff_at)));
-    if (opensAt <= nowMs && nowMs < earliestKickoff) {
-      dueOpen = opensAt;
-      dueMatches = group;
-      break;
-    }
-  }
-  if (dueOpen == null) {
+  // Every match-day whose window is open and whose first kickoff is still ahead,
+  // earliest-opening first. There can be more than one at once — e.g. today's
+  // games (opened yesterday, not yet kicked off) AND tomorrow's (opened today).
+  const open = openMatchDays(matches, now);
+  if (open.length === 0) {
     return { ok: true, matchDay: null, recipients: 0, sent: 0, skipped: "no open match-day" };
   }
 
-  const matchDay = new Date(dueOpen).toISOString();
-
-  // Claim the day first: the primary-key insert fails if another tick already
-  // sent it, making the whole thing exactly-once.
-  const { error: claimErr } = await db
-    .from("notified_match_days")
-    .insert({ match_day: matchDay });
-  if (claimErr) {
-    return { ok: true, matchDay, recipients: 0, sent: 0, skipped: "already notified" };
+  // Announce the earliest open day we haven't already sent. Claiming each day in
+  // turn — rather than bailing on the earliest — is the fix for the bug where a
+  // newly-opened day was suppressed while an earlier day sat in its (already
+  // announced) pre-kickoff window. The PK insert makes the claim exactly-once.
+  let matchDay: string | null = null;
+  let dueMatches: MatchRow[] = [];
+  for (const day of open) {
+    const { error: claimErr } = await db
+      .from("notified_match_days")
+      .insert({ match_day: day.matchDay });
+    if (claimErr) continue; // already announced — try the next open day
+    matchDay = day.matchDay;
+    dueMatches = day.matches;
+    break;
+  }
+  if (matchDay == null) {
+    return { ok: true, matchDay: null, recipients: 0, sent: 0, skipped: "all open match-days already notified" };
   }
 
   const recipients = await loadRecipients(db);
@@ -160,33 +149,21 @@ export async function nudgeMissingPredictions(
     .eq("is_trial", false);
   const matches = (matchData ?? []) as MatchRow[];
 
-  // Group matches by the instant their match-day opened (same key as the
-  // broadcast email), so "the match-day" means the same thing in both logs.
-  const byOpen = new Map<number, MatchRow[]>();
-  for (const m of matches) {
-    const opensAt = windowOpensAt(m.kickoff_at);
-    const arr = byOpen.get(opensAt);
-    if (arr) arr.push(m);
-    else byOpen.set(opensAt, [m]);
-  }
-
   // The match-day to nudge: its first kickoff is within the lead window ahead
-  // (kickoff − lead ≤ now < kickoff). Earliest such day, one per call.
-  let dueOpen: number | null = null;
-  let dueMatches: MatchRow[] = [];
-  for (const [opensAt, group] of [...byOpen.entries()].sort((a, b) => a[0] - b[0])) {
-    const earliestKickoff = Math.min(...group.map((m) => Date.parse(m.kickoff_at)));
-    if (earliestKickoff - NUDGE_LEAD_MS <= nowMs && nowMs < earliestKickoff) {
-      dueOpen = opensAt;
-      dueMatches = group;
-      break;
-    }
-  }
-  if (dueOpen == null) {
+  // (kickoff − lead ≤ now < kickoff). Earliest such day, one per call. (Match-day
+  // first-kickoffs are ~a day apart, so at most one is ever in the lead window.)
+  const due = groupMatchDays(matches).find((d) => {
+    const earliestKickoff = Math.min(
+      ...d.matches.map((m) => Date.parse(m.kickoff_at)),
+    );
+    return earliestKickoff - NUDGE_LEAD_MS <= nowMs && nowMs < earliestKickoff;
+  });
+  if (!due) {
     return { ok: true, matchDay: null, recipients: 0, sent: 0, skipped: "no match-day going live soon" };
   }
 
-  const matchDay = new Date(dueOpen).toISOString();
+  const matchDay = due.matchDay;
+  const dueMatches = due.matches;
 
   // Claim the day first (PK insert) so concurrent ticks nudge it exactly once.
   const { error: claimErr } = await db
