@@ -13,14 +13,23 @@ export function WelcomeForm({ next }: { next: string }) {
   return (
     <form action={action} className="space-y-4">
       <input type="hidden" name="next" value={next} />
-      <input
-        name="name"
-        className={input}
-        placeholder="Zoher Kachwala"
-        autoComplete="name"
-        autoFocus
-        required
-      />
+      <div className="flex gap-3">
+        <input
+          name="firstName"
+          className={input}
+          placeholder="First name"
+          autoComplete="given-name"
+          autoFocus
+          required
+        />
+        <input
+          name="lastName"
+          className={input}
+          placeholder="Last name"
+          autoComplete="family-name"
+          required
+        />
+      </div>
       {state.error && (
         <p className="text-sm font-bold text-flame">{state.error}</p>
       )}

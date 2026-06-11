@@ -13,11 +13,17 @@ export async function saveNameAction(
   const userId = await getUserId();
   if (!userId) redirect("/login");
 
-  const name = String(form.get("name") ?? "").trim();
+  const first = String(form.get("firstName") ?? "").trim();
+  const last = String(form.get("lastName") ?? "").trim();
   const next = safeNextPath(String(form.get("next") ?? "/"));
 
-  if (!name) return { error: "Please enter your name." };
+  if (!first || !last) {
+    return { error: "Please enter your first and last name." };
+  }
 
+  // Stored as the user's real name; each group can still override it with a
+  // per-group nickname when joining.
+  const name = `${first} ${last}`.replace(/\s+/g, " ");
   await upsertProfile(userId, name);
   redirect(next);
 }
