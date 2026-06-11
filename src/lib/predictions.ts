@@ -4,6 +4,7 @@ import {
   isValidGoals,
   predictionState,
   windowOpensAt,
+  TOURNAMENT_START,
   type PredictionState,
 } from "./prediction-rules";
 import type { Stage } from "./types";
@@ -55,21 +56,25 @@ export async function getPredictionBoard(userId: string): Promise<{
   predictions: Record<string, SavedPrediction>;
 }> {
   const db = createAdminClient();
-  const nowIso = new Date().toISOString();
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const beforeTournament = now.getTime() < Date.parse(TOURNAMENT_START);
   // Keep a kicked-off match on the board until its result is confirmed, so a
   // live game stays visible (with locked steppers + the in-play score) instead of
   // vanishing at kickoff. The lower bound drops long-past unconfirmed matches so
   // a data gap can't resurrect ancient fixtures (4h > the longest match window).
   const liveFloorIso = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
 
-  // Upcoming matches and the user's existing predictions are independent.
+  // Future + in-play matches: anything not yet confirmed, plus the India–Italy
+  // trial (which IS confirmed) so it can run as a live demo during the practice
+  // period. Confirmed real matches drop off to the past-predictions page.
   const [matchesRes, predsRes] = await Promise.all([
     db
       .from("matches")
       .select(
         "id, match_number, stage, group_label, home_code, away_code, home_team, away_team, kickoff_at, venue, status, minute, home_goals, away_goals, is_trial",
       )
-      .eq("result_confirmed", false)
+      .or("result_confirmed.eq.false,is_trial.eq.true")
       .gte("kickoff_at", liveFloorIso)
       .order("kickoff_at", { ascending: true }),
     db
@@ -92,29 +97,122 @@ export async function getPredictionBoard(userId: string): Promise<{
   }
 
   return {
-    matches: (matches ?? []).map((m) => ({
-      id: m.id,
-      matchNumber: m.match_number,
-      stage: m.stage,
-      groupLabel: m.group_label,
-      homeCode: m.home_code,
-      awayCode: m.away_code,
-      homeLabel: m.home_team,
-      awayLabel: m.away_team,
-      kickoffAt: m.kickoff_at,
-      venue: m.venue,
-      opensAt: m.is_trial
-        ? nowIso
-        : new Date(windowOpensAt(m.kickoff_at)).toISOString(),
-      state: predictionState(m.kickoff_at, new Date(), m.is_trial),
-      isTrial: Boolean(m.is_trial),
-      status: m.status,
-      minute: m.minute,
-      homeGoals: m.home_goals,
-      awayGoals: m.away_goals,
-    })),
+    matches: (matches ?? [])
+      // The trial is editable practice until its kickoff, a live demo from then
+      // until the tournament begins, and afterwards belongs to the past page.
+      .filter((m) => !m.is_trial || beforeTournament)
+      .map((m) => {
+        const naturalState = predictionState(m.kickoff_at, now, m.is_trial);
+        // Practice match during the warm-up: once you've made a pick, run it as a
+        // live demo (its baked-in 2–1 shown as the in-play score) so the live card
+        // layout — your call vs the live score, tap for provisional math — is
+        // visible right away. Without a pick yet it stays open so you can make one.
+        const trialLiveDemo =
+          m.is_trial && beforeTournament && predictions[m.id] != null;
+        const state = trialLiveDemo ? "locked" : naturalState;
+        return {
+          id: m.id,
+          matchNumber: m.match_number,
+          stage: m.stage,
+          groupLabel: m.group_label,
+          homeCode: m.home_code,
+          awayCode: m.away_code,
+          homeLabel: m.home_team,
+          awayLabel: m.away_team,
+          kickoffAt: m.kickoff_at,
+          venue: m.venue,
+          opensAt: m.is_trial
+            ? nowIso
+            : new Date(windowOpensAt(m.kickoff_at)).toISOString(),
+          state,
+          isTrial: Boolean(m.is_trial),
+          status: trialLiveDemo ? "live" : m.status,
+          minute: m.minute,
+          homeGoals: m.home_goals,
+          awayGoals: m.away_goals,
+        };
+      }),
     predictions,
   };
+}
+
+export interface PastPrediction {
+  id: string;
+  stage: Stage;
+  groupLabel: string | null;
+  homeCode: string | null;
+  awayCode: string | null;
+  homeLabel: string | null;
+  awayLabel: string | null;
+  kickoffAt: string;
+  venue: string | null;
+  result: { home: number; away: number; advancedCode: string | null };
+  pick: { home: number; away: number; advancePick: string | null } | null;
+}
+
+/**
+ * The viewer's finished (confirmed) matches, newest first, with their pick and
+ * the result — the "past predictions" page. Global (predictions belong to the
+ * person, not a group), so points here are the raw match points; a group's
+ * late-join policy only affects whether they count on that group's board.
+ * The practice match joins this page once the tournament starts (until then it's
+ * a live demo on the predictions page).
+ */
+export async function getPastPredictionBoard(
+  userId: string,
+): Promise<PastPrediction[]> {
+  const db = createAdminClient();
+  const beforeTournament = Date.now() < Date.parse(TOURNAMENT_START);
+
+  const [matchesRes, predsRes] = await Promise.all([
+    db
+      .from("matches")
+      .select(
+        "id, stage, group_label, home_code, away_code, home_team, away_team, kickoff_at, venue, home_goals, away_goals, advanced_code, is_trial",
+      )
+      .eq("result_confirmed", true)
+      .order("kickoff_at", { ascending: false }),
+    db
+      .from("predictions")
+      .select("match_id, pred_home, pred_away, advance_pick")
+      .eq("user_id", userId),
+  ]);
+  const { data: matches, error } = matchesRes;
+  if (error) throw new Error(`Could not load past matches: ${error.message}`);
+  if (predsRes.error)
+    throw new Error(`Could not load your predictions: ${predsRes.error.message}`);
+
+  const predByMatch = new Map(
+    (predsRes.data ?? []).map((p) => [p.match_id, p]),
+  );
+
+  return (matches ?? [])
+    // While the trial is still a live demo on the predictions page, keep it off
+    // the past page; it moves here once the tournament starts.
+    .filter(
+      (m) =>
+        m.home_goals != null &&
+        m.away_goals != null &&
+        (!m.is_trial || !beforeTournament),
+    )
+    .map((m) => {
+      const p = predByMatch.get(m.id);
+      return {
+        id: m.id,
+        stage: m.stage,
+        groupLabel: m.group_label,
+        homeCode: m.home_code,
+        awayCode: m.away_code,
+        homeLabel: m.home_team,
+        awayLabel: m.away_team,
+        kickoffAt: m.kickoff_at,
+        venue: m.venue,
+        result: { home: m.home_goals, away: m.away_goals, advancedCode: m.advanced_code },
+        pick: p
+          ? { home: p.pred_home, away: p.pred_away, advancePick: p.advance_pick }
+          : null,
+      };
+    });
 }
 
 /**

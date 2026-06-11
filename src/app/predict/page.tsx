@@ -35,7 +35,14 @@ export default async function PredictPage() {
       <p className="mb-6 text-sm font-medium text-stone-500 dark:text-stone-300">
         A day&apos;s games all open for prediction{" "}
         <strong>the day before</strong>, and each match closes at kickoff — watch
-        the countdowns. Your picks count in every group you&apos;re in.
+        the countdowns. Live games stay here with the score; your picks count in
+        every group you&apos;re in.{" "}
+        <Link
+          href="/predict/past"
+          className="font-bold text-grape underline-offset-2 hover:underline dark:text-violet-300"
+        >
+          Past results →
+        </Link>
       </p>
 
       {matches.length === 0 ? (
