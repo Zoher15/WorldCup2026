@@ -129,22 +129,19 @@ export async function getMatchLeaderboard(opts: {
       : predictionState(match.kickoff_at, new Date(), match.is_trial);
   const revealed = state === "locked";
 
-  const hasResult =
-    match.result_confirmed &&
-    match.home_goals != null &&
-    match.away_goals != null;
-  const isLive =
-    !match.result_confirmed &&
-    match.status === "live" &&
-    match.home_goals != null &&
-    match.away_goals != null;
-  const result = hasResult
-    ? {
-        home: match.home_goals!,
-        away: match.away_goals!,
-        advancedCode: match.advanced_code,
-      }
-    : null;
+  // A match is "over" the moment the feed reports it finished — we don't wait on
+  // the admin confirmation gate to treat it as final.
+  const isOver = match.status === "finished" || match.result_confirmed;
+  const hasScore = match.home_goals != null && match.away_goals != null;
+  const isLive = !isOver && match.status === "live" && hasScore;
+  const result =
+    isOver && hasScore
+      ? {
+          home: match.home_goals!,
+          away: match.away_goals!,
+          advancedCode: match.advanced_code,
+        }
+      : null;
   const live = isLive
     ? { home: match.home_goals!, away: match.away_goals!, minute: match.minute }
     : null;
@@ -281,9 +278,10 @@ export interface BoardMatchSummary {
   kickoffAt: string;
   state: PredictionState;
   isLive: boolean;
+  /** Over per the feed (status finished or an admin confirmation). */
+  isFinished: boolean;
   homeGoals: number | null;
   awayGoals: number | null;
-  resultConfirmed: boolean;
 }
 
 /**
@@ -316,18 +314,20 @@ export async function listBoardMatches(
     kickoffAt: m.kickoff_at,
     state: predictionState(m.kickoff_at, now, false),
     isLive: m.status === "live",
+    isFinished: m.status === "finished" || m.result_confirmed,
     homeGoals: m.home_goals,
     awayGoals: m.away_goals,
-    resultConfirmed: m.result_confirmed,
   });
 
   const isLocked = (m: (typeof all)[number]) =>
     predictionState(m.kickoff_at, now, false) === "locked";
-  // In play: kicked off but not yet finalized — mirrors the profile/predict
-  // views so a live match isn't lumped in with finished ones before its result
-  // is confirmed. Finished means the result is in.
-  const inPlay = all.filter((m) => isLocked(m) && !m.result_confirmed);
-  const finished = all.filter((m) => m.result_confirmed);
+  const isFinished = (m: (typeof all)[number]) =>
+    m.status === "finished" || m.result_confirmed;
+  // In play: kicked off but not yet over — mirrors the profile/predict views so
+  // a live match isn't lumped in with finished ones. Over is the feed's finished
+  // status (or an admin confirmation), not a wait on confirmation.
+  const inPlay = all.filter((m) => isLocked(m) && !isFinished(m));
+  const finished = all.filter((m) => isFinished(m));
   const upcoming = all.filter((m) => !isLocked(m));
 
   // In play first, then most-recent finished, then the soonest upcoming.

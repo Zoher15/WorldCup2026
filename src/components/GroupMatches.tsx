@@ -22,7 +22,7 @@ function MatchStatus({ match }: { match: BoardMatchSummary }) {
     );
   }
   if (match.state === "locked") {
-    if (match.resultConfirmed && hasScore) {
+    if (match.isFinished && hasScore) {
       return (
         <span className="font-black tabular-nums text-pitch dark:text-emerald-400">
           {match.homeGoals}–{match.awayGoals}
@@ -30,7 +30,7 @@ function MatchStatus({ match }: { match: BoardMatchSummary }) {
         </span>
       );
     }
-    return <span className="text-xs font-bold text-stone-400">Awaiting</span>;
+    return <span className="text-xs font-bold text-stone-400">In play</span>;
   }
   if (match.state === "open") {
     return (

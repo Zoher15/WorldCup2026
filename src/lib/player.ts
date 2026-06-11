@@ -161,26 +161,32 @@ export async function getPlayerProfile(opts: {
       ? { home: pred!.pred_home, away: pred!.pred_away, advancePick: pred!.advance_pick }
       : null;
 
+    // A match is "over" the moment the feed reports it finished — we don't wait
+    // on the admin confirmation gate to treat it as final, so a finished match
+    // moves to past results (with its score and points) right away.
+    const isOver = m.status === "finished" || m.result_confirmed;
     const result =
-      m.result_confirmed && m.home_goals != null && m.away_goals != null
+      isOver && m.home_goals != null && m.away_goals != null
         ? { home: m.home_goals, away: m.away_goals, advancedCode: m.advanced_code }
         : null;
 
-    // In-play score: shown once the match is live but before the result is
-    // confirmed. Mutually exclusive with `result` (which requires confirmation).
+    // In-play score: shown while the match is live (kicked off, not yet over).
+    // Mutually exclusive with `result`.
     const live =
-      !m.result_confirmed &&
+      !isOver &&
       m.status === "live" &&
       m.home_goals != null &&
       m.away_goals != null
         ? { home: m.home_goals, away: m.away_goals, minute: m.minute }
         : null;
 
-    // Points count only when the match falls within the group's scoring window.
+    // Points count once the match is over and it falls within the group's
+    // scoring window — graded against the final score the feed reported, without
+    // waiting on the admin gate (which only governs the official leaderboard).
     let rowPoints: number | null = null;
     const inWindow = lowerBound == null || Date.parse(m.kickoff_at) >= lowerBound;
     const counts = inWindow && (!m.is_trial || countTrial);
-    if (hasPrediction && counts) {
+    if (hasPrediction && counts && result) {
       const score = scorePrediction(
         {
           id: "",
@@ -189,7 +195,7 @@ export async function getPlayerProfile(opts: {
           advancePick: pred!.advance_pick,
         },
         {
-          resultConfirmed: m.result_confirmed,
+          resultConfirmed: true,
           homeGoals: m.home_goals,
           awayGoals: m.away_goals,
           stage: m.stage,
