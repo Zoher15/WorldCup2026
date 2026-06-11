@@ -25,10 +25,12 @@ select cron.schedule(
   $$
 );
 
--- Daily "predictions are open" email. Runs every 15 minutes; the endpoint emails
--- each match-day's window-open announcement exactly once (and only while the
--- window is open), so a coarse interval is plenty. Requires RESEND_API_KEY +
--- EMAIL_FROM set in Vercel — otherwise the endpoint is a no-op. Same CRON_SECRET.
+-- Prediction emails. Runs every 15 minutes; the endpoint drives two
+-- exactly-once-per-match-day sends: the "predictions are open" announcement (at
+-- window-open) and the per-user "you've still got picks missing" nudge (~2h
+-- before the day's first kickoff). A coarse interval is plenty — the nudge just
+-- lands within ~15 min of the 2h mark. Requires RESEND_API_KEY + EMAIL_FROM set
+-- in Vercel — otherwise the endpoint is a no-op. Same CRON_SECRET.
 select cron.schedule(
   'worldcup-notify',
   '*/15 * * * *',

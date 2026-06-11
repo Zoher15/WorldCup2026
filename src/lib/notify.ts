@@ -31,6 +31,7 @@ interface MatchRow {
 }
 
 interface Recipient {
+  userId: string;
   email: string;
   token: string;
 }
@@ -42,6 +43,9 @@ export interface NotifyResult {
   sent: number;
   skipped?: string;
 }
+
+/** How long before a match-day's first kickoff the "you're missing picks" nudge fires. */
+const NUDGE_LEAD_MS = 2 * 60 * 60 * 1000;
 
 export async function notifyOpenWindows(
   now: Date = new Date(),
@@ -129,6 +133,121 @@ export async function notifyOpenWindows(
   return { ok: true, matchDay, recipients: recipients.length, sent };
 }
 
+/**
+ * The per-user "you still have predictions missing" nudge.
+ *
+ * Fires once per match-day, ~NUDGE_LEAD_MS before that day's FIRST kickoff, to
+ * each member who hasn't predicted one or more of the day's matches — listing
+ * only the ones they're missing. Like notifyOpenWindows it's meant to run on the
+ * cron and self-throttles: it claims the day in nudged_match_days before sending,
+ * so overlapping ticks (and repeat runs) nudge each match-day exactly once.
+ */
+export async function nudgeMissingPredictions(
+  now: Date = new Date(),
+): Promise<NotifyResult> {
+  if (!isEmailConfigured()) {
+    return { ok: true, matchDay: null, recipients: 0, sent: 0, skipped: "email not configured" };
+  }
+
+  const db = createAdminClient();
+  const nowMs = now.getTime();
+
+  const { data: matchData } = await db
+    .from("matches")
+    .select(
+      "id, kickoff_at, stage, group_label, home_code, away_code, home_team, away_team",
+    )
+    .eq("is_trial", false);
+  const matches = (matchData ?? []) as MatchRow[];
+
+  // Group matches by the instant their match-day opened (same key as the
+  // broadcast email), so "the match-day" means the same thing in both logs.
+  const byOpen = new Map<number, MatchRow[]>();
+  for (const m of matches) {
+    const opensAt = windowOpensAt(m.kickoff_at);
+    const arr = byOpen.get(opensAt);
+    if (arr) arr.push(m);
+    else byOpen.set(opensAt, [m]);
+  }
+
+  // The match-day to nudge: its first kickoff is within the lead window ahead
+  // (kickoff − lead ≤ now < kickoff). Earliest such day, one per call.
+  let dueOpen: number | null = null;
+  let dueMatches: MatchRow[] = [];
+  for (const [opensAt, group] of [...byOpen.entries()].sort((a, b) => a[0] - b[0])) {
+    const earliestKickoff = Math.min(...group.map((m) => Date.parse(m.kickoff_at)));
+    if (earliestKickoff - NUDGE_LEAD_MS <= nowMs && nowMs < earliestKickoff) {
+      dueOpen = opensAt;
+      dueMatches = group;
+      break;
+    }
+  }
+  if (dueOpen == null) {
+    return { ok: true, matchDay: null, recipients: 0, sent: 0, skipped: "no match-day going live soon" };
+  }
+
+  const matchDay = new Date(dueOpen).toISOString();
+
+  // Claim the day first (PK insert) so concurrent ticks nudge it exactly once.
+  const { error: claimErr } = await db
+    .from("nudged_match_days")
+    .insert({ match_day: matchDay });
+  if (claimErr) {
+    return { ok: true, matchDay, recipients: 0, sent: 0, skipped: "already nudged" };
+  }
+
+  // Who has predicted which of this day's matches.
+  const dayMatchIds = dueMatches.map((m) => m.id);
+  const { data: predRows } = await db
+    .from("predictions")
+    .select("user_id, match_id")
+    .in("match_id", dayMatchIds);
+  const predictedByUser = new Map<string, Set<string>>();
+  for (const p of predRows ?? []) {
+    const set = predictedByUser.get(p.user_id as string) ?? new Set<string>();
+    set.add(p.match_id as string);
+    predictedByUser.set(p.user_id as string, set);
+  }
+
+  const recipients = await loadRecipients(db);
+  const base = appBaseUrl();
+  const ordered = [...dueMatches].sort(
+    (a, b) => Date.parse(a.kickoff_at) - Date.parse(b.kickoff_at),
+  );
+
+  // For each recipient, the day's matches they haven't predicted. Only people
+  // with at least one gap get the nudge.
+  const targets: { recipient: Recipient; missing: MatchRow[] }[] = [];
+  for (const r of recipients) {
+    const done = predictedByUser.get(r.userId) ?? new Set<string>();
+    const missing = ordered.filter((m) => !done.has(m.id));
+    if (missing.length > 0) targets.push({ recipient: r, missing });
+  }
+
+  let sent = 0;
+  const CHUNK = 20; // gentle on the provider's rate limit
+  for (let i = 0; i < targets.length; i += CHUNK) {
+    const slice = targets.slice(i, i + CHUNK);
+    const results = await Promise.allSettled(
+      slice.map(({ recipient, missing }) =>
+        sendEmail({
+          to: recipient.email,
+          subject: `⏳ ${missing.length} prediction${
+            missing.length === 1 ? "" : "s"
+          } left before kickoff`,
+          html: renderNudgeEmail(missing, base, recipient.token),
+          headers: { "List-Unsubscribe": `<${base}/unsubscribe?token=${recipient.token}>` },
+        }),
+      ),
+    );
+    sent += results.filter((x) => x.status === "fulfilled").length;
+  }
+
+  await db.from("nudged_match_days").update({ recipients: sent }).eq("match_day", matchDay);
+
+  return { ok: true, matchDay, recipients: targets.length, sent };
+}
+
 /** Everyone in at least one group, with an email, who hasn't opted out. */
 async function loadRecipients(db: SupabaseClient): Promise<Recipient[]> {
   const { data: members } = await db.from("memberships").select("user_id");
@@ -148,7 +267,7 @@ async function loadRecipients(db: SupabaseClient): Promise<Recipient[]> {
     const pref = prefById.get(id);
     const email = emailById.get(id);
     if (!pref || pref.email_opt_out || !email) continue;
-    out.push({ email, token: pref.unsubscribe_token as string });
+    out.push({ userId: id, email, token: pref.unsubscribe_token as string });
   }
   return out;
 }
@@ -192,6 +311,47 @@ function renderEmail(matches: MatchRow[], base: string, token: string): string {
       <div style="text-align:center;margin:24px 0;">
         <a href="${base}/predict" style="display:inline-block;background:#0b8a3e;color:#ffffff;text-decoration:none;font-weight:700;padding:14px 28px;border-radius:9999px;font-size:16px;">
           Make your predictions →
+        </a>
+      </div>
+      <p style="margin:24px 0 0;color:#a8a29e;font-size:12px;text-align:center;">
+        You're getting this because you're in a World Cup 2026 prediction group.<br />
+        <a href="${base}/unsubscribe?token=${token}" style="color:#a8a29e;">Unsubscribe from these emails</a>
+      </p>
+    </div>
+  </body>
+</html>`;
+}
+
+/** The gentle "you've still got gaps before kickoff" nudge for one recipient. */
+function renderNudgeEmail(missing: MatchRow[], base: string, token: string): string {
+  const rows = missing
+    .map((m) => {
+      const home = teamLabel(m.home_code, m.home_team);
+      const away = teamLabel(m.away_code, m.away_team);
+      const stage = formatStageLabel(m.group_label, m.stage);
+      return `<tr>
+        <td style="padding:8px 0;font-weight:600;color:#1c1917;">${home} <span style="color:#a8a29e;font-weight:400;">vs</span> ${away}</td>
+        <td style="padding:8px 0;text-align:right;color:#78716c;font-size:13px;">${stage}</td>
+      </tr>`;
+    })
+    .join("");
+  const n = missing.length;
+  const count = n === 1 ? "1 match" : `${n} matches`;
+
+  return `<!doctype html>
+<html>
+  <body style="margin:0;background:#f5f5f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1c1917;">
+    <div style="max-width:480px;margin:0 auto;padding:24px;">
+      <h1 style="margin:0 0 4px;font-size:22px;">⏳ Kickoff's coming up</h1>
+      <p style="margin:0 0 20px;color:#57534e;font-size:15px;">
+        Today's match-day goes live soon and you've still got <strong>${count}</strong> without a prediction. Lock them in before kickoff — each match closes when it starts.
+      </p>
+      <div style="background:#ffffff;border-radius:16px;padding:16px 20px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+        <table style="width:100%;border-collapse:collapse;font-size:15px;">${rows}</table>
+      </div>
+      <div style="text-align:center;margin:24px 0;">
+        <a href="${base}/predict" style="display:inline-block;background:#0b8a3e;color:#ffffff;text-decoration:none;font-weight:700;padding:14px 28px;border-radius:9999px;font-size:16px;">
+          Finish your predictions →
         </a>
       </div>
       <p style="margin:24px 0 0;color:#a8a29e;font-size:12px;text-align:center;">
