@@ -1,0 +1,67 @@
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
+import { getUserId } from "@/lib/identity";
+import { getViewerMembership } from "@/lib/groups";
+import { getPlayerProfile } from "@/lib/player";
+import { PlayerPredictions } from "@/components/PlayerPredictions";
+import { LoadError } from "@/components/LoadError";
+
+export const dynamic = "force-dynamic";
+
+export default async function PlayerPastPage({
+  params,
+}: {
+  params: Promise<{ code: string; userId: string }>;
+}) {
+  const { code, userId } = await params;
+
+  const viewerId = await getUserId();
+  if (!viewerId) {
+    redirect(
+      `/login?next=${encodeURIComponent(`/g/${code}/p/${userId}/past`)}`,
+    );
+  }
+  // Only members of the group may view a player's past results within it.
+  const membership = await getViewerMembership(code, viewerId);
+  if (!membership.isMember) redirect(`/g/${code}`);
+
+  let profile;
+  try {
+    profile = await getPlayerProfile({ code, userId, viewerId });
+  } catch (e) {
+    return (
+      <LoadError
+        title="Couldn't load these results"
+        message={e instanceof Error ? e.message : String(e)}
+      />
+    );
+  }
+  if (!profile) notFound();
+
+  const { group, player } = profile;
+  // Past matches are fully revealed for everyone, so the copy speaks of "their"
+  // call for other players and "your" call on your own page.
+  const who = player.isViewer
+    ? { has: "you've", call: "your" }
+    : { has: `${player.displayName} has`, call: "their" };
+
+  return (
+    <main className="mx-auto max-w-3xl px-4 py-8">
+      <Link
+        href={`/g/${group.code}/p/${userId}`}
+        className="text-sm font-bold text-stone-400"
+      >
+        ← {player.displayName}
+      </Link>
+      <h1 className="mt-3 mb-1 gradient-text pb-1 text-3xl font-black leading-tight">
+        Past results
+      </h1>
+      <p className="mb-6 text-sm font-medium text-stone-500 dark:text-stone-300">
+        Every match {who.has} predicted that&apos;s finished — {who.call} call
+        beside the full-time score. Tap a card for the points math.
+      </p>
+
+      <PlayerPredictions profile={profile} view="past" />
+    </main>
+  );
+}
