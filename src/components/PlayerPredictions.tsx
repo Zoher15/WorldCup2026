@@ -5,9 +5,22 @@ import { MatchCard, type MatchCardData, type MatchCardState } from "./MatchCard"
 import { useLiveRefresh } from "./useLiveRefresh";
 import type { PlayerPredictionRow, PlayerProfile } from "@/lib/player";
 
-/** A live, kicked-off-and-unconfirmed match (vs an "awaiting result" one). */
+/** A match that's been finalized (its result confirmed) — the only thing that
+ *  belongs on the "past results" page. */
+function isFinal(row: PlayerPredictionRow): boolean {
+  return row.result != null;
+}
+
+/** Kicked off but not yet finalized — in play, whether or not the live-score
+ *  feed has caught up yet. Stays in the current view; never falls to "past"
+ *  (so a just-kicked-off match doesn't briefly vanish into past results). */
+function isInPlay(row: PlayerPredictionRow): boolean {
+  return row.state === "locked" && row.result == null;
+}
+
+/** In play AND we have a live score to show (drives the live card visual). */
 function isLive(row: PlayerPredictionRow): boolean {
-  return row.state === "locked" && row.live != null && row.result == null;
+  return isInPlay(row) && row.live != null;
 }
 
 /** A single match in a player's profile, rendered as the shared scoreboard —
@@ -139,17 +152,16 @@ export function PlayerPredictions({
   view?: "current" | "past";
 }) {
   const { isBot } = profile.player;
-  const live = profile.rows.filter(isLive);
+  const inPlay = profile.rows.filter(isInPlay);
 
-  // Tick live scores forward while any match on this profile is in play (only
-  // the current view carries live cards; the past page never does).
-  useLiveRefresh(view === "current" && live.length > 0);
+  // Tick scores forward while any match on this profile is in play (only the
+  // current view carries in-play cards; the past page never does).
+  useLiveRefresh(view === "current" && inPlay.length > 0);
 
   if (view === "past") {
-    // Finished / awaiting (locked but not currently live), most-recent first.
-    const past = profile.rows
-      .filter((r) => r.state === "locked" && !isLive(r))
-      .reverse();
+    // Only finalized (confirmed-result) matches, most-recent first. In-play and
+    // awaiting-confirmation matches stay in the current view.
+    const past = profile.rows.filter(isFinal).reverse();
     if (past.length === 0) {
       return (
         <p className="rounded-2xl glass p-6 text-center font-medium text-stone-500 dark:text-stone-300">
@@ -171,8 +183,8 @@ export function PlayerPredictions({
 
   return (
     <div>
-      {live.length > 0 && (
-        <Section title="🔴 Live now" rows={live} empty="" isBot={isBot} />
+      {inPlay.length > 0 && (
+        <Section title="🔴 Live now" rows={inPlay} empty="" isBot={isBot} />
       )}
       <Section
         title="Open now"

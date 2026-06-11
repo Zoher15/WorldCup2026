@@ -2,8 +2,10 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getUserId } from "@/lib/identity";
 import { getGroupStandings } from "@/lib/groups";
+import { listBoardMatches } from "@/lib/match-leaderboard";
 import { BORINGBOT_ID } from "@/lib/standings";
 import { Leaderboard } from "@/components/Leaderboard";
+import { GroupMatches } from "@/components/GroupMatches";
 import { GroupAdmin } from "@/components/GroupAdmin";
 import { LeaveGroup } from "@/components/LeaveGroup";
 import { InviteLink } from "@/components/InviteLink";
@@ -67,6 +69,7 @@ export default async function GroupPage({
   const members = standings.overall
     .filter((r) => r.userId !== BORINGBOT_ID)
     .map((r) => ({ userId: r.userId, displayName: r.displayName }));
+  const boardMatches = await listBoardMatches();
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
@@ -103,6 +106,8 @@ export default async function GroupPage({
       </header>
 
       <Leaderboard data={standings} code={group.code} groupName={group.name} />
+
+      <GroupMatches code={group.code} matches={boardMatches} />
 
       {viewer.isAdmin && (
         <GroupAdmin
