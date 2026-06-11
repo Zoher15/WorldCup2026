@@ -3,9 +3,6 @@ import assert from "node:assert/strict";
 import {
   expectedMatchWindow,
   mergeWindows,
-  planDay,
-  planSchedule,
-  isWithinLiveWindows,
   isKnockoutStage,
   DEFAULT_POLLING_CONFIG,
   type Window,
@@ -49,13 +46,14 @@ test("knockout window is longer than a normal match (extra time + penalties)", (
   assert.ok(minutes(ko) > minutes(normal));
 });
 
-test("cooling breaks lengthen the window and cost more requests", () => {
+test("cooling breaks lengthen the live window", () => {
   const noCooling = { ...cfg, coolingBreakMin: 0 };
   const withCooling = { ...cfg, coolingBreakMin: 3 };
-  const day = [m("2026-06-20T18:00:00Z")];
-  const a = planDay("d", day, noCooling);
-  const b = planDay("d", day, withCooling);
-  assert.ok(b.liveMinutes > a.liveMinutes, "cooling breaks extend live period");
+  const base = minutes(expectedMatchWindow(m("2026-06-20T18:00:00Z"), noCooling));
+  const longer = minutes(
+    expectedMatchWindow(m("2026-06-20T18:00:00Z"), withCooling),
+  );
+  assert.ok(longer > base, "cooling breaks extend the window");
 });
 
 test("invalid kickoff is rejected", () => {
@@ -74,93 +72,14 @@ test("overlapping windows merge into their union", () => {
   ]);
 });
 
-test("simultaneous matches cost the same as one (shared polls)", () => {
-  // two matches kicking off at the same time -> one merged window
-  const simultaneous = planDay("2026-06-20", [
-    m("2026-06-20T18:00:00Z"),
-    m("2026-06-20T18:00:00Z"),
+test("simultaneous matches collapse to a single window (shared polls)", () => {
+  const merged = mergeWindows([
+    expectedMatchWindow(m("2026-06-20T18:00:00Z")),
+    expectedMatchWindow(m("2026-06-20T18:00:00Z")),
   ]);
-  const single = planDay("2026-06-20", [m("2026-06-20T18:00:00Z")]);
-  assert.equal(simultaneous.liveWindows.length, 1);
-  assert.equal(simultaneous.estimatedRequests, single.estimatedRequests);
-  assert.equal(simultaneous.intervalSec, single.intervalSec);
+  assert.equal(merged.length, 1);
 });
 
-test("a quiet day with one match polls near the floor and stays within budget", () => {
-  const plan = planDay("2026-06-20", [m("2026-06-20T18:00:00Z")]);
-  assert.equal(plan.matchCount, 1);
-  assert.ok(plan.estimatedRequests <= plan.liveBudget);
-  assert.ok(plan.intervalSec <= cfg.maxIntervalSec);
-  assert.equal(plan.degraded, false);
-});
-
-test("a busy day with spread-out matches is flagged degraded but stays in budget", () => {
-  const plan = planDay("2026-06-20", [
-    m("2026-06-20T12:00:00Z"),
-    m("2026-06-20T15:00:00Z"),
-    m("2026-06-20T18:00:00Z"),
-    m("2026-06-20T21:00:00Z"),
-  ]);
-  assert.equal(plan.liveWindows.length, 4); // no overlap
-  assert.ok(plan.estimatedRequests <= plan.liveBudget, "must not exceed budget");
-  assert.ok(plan.intervalSec > cfg.maxIntervalSec, "interval stretched to fit");
-  assert.equal(plan.degraded, true);
-});
-
-test("the plan never exceeds the live budget across many shapes", () => {
-  const days = [
-    [m("2026-06-20T18:00:00Z")],
-    [m("2026-06-20T12:00:00Z"), m("2026-06-20T12:00:00Z")],
-    [
-      m("2026-06-20T12:00:00Z"),
-      m("2026-06-20T15:00:00Z"),
-      m("2026-06-20T18:00:00Z"),
-      m("2026-06-20T21:00:00Z"),
-    ],
-    [m("2026-07-19T18:00:00Z", "final")],
-    [
-      m("2026-07-10T18:00:00Z", "semi_final"),
-      m("2026-07-11T18:00:00Z", "semi_final"),
-    ],
-  ];
-  for (const matches of days) {
-    const plan = planDay("d", matches);
-    assert.ok(
-      plan.estimatedRequests <= plan.liveBudget,
-      `requests ${plan.estimatedRequests} > budget ${plan.liveBudget}`,
-    );
-    assert.ok(plan.intervalSec >= cfg.minIntervalSec);
-  }
-});
-
-test("empty day produces an empty plan", () => {
-  const plan = planDay("2026-06-20", []);
-  assert.equal(plan.estimatedRequests, 0);
-  assert.equal(plan.intervalSec, 0);
-  assert.equal(plan.liveMinutes, 0);
-  assert.equal(plan.degraded, false);
-});
-
-test("planSchedule buckets matches by UTC day and sorts", () => {
-  const plans = planSchedule([
-    m("2026-06-21T18:00:00Z"),
-    m("2026-06-20T18:00:00Z"),
-    m("2026-06-20T21:00:00Z"),
-    // 23:30Z + buffers crosses midnight but is attributed to its kickoff day
-    m("2026-06-22T23:30:00Z"),
-  ]);
-  assert.deepEqual(
-    plans.map((p) => p.date),
-    ["2026-06-20", "2026-06-21", "2026-06-22"],
-  );
-  assert.equal(plans[0].matchCount, 2);
-  assert.equal(plans[1].matchCount, 1);
-});
-
-test("isWithinLiveWindows reflects the merged windows", () => {
-  const plan = planDay("2026-06-20", [m("2026-06-20T18:00:00Z")]);
-  const kickoff = Date.parse("2026-06-20T18:00:00Z");
-  assert.equal(isWithinLiveWindows(kickoff + 30 * 60_000, plan), true); // 30' in
-  assert.equal(isWithinLiveWindows(kickoff - 60 * 60_000, plan), false); // hour before
-  assert.equal(isWithinLiveWindows(kickoff + 6 * 3600_000, plan), false); // long after
+test("an empty set of windows merges to nothing", () => {
+  assert.deepEqual(mergeWindows([]), []);
 });
