@@ -2,11 +2,14 @@
 
 import { use, useActionState } from "react";
 import Link from "next/link";
-import { sendMagicLinkAction } from "./actions";
-import { INITIAL_LOGIN_STATE } from "./login-state";
+import { sendMagicLinkAction, verifyEmailOtpAction } from "./actions";
+import { INITIAL_LOGIN_STATE, INITIAL_VERIFY_STATE } from "./login-state";
 
 const input =
   "w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-base font-medium outline-none focus:border-pitch focus:ring-2 focus:ring-pitch/30 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100 dark:placeholder:text-stone-500";
+
+const codeInput =
+  "w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-center text-2xl font-black tracking-[0.5em] outline-none focus:border-pitch focus:ring-2 focus:ring-pitch/30 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100 dark:placeholder:text-stone-600";
 
 export default function LoginPage({
   searchParams,
@@ -18,6 +21,10 @@ export default function LoginPage({
     sendMagicLinkAction,
     INITIAL_LOGIN_STATE,
   );
+  const [verify, verifyAction, verifying] = useActionState(
+    verifyEmailOtpAction,
+    INITIAL_VERIFY_STATE,
+  );
 
   return (
     <main className="mx-auto max-w-md px-4 py-12">
@@ -28,17 +35,53 @@ export default function LoginPage({
         Sign in
       </h1>
       <p className="mb-6 text-sm font-medium text-stone-500 dark:text-stone-300">
-        Enter your email and we&apos;ll send you a magic link — no password to
-        remember. You&apos;ll stay signed in on this device.
+        Enter your email and we&apos;ll send you a 6-digit sign-in code — no
+        password to remember. You&apos;ll stay signed in on this device.
       </p>
 
       {state.status === "sent" ? (
-        <div className="animate-pop-in rounded-3xl glass p-6 text-center">
-          <div className="text-4xl">📬</div>
-          <h2 className="mt-2 text-xl font-black text-pitch dark:text-emerald-400">Check your email</h2>
-          <p className="mt-1 text-sm text-stone-500 dark:text-stone-300">
-            We sent a sign-in link to <strong>{state.email}</strong>. Open it on
-            this device to continue.
+        <div className="animate-pop-in rounded-3xl glass p-6">
+          <div className="text-center text-4xl">📬</div>
+          <h2 className="mt-2 text-center text-xl font-black text-pitch dark:text-emerald-400">
+            Check your email
+          </h2>
+          <p className="mt-1 text-center text-sm text-stone-500 dark:text-stone-300">
+            We sent a 6-digit code to <strong>{state.email}</strong>. Enter it
+            below to sign in.
+          </p>
+
+          <form action={verifyAction} className="mt-5 space-y-3">
+            <input type="hidden" name="email" value={state.email} />
+            <input type="hidden" name="next" value={next ?? "/"} />
+            <input
+              name="token"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="[0-9]*"
+              maxLength={6}
+              className={codeInput}
+              placeholder="••••••"
+              aria-label="6-digit code"
+              required
+              autoFocus
+            />
+            {verify.status === "error" && (
+              <p className="text-sm font-bold text-flame">{verify.error}</p>
+            )}
+            <button
+              type="submit"
+              disabled={verifying}
+              className="w-full rounded-full glass py-3.5 text-lg font-bold text-pitch dark:text-emerald-400 transition active:scale-95 disabled:opacity-50"
+            >
+              {verifying ? "Signing you in…" : "Verify & sign in"}
+            </button>
+          </form>
+
+          <p className="mt-4 text-xs leading-relaxed text-stone-400 dark:text-stone-400">
+            Entering the code keeps you in <strong>this</strong> browser. The
+            email also has a tap-to-sign-in link — but if you tap it, it opens in
+            your phone&apos;s default browser, so use the code here if you want to
+            play in this one.
           </p>
         </div>
       ) : (
