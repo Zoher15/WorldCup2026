@@ -3,9 +3,20 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { MatchCard } from "./MatchCard";
+import { useLiveRefresh } from "./useLiveRefresh";
 import { formatKickoffDate } from "@/lib/format";
 import { savePredictionsAction } from "@/app/predict/actions";
 import type { MatchForPrediction, SavedPrediction } from "@/lib/predictions";
+
+/** A kicked-off, in-play match (locked, live status, score present). */
+function isLiveMatch(m: MatchForPrediction): boolean {
+  return (
+    m.state === "locked" &&
+    m.status === "live" &&
+    m.homeGoals != null &&
+    m.awayGoals != null
+  );
+}
 
 type Picks = Record<string, { home: number; away: number }>;
 
@@ -39,6 +50,9 @@ export function PredictionList({
     () => new Set(matches.filter((m) => m.state === "open").map((m) => m.id)),
     [matches],
   );
+
+  // Tick the in-play score forward while any listed match is live.
+  useLiveRefresh(matches.some(isLiveMatch));
 
   const dirtyIds = useMemo(
     () =>
@@ -104,6 +118,7 @@ export function PredictionList({
             {g.items.map((m) => {
               const pick = picks[m.id];
               const open = m.state === "open";
+              const live = isLiveMatch(m);
               const isSaved = !dirtyIdSet.has(m.id) && savedSnapshot[m.id];
               return (
                 <MatchCard
@@ -118,7 +133,12 @@ export function PredictionList({
                     groupLabel: m.groupLabel,
                     venue: m.venue,
                     trial: m.isTrial,
-                    state: m.state,
+                    // Live games render the dual score + tappable math; the
+                    // steppers lock automatically (state is no longer "open").
+                    state: live ? "live" : m.state,
+                    minute: live ? m.minute : undefined,
+                    homeGoals: live ? m.homeGoals : undefined,
+                    awayGoals: live ? m.awayGoals : undefined,
                   }}
                   opensAt={m.opensAt}
                   entry={{
@@ -134,6 +154,8 @@ export function PredictionList({
                       ) : (
                         <span className="text-stone-500 dark:text-stone-300">Unsaved</span>
                       )
+                    ) : live ? (
+                      <span className="text-flame">● Live</span>
                     ) : (
                       <span className="text-stone-500 dark:text-stone-300">🔒 Locked</span>
                     )

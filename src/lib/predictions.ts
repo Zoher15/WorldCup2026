@@ -25,6 +25,12 @@ export interface MatchForPrediction {
   state: PredictionState;
   /** India vs Italy practice match — open immediately, points don't count once the WC starts. */
   isTrial: boolean;
+  /** Live match state, so a kicked-off card can show the in-play score next to
+   *  the locked-in pick. `status` is 'live' while in play; goals are the score. */
+  status: string;
+  minute: number | null;
+  homeGoals: number | null;
+  awayGoals: number | null;
 }
 
 export interface SavedPrediction {
@@ -50,15 +56,21 @@ export async function getPredictionBoard(userId: string): Promise<{
 }> {
   const db = createAdminClient();
   const nowIso = new Date().toISOString();
+  // Keep a kicked-off match on the board until its result is confirmed, so a
+  // live game stays visible (with locked steppers + the in-play score) instead of
+  // vanishing at kickoff. The lower bound drops long-past unconfirmed matches so
+  // a data gap can't resurrect ancient fixtures (4h > the longest match window).
+  const liveFloorIso = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
 
   // Upcoming matches and the user's existing predictions are independent.
   const [matchesRes, predsRes] = await Promise.all([
     db
       .from("matches")
       .select(
-        "id, match_number, stage, group_label, home_code, away_code, home_team, away_team, kickoff_at, venue, is_trial",
+        "id, match_number, stage, group_label, home_code, away_code, home_team, away_team, kickoff_at, venue, status, minute, home_goals, away_goals, is_trial",
       )
-      .gte("kickoff_at", nowIso)
+      .eq("result_confirmed", false)
+      .gte("kickoff_at", liveFloorIso)
       .order("kickoff_at", { ascending: true }),
     db
       .from("predictions")
@@ -96,6 +108,10 @@ export async function getPredictionBoard(userId: string): Promise<{
         : new Date(windowOpensAt(m.kickoff_at)).toISOString(),
       state: predictionState(m.kickoff_at, new Date(), m.is_trial),
       isTrial: Boolean(m.is_trial),
+      status: m.status,
+      minute: m.minute,
+      homeGoals: m.home_goals,
+      awayGoals: m.away_goals,
     })),
     predictions,
   };

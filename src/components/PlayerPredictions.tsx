@@ -2,14 +2,22 @@
 
 import Link from "next/link";
 import { MatchCard, type MatchCardData, type MatchCardState } from "./MatchCard";
+import { useLiveRefresh } from "./useLiveRefresh";
 import type { PlayerPredictionRow, PlayerProfile } from "@/lib/player";
 
-/** A single match in a player's profile, rendered as the shared scoreboard. */
+/** A live, kicked-off-and-unconfirmed match (vs an "awaiting result" one). */
+function isLive(row: PlayerPredictionRow): boolean {
+  return row.state === "locked" && row.live != null && row.result == null;
+}
+
+/** A single match in a player's profile, rendered as the shared scoreboard —
+ *  identical whether it's the viewer's own card or another group member's. */
 function PlayerCard({ row, isBot }: { row: PlayerPredictionRow; isBot: boolean }) {
-  // A kicked-off match with a confirmed result reads as "final"; otherwise it
-  // keeps its prediction-window state (upcoming / open / locked-awaiting).
-  const state: MatchCardState =
-    row.state === "locked" && row.result ? "final" : row.state;
+  // Live (in-play) reads as "live"; a confirmed result as "final"; otherwise the
+  // card keeps its prediction-window state (upcoming / open / locked-awaiting).
+  let state: MatchCardState = row.state;
+  if (row.state === "locked" && row.result) state = "final";
+  else if (isLive(row)) state = "live";
 
   const data: MatchCardData = {
     homeCode: row.homeCode,
@@ -21,8 +29,10 @@ function PlayerCard({ row, isBot }: { row: PlayerPredictionRow; isBot: boolean }
     groupLabel: row.groupLabel,
     venue: row.venue,
     state,
-    homeGoals: row.result?.home,
-    awayGoals: row.result?.away,
+    minute: row.live?.minute,
+    homeGoals: row.result?.home ?? row.live?.home,
+    awayGoals: row.result?.away ?? row.live?.away,
+    advancedCode: row.result?.advancedCode,
   };
 
   const status =
@@ -35,7 +45,15 @@ function PlayerCard({ row, isBot }: { row: PlayerPredictionRow; isBot: boolean }
   return (
     <MatchCard
       data={data}
-      pick={row.pick ? { home: row.pick.home, away: row.pick.away } : null}
+      pick={
+        row.pick
+          ? {
+              home: row.pick.home,
+              away: row.pick.away,
+              advancePick: row.pick.advancePick,
+            }
+          : null
+      }
       status={status}
     />
   );
@@ -57,6 +75,15 @@ function PastStatus({ row }: { row: PlayerPredictionRow }) {
     );
   }
   if (!row.pick) return <span className="text-stone-400">No pick</span>;
+  // Live: the pick is revealed (the match has kicked off); the running points
+  // live in the tappable tile, so the chip just shows their call.
+  if (isLive(row)) {
+    return (
+      <span className="text-grape dark:text-violet-300">
+        {row.pick.home}–{row.pick.away}
+      </span>
+    );
+  }
   if (row.result == null) return <span className="text-stone-400">Awaiting</span>;
   return <span className="text-stone-400">Pre-join</span>;
 }
@@ -103,13 +130,20 @@ function Section({
 
 export function PlayerPredictions({ profile }: { profile: PlayerProfile }) {
   const { isBot } = profile.player;
+  const live = profile.rows.filter(isLive);
   const open = profile.rows.filter((r) => r.state === "open");
   const upcoming = profile.rows.filter((r) => r.state === "upcoming");
-  // Most-recent first for finished/in-progress matches.
-  const past = profile.rows.filter((r) => r.state === "locked").reverse();
+  // Finished / awaiting (locked but not currently live), most-recent first.
+  const past = profile.rows.filter((r) => r.state === "locked" && !isLive(r)).reverse();
+
+  // Tick live scores forward while any match on this profile is in play.
+  useLiveRefresh(live.length > 0);
 
   return (
     <div>
+      {live.length > 0 && (
+        <Section title="🔴 Live now" rows={live} empty="" isBot={isBot} />
+      )}
       <Section
         title="Open now"
         rows={open}

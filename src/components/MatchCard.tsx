@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { Stepper } from "./Stepper";
 import { Countdown } from "./Countdown";
 import { teamByCode, teamColor, teamLabel } from "@/lib/fifa";
 import { formatHostCity, formatKickoffDateCompact, formatKickoffTime, formatStageLabel, shortHostCity } from "@/lib/format";
+import { computeBreakdown } from "@/lib/score-breakdown";
 import type { Stage } from "@/lib/types";
 
 /**
@@ -33,6 +35,8 @@ export interface MatchCardData {
   minute?: number | null;
   homeGoals?: number | null;
   awayGoals?: number | null;
+  /** Knockout: the team that advanced (for the advance-bonus math). */
+  advancedCode?: string | null;
 }
 
 export interface MatchCardProps {
@@ -46,8 +50,10 @@ export interface MatchCardProps {
     away: number;
     onChange: (side: "home" | "away", n: number) => void;
   };
-  /** A revealed predicted score, shown in the focal tile when not editing or live/final. */
-  pick?: { home: number; away: number } | null;
+  /** A revealed predicted score, shown in the focal tile when not editing, and
+   *  paired with the live/final score (with tap-to-see-points) once a match has
+   *  kicked off. `advancePick` feeds the knockout advance-bonus math. */
+  pick?: { home: number; away: number; advancePick?: string | null } | null;
   /** A small status chip in the header row (between the stage label and the
    *  status pill) — e.g. the predict page's Saved / Unsaved / Locked indicator. */
   status?: React.ReactNode;
@@ -149,6 +155,138 @@ function Score({
   );
 }
 
+/** A compact label-over-score block — one of the two scores in the live/final tile. */
+function MiniScore({
+  label,
+  home,
+  away,
+  tone,
+}: {
+  label: React.ReactNode;
+  home: number;
+  away: number;
+  tone: string;
+}) {
+  return (
+    <div className="text-center">
+      <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
+        {label}
+      </div>
+      <div className={`flex items-center justify-center gap-1.5 text-2xl font-black tabular-nums ${tone}`}>
+        <span>{home}</span>
+        <span className="text-stone-300 dark:text-stone-600">:</span>
+        <span>{away}</span>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The live/final focal tile: the player's call beside the actual score, in the
+ * same glass tile (and same footprint) the single score used — so the card keeps
+ * its dimensions. Tapping it expands the points math: outcome + closeness (+ the
+ * knockout advance bonus) = total. While the match is live the math is a
+ * projection ("if it ends now"); at full time it's the points earned. Rendered
+ * identically wherever a pick + a score are both known — your card or a friend's.
+ */
+function DualScore({
+  pick,
+  data,
+  live,
+}: {
+  pick: { home: number; away: number; advancePick?: string | null };
+  data: MatchCardData;
+  live: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const result = {
+    home: data.homeGoals!,
+    away: data.awayGoals!,
+    advancedCode: data.advancedCode ?? null,
+  };
+  const b = computeBreakdown({
+    pick,
+    result,
+    stage: data.stage ?? "group",
+    homeCode: data.homeCode,
+    awayCode: data.awayCode,
+  });
+
+  return (
+    <div className="flex flex-col items-stretch">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className={`rounded-xl px-4 py-1.5 ${GLASS} transition active:scale-95`}
+      >
+        <div className="flex items-center justify-center gap-3">
+          <MiniScore
+            label="your call"
+            home={pick.home}
+            away={pick.away}
+            tone="text-grape dark:text-violet-300"
+          />
+          <span className="h-7 w-px bg-stone-300/70 dark:bg-stone-600/70" />
+          <MiniScore
+            label={live ? "live score" : "full time"}
+            home={result.home}
+            away={result.away}
+            tone={live ? "text-flame" : "text-stone-800 dark:text-stone-50"}
+          />
+        </div>
+        <div className="mt-0.5 flex items-center justify-center gap-1 text-[9px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
+          <span className={`font-black ${live ? "text-flame" : "text-pitch dark:text-emerald-400"}`}>
+            {live ? "~" : ""}{b.total} pt{b.total === 1 ? "" : "s"}
+          </span>
+          <span>· tap for math {open ? "▲" : "▼"}</span>
+        </div>
+      </button>
+
+      {open && (
+        <div className={`mt-2 rounded-xl px-3 py-2 text-left ${GLASS}`}>
+          <BreakdownRow label="Right result" value={b.outcome} max={5} />
+          <BreakdownRow label="Scoreline closeness" value={b.closeness} max={5} />
+          {b.knockout && (
+            <BreakdownRow label="Who advances" value={b.advance} />
+          )}
+          <div className="mt-1 flex items-center justify-between border-t border-stone-300/60 pt-1 dark:border-stone-600/60">
+            <span className="text-[11px] font-black uppercase tracking-wide text-stone-500 dark:text-stone-200">
+              {live ? "If it ends now" : "Total"}
+            </span>
+            <span className={`text-sm font-black ${live ? "text-flame" : "text-pitch dark:text-emerald-400"}`}>
+              {b.total} pt{b.total === 1 ? "" : "s"}
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** One line of the points math: a label and the points it contributed. */
+function BreakdownRow({
+  label,
+  value,
+  max,
+}: {
+  label: string;
+  value: number;
+  max?: number;
+}) {
+  return (
+    <div className="flex items-center justify-between py-0.5 text-[11px] font-bold">
+      <span className="text-stone-500 dark:text-stone-300">{label}</span>
+      <span className="tabular-nums text-stone-700 dark:text-stone-100">
+        +{value}
+        {max != null && (
+          <span className="text-stone-400 dark:text-stone-500"> / {max}</span>
+        )}
+      </span>
+    </div>
+  );
+}
+
 /**
  * One half of the card's background, painted edge to edge with a team's actual
  * flag (the flag-icons `fi fi-xx` class). The two halves butt together in a hard
@@ -187,6 +325,9 @@ export function MatchCard({ data, opensAt, entry, pick, status, footer, onExpire
     (data.state === "live" || data.state === "final") &&
     data.homeGoals != null &&
     data.awayGoals != null;
+  // The player's own scoreline, whether it arrives as a revealed `pick` (profiles)
+  // or via the `entry` they saved (the predict page). Drives the live/final tile.
+  const myPick = pick ?? (entry ? { home: entry.home, away: entry.away } : null);
 
   // The single focal tile, always the same size so the card's proportions never
   // shift between states. Where a score can be entered (`entry`), the steppers
@@ -194,7 +335,12 @@ export function MatchCard({ data, opensAt, entry, pick, status, footer, onExpire
   // once the window is shut. Otherwise it shows the result, a revealed pick, or
   // the kickoff time.
   let focal: React.ReactNode;
-  if (hasResult) {
+  if (hasResult && myPick) {
+    // Kicked off and we know the player's call: show both scores side by side in
+    // the same tile, tappable for the points math (provisional while live).
+    focal = <DualScore pick={myPick} data={data} live={data.state === "live"} />;
+  } else if (hasResult) {
+    // A score but no known pick (e.g. they didn't predict): just the scoreline.
     focal = (
       <Score
         home={data.homeGoals!}

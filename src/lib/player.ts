@@ -30,6 +30,8 @@ export interface PlayerPredictionRow {
   pick: { home: number; away: number; advancePick: string | null } | null;
   /** The confirmed match result, when available. */
   result: { home: number; away: number; advancedCode: string | null } | null;
+  /** In-play (unconfirmed) score while the match is live; null otherwise. */
+  live: { home: number; away: number; minute: number | null } | null;
   /** Points earned, when scored and counted under the group's policy. */
   points: number | null;
 }
@@ -114,7 +116,7 @@ export async function getPlayerProfile(opts: {
     db
       .from("matches")
       .select(
-        "id, match_number, stage, group_label, home_code, away_code, home_team, away_team, kickoff_at, venue, home_goals, away_goals, advanced_code, result_confirmed, is_trial",
+        "id, match_number, stage, group_label, home_code, away_code, home_team, away_team, kickoff_at, venue, status, minute, home_goals, away_goals, advanced_code, result_confirmed, is_trial",
       )
       .order("kickoff_at", { ascending: true }),
     isBot
@@ -154,6 +156,16 @@ export async function getPlayerProfile(opts: {
     const result =
       m.result_confirmed && m.home_goals != null && m.away_goals != null
         ? { home: m.home_goals, away: m.away_goals, advancedCode: m.advanced_code }
+        : null;
+
+    // In-play score: shown once the match is live but before the result is
+    // confirmed. Mutually exclusive with `result` (which requires confirmation).
+    const live =
+      !m.result_confirmed &&
+      m.status === "live" &&
+      m.home_goals != null &&
+      m.away_goals != null
+        ? { home: m.home_goals, away: m.away_goals, minute: m.minute }
         : null;
 
     // Points count only when the match falls within the group's scoring window.
@@ -199,6 +211,7 @@ export async function getPlayerProfile(opts: {
       hasPrediction,
       pick,
       result,
+      live,
       points: rowPoints,
     };
   });
