@@ -39,8 +39,8 @@ export async function createGroupWithOwner(opts: {
       // the next/og renderer off this module's load path); the share endpoint
       // falls back to the default until this lands.
       try {
-        const { regenerateGroupOgImage } = await import("./og-images");
-        await regenerateGroupOgImage(code);
+        const { ensureGroupOgImage } = await import("./og-images");
+        await ensureGroupOgImage(code);
       } catch {
         // ignore — the /s/<code>/og endpoint serves the default meanwhile
       }
@@ -77,6 +77,18 @@ export async function joinGroupByCode(opts: {
       { onConflict: "user_id,group_id" },
     );
   if (mErr) throw new Error(`Could not join the group: ${mErr.message}`);
+
+  // A new member (or a rename via the upsert) changes the board, so warm the
+  // share image now — it unfurls fresh on the first share rather than rendering
+  // lazily. Cheap and best-effort: ensureGroupOgImage no-ops when the hash is
+  // unchanged (e.g. an idempotent re-join), and any failure self-heals on next view.
+  try {
+    const { ensureGroupOgImage } = await import("./og-images");
+    await ensureGroupOgImage(group.code);
+  } catch {
+    // ignore — the /s/<code>/og endpoint refreshes it on the next view
+  }
+
   return { code: group.code };
 }
 

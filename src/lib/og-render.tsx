@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { ImageResponse } from "next/og";
 import { type StandingsRow } from "./standings";
 import { NOTO_SANS_BASE64 } from "./noto-sans-font";
@@ -24,6 +25,23 @@ const OG_MIN_HEIGHT = 630;
 // stored image's render_version (migration 0006) and re-renders anything older,
 // so a design change reaches already-cached groups on their next view.
 export const OG_RENDER_VERSION = 3;
+
+/**
+ * A fingerprint of everything the image draws: the layout version, the group
+ * name, and the ordered rows (rank, name, points, movement). Stored alongside
+ * the PNG so we re-render exactly when the leaderboard changes — a join, a
+ * rename, a result — without having to enumerate every such event by hand.
+ * Includes more rows than the card lists (MAX_LIST) on purpose: a change beyond
+ * the visible cap still alters the "+N more" footer, so it should invalidate.
+ */
+export function ogContentHash(groupName: string, overall: StandingsRow[]): string {
+  const h = createHash("sha256");
+  h.update(`v${OG_RENDER_VERSION}\n${groupName}\n`);
+  for (const r of overall) {
+    h.update(`${r.userId}\t${r.displayName}\t${r.points}\t${r.movement}\n`);
+  }
+  return h.digest("hex").slice(0, 32);
+}
 
 // Below-podium rows shown (ranks 4..). Beyond this the footer reads "+N more".
 // Two columns, so this is an even cap of how many names the card lists.
