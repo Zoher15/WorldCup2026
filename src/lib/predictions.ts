@@ -169,9 +169,12 @@ export async function getPastPredictionBoard(
     db
       .from("matches")
       .select(
-        "id, stage, group_label, home_code, away_code, home_team, away_team, kickoff_at, venue, home_goals, away_goals, advanced_code, is_trial",
+        "id, stage, group_label, home_code, away_code, home_team, away_team, kickoff_at, venue, status, home_goals, away_goals, advanced_code, is_trial",
       )
-      .eq("result_confirmed", true)
+      // Finished the moment the feed reports it over — the same rule the group
+      // and player-profile views use — rather than waiting on the admin
+      // confirmation gate, so a finished match lands here right away.
+      .or("status.eq.finished,result_confirmed.eq.true")
       .order("kickoff_at", { ascending: false }),
     db
       .from("predictions")
