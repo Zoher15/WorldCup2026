@@ -160,6 +160,15 @@ export function MatchLeaderboard({ board }: { board: MatchBoard }) {
                 )}
                 <span className="flex min-w-0 flex-1 items-center gap-2">
                   <PlayerName row={r} code={group.code} />
+                  {/* Called it right while most of the group got it wrong. */}
+                  {r.upset && (
+                    <span
+                      className="shrink-0 rounded-full glass px-2 py-0.5 text-[10px] font-bold text-sunburst"
+                      title="Called it against the group's consensus"
+                    >
+                      🔮 Against the crowd
+                    </span>
+                  )}
                 </span>
                 {revealed ? (
                   <RevealedScore row={r} />
