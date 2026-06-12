@@ -9,6 +9,7 @@ export function PlayerLink({
   userId,
   code,
   className,
+  title,
   children,
 }: {
   userId: string;
@@ -16,11 +17,15 @@ export function PlayerLink({
   code?: string;
   /** Classes for the rendered element (the link also gains hover:underline). */
   className?: string;
+  /** Hover title — pass the full name where the rendered one can truncate. */
+  title?: string;
   children: React.ReactNode;
 }) {
   if (!code) {
-    return className != null ? (
-      <span className={className}>{children}</span>
+    return className != null || title != null ? (
+      <span className={className} title={title}>
+        {children}
+      </span>
     ) : (
       <>{children}</>
     );
@@ -28,6 +33,7 @@ export function PlayerLink({
   return (
     <Link
       href={`/g/${code}/p/${userId}`}
+      title={title}
       // Don't prefetch: a leaderboard renders one of these per player, and each
       // target is a force-dynamic profile page. Eagerly prefetching them all at
       // once floods the connection with RSC requests; on mobile one gets

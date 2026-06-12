@@ -14,3 +14,8 @@ export const RESULT_TEXT = "text-pitch dark:text-emerald-400";
 
 /** Live, in-play scores and badges. */
 export const LIVE_TEXT = "text-flame";
+
+/** Keyboard-focus ring for interactive controls (buttons, steppers, tabs).
+ *  Visible over the glass surfaces in both light and dark mode. */
+export const FOCUS_RING =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pitch dark:focus-visible:ring-emerald-400";

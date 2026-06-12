@@ -17,7 +17,9 @@ export function PastPredictionList({ matches }: { matches: PastPrediction[] }) {
           <h3 className="mb-2 px-1 text-sm font-black uppercase tracking-wide text-stone-400">
             {g.date}
           </h3>
-          <div className="space-y-6">
+          {/* Two columns once there's room (the page caps at max-w-3xl, where a
+              third column would squeeze the cards below a readable width). */}
+          <div className="grid gap-6 sm:grid-cols-2">
             {g.items.map((m) => (
               <MatchCard
                 key={m.id}

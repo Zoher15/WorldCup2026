@@ -71,7 +71,7 @@ export default function LoginPage({
             <button
               type="submit"
               disabled={verifying}
-              className="w-full rounded-full glass py-3.5 text-lg font-bold text-pitch dark:text-emerald-400 transition active:scale-95 disabled:opacity-50"
+              className="w-full rounded-full glass py-3.5 text-lg font-bold text-pitch dark:text-emerald-400 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {verifying ? "Signing you in…" : "Verify & sign in"}
             </button>
@@ -90,7 +90,7 @@ export default function LoginPage({
             <button
               type="submit"
               disabled={pending}
-              className="text-sm font-bold text-grape underline-offset-2 hover:underline disabled:opacity-50 dark:text-violet-300"
+              className="text-sm font-bold text-grape underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-50 dark:text-violet-300"
             >
               {pending ? "Sending a new code…" : "Didn't get it? Resend code"}
             </button>
@@ -114,7 +114,7 @@ export default function LoginPage({
           <button
             type="submit"
             disabled={pending}
-            className="w-full rounded-full glass py-3.5 text-lg font-bold text-pitch dark:text-emerald-400 transition active:scale-95 disabled:opacity-50"
+            className="w-full rounded-full glass py-3.5 text-lg font-bold text-pitch dark:text-emerald-400 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {pending ? "Sending…" : "Email me a link"}
           </button>

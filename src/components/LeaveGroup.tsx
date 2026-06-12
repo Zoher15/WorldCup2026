@@ -18,7 +18,7 @@ export function LeaveGroup({ code, name }: { code: string; name: string }) {
           start(() => leaveGroupAction(code));
         }
       }}
-      className="rounded-full glass px-4 py-2 text-sm font-bold text-flame transition active:scale-95 disabled:opacity-50"
+      className="rounded-full glass px-4 py-2 text-sm font-bold text-flame transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
     >
       Leave group
     </button>

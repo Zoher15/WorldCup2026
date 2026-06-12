@@ -37,9 +37,10 @@ export default async function PastPredictionsPage() {
       </p>
 
       {matches.length === 0 ? (
-        <p className="rounded-2xl glass p-6 text-center font-medium text-stone-500 dark:text-stone-300">
+        <div className="rounded-2xl glass p-6 text-center font-medium text-stone-500 dark:text-stone-300">
+          <div className="mb-2 text-4xl">⚽</div>
           No finished matches yet — they&apos;ll appear here after kickoff.
-        </p>
+        </div>
       ) : (
         <PastPredictionList matches={matches} />
       )}

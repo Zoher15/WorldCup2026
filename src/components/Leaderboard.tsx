@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { PlayerLink } from "./PlayerLink";
 import { ShareLeaderboard } from "./ShareLeaderboard";
+import { FOCUS_RING } from "./theme";
 import { useLiveRefresh } from "./useLiveRefresh";
 import type { Standings } from "@/lib/standings";
 
@@ -88,7 +89,7 @@ export function Leaderboard({
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex-1 rounded-full px-3 py-1.5 text-sm font-bold transition ${
+            className={`flex-1 rounded-full px-3 py-1.5 text-sm font-bold transition ${FOCUS_RING} ${
               tab === t.key
                 ? "glass text-grape dark:text-violet-300"
                 : "text-stone-500 hover:text-stone-700 dark:text-stone-300 dark:hover:text-white"
@@ -103,14 +104,21 @@ export function Leaderboard({
       <div className="mb-5 flex items-end justify-center gap-3">
         {PODIUM_ORDER.map((idx, slot) => {
           const r = top3[idx];
-          if (!r) return <div key={slot} className="w-20" />;
+          if (!r)
+            return (
+              <div key={slot} className="w-20 max-sm:max-w-24 max-sm:flex-1 max-sm:w-auto" />
+            );
           return (
-            <div key={slot} className="flex w-20 flex-col items-center">
+            <div
+              key={slot}
+              className="flex w-20 flex-col items-center max-sm:max-w-24 max-sm:flex-1 max-sm:w-auto"
+            >
               <div className="text-2xl">{MEDALS[idx]}</div>
               {/* No profile to link to without a group (BoringBot has a synthetic one). */}
               <PlayerLink
                 userId={r.userId}
                 code={code}
+                title={r.displayName}
                 className="mb-1 max-w-full truncate text-xs font-bold"
               >
                 {r.displayName}
@@ -137,12 +145,17 @@ export function Leaderboard({
         {shownRest.map((r, i) => (
           <li
             key={r.userId}
-            className="flex items-center gap-3 rounded-2xl glass px-4 py-2.5 text-stone-700 dark:text-stone-100"
+            className="flex items-center gap-3 rounded-2xl glass px-4 py-3 text-stone-700 dark:text-stone-100"
           >
             <span className="w-6 text-center font-black text-stone-400">
               {i + 4}
             </span>
-            <PlayerLink userId={r.userId} code={code} className="flex-1 truncate font-bold">
+            <PlayerLink
+              userId={r.userId}
+              code={code}
+              title={r.displayName}
+              className="flex-1 truncate font-bold"
+            >
               {r.displayName}
             </PlayerLink>
             <Movement value={r.movement} />
@@ -159,7 +172,7 @@ export function Leaderboard({
             <button
               onClick={() => setExpanded((v) => !v)}
               aria-expanded={expanded}
-              className="rounded-full glass px-4 py-2 text-sm font-bold text-grape transition active:scale-95 dark:text-violet-300"
+              className={`rounded-full glass px-4 py-2 text-sm font-bold text-grape transition active:scale-95 dark:text-violet-300 ${FOCUS_RING}`}
             >
               {expanded ? "Show less" : `Show all ${rows.length} →`}
             </button>

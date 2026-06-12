@@ -115,7 +115,7 @@ function Row({ m }: { m: AdminMatch }) {
           <button
             onClick={clear}
             disabled={pending}
-            className="rounded-full glass px-3 py-1.5 text-xs font-bold text-stone-700 disabled:opacity-50 dark:text-stone-200"
+            className="rounded-full glass px-3 py-1.5 text-xs font-bold text-stone-700 disabled:cursor-not-allowed disabled:opacity-50 dark:text-stone-200"
           >
             Clear
           </button>
@@ -123,7 +123,7 @@ function Row({ m }: { m: AdminMatch }) {
         <button
           onClick={confirm}
           disabled={pending}
-          className="rounded-full glass px-4 py-1.5 text-xs font-bold text-pitch dark:text-emerald-400 disabled:opacity-50"
+          className="rounded-full glass px-4 py-1.5 text-xs font-bold text-pitch dark:text-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {m.resultConfirmed ? "Update" : "Confirm result"}
         </button>
@@ -169,7 +169,7 @@ export function AdminResults({ matches }: { matches: AdminMatch[] }) {
           <button
             onClick={syncNow}
             disabled={syncing}
-            className="rounded-full glass px-4 py-2 text-sm font-bold text-ocean dark:text-sky-400 disabled:opacity-50"
+            className="rounded-full glass px-4 py-2 text-sm font-bold text-ocean dark:text-sky-400 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {syncing ? "Syncing…" : "Sync live scores"}
           </button>

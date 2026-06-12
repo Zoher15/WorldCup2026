@@ -97,7 +97,7 @@ function Section({
           {empty}
         </p>
       ) : (
-        <div className="space-y-6">
+        <div className="grid gap-6 sm:grid-cols-2">
           {rows.map((r) => (
             <PlayerCard key={r.matchId} row={r} isBot={isBot} />
           ))}
@@ -130,13 +130,14 @@ export function PlayerPredictions({
     const past = profile.rows.filter(isFinal).reverse();
     if (past.length === 0) {
       return (
-        <p className="rounded-2xl glass p-6 text-center font-medium text-stone-500 dark:text-stone-300">
+        <div className="rounded-2xl glass p-6 text-center font-medium text-stone-500 dark:text-stone-300">
+          <div className="mb-2 text-4xl">⚽</div>
           No finished matches yet — they&apos;ll appear here after kickoff.
-        </p>
+        </div>
       );
     }
     return (
-      <div className="space-y-6">
+      <div className="grid gap-6 sm:grid-cols-2">
         {past.map((r) => (
           <PlayerCard key={r.matchId} row={r} isBot={isBot} />
         ))}

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { BreakdownRow } from "./BreakdownRow";
 import { MatchCard, toMatchCardData } from "./MatchCard";
 import { PlayerLink } from "./PlayerLink";
-import { LIVE_TEXT, PREDICTION_TEXT, RESULT_TEXT } from "./theme";
+import { FOCUS_RING, LIVE_TEXT, PREDICTION_TEXT, RESULT_TEXT } from "./theme";
 import { useLiveRefresh } from "./useLiveRefresh";
 import type { MatchBoard, MatchBoardRow } from "@/lib/match-leaderboard";
 
@@ -53,7 +53,7 @@ function RevealedScore({ row }: { row: MatchBoardRow }) {
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        className="inline-flex items-center gap-2 rounded-full glass px-2.5 py-1 transition active:scale-95"
+        className={`inline-flex items-center gap-2 rounded-full glass px-2.5 py-1 transition active:scale-95 ${FOCUS_RING}`}
       >
         {call}
         <span
@@ -64,7 +64,7 @@ function RevealedScore({ row }: { row: MatchBoardRow }) {
           {row.provisional ? "~" : ""}
           {row.points} pt{row.points === 1 ? "" : "s"}
         </span>
-        <span className="text-[9px] font-bold text-stone-400">
+        <span className="text-[10px] font-bold text-stone-400">
           {open ? "▲" : "▼"}
         </span>
       </button>
@@ -97,6 +97,7 @@ function PlayerName({ row, code }: { row: MatchBoardRow; code: string }) {
     <PlayerLink
       userId={row.userId}
       code={row.isBot ? undefined : code}
+      title={row.displayName}
       className={row.isBot ? undefined : "truncate"}
     >
       <span className="truncate font-bold text-stone-800 dark:text-stone-100">

@@ -18,12 +18,13 @@ export default async function GroupsPage() {
       </h1>
 
       {groups.length === 0 ? (
-        <p className="rounded-2xl glass p-6 text-center text-sm font-medium text-stone-500 dark:text-stone-300">
+        <div className="rounded-2xl glass p-6 text-center text-sm font-medium text-stone-500 dark:text-stone-300">
+          <div className="mb-2 text-4xl">📭</div>
           You&apos;re not in any groups yet.{" "}
           <Link href="/join" className="font-bold text-pitch dark:text-emerald-400">
             Create or join one →
           </Link>
-        </p>
+        </div>
       ) : (
         <ul className="space-y-3">
           {groups.map((g) => (
@@ -33,7 +34,10 @@ export default async function GroupsPage() {
                 className="flex items-center justify-between gap-3 rounded-2xl glass p-4 transition active:scale-[0.99]"
               >
                 <span className="min-w-0">
-                  <span className="block truncate font-black text-stone-800 dark:text-stone-100">
+                  <span
+                    title={g.name}
+                    className="block truncate font-black text-stone-800 dark:text-stone-100"
+                  >
                     {g.name}
                   </span>
                   <span className="text-xs font-medium text-stone-500 dark:text-stone-400">

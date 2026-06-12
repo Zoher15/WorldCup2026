@@ -5,7 +5,7 @@ import { Stepper } from "./Stepper";
 import { Countdown } from "./Countdown";
 import { BreakdownRow } from "./BreakdownRow";
 import { LiveBadge, FullTimeBadge } from "./StatusBadge";
-import { LIVE_TEXT, PREDICTION_TEXT, RESULT_TEXT } from "./theme";
+import { FOCUS_RING, LIVE_TEXT, PREDICTION_TEXT, RESULT_TEXT } from "./theme";
 import { teamByCode, teamColor, teamLabel } from "@/lib/fifa";
 import { formatHostCity, formatKickoffDateCompact, formatKickoffTime, formatStageLabel, shortHostCity } from "@/lib/format";
 import type { PredictionState } from "@/lib/prediction-rules";
@@ -164,11 +164,13 @@ function StatusPill({
 
 /** A team's name on a solid bar — the flags carry identity, this keeps it legible. */
 function TeamName({ code, label }: { code: string | null; label?: string | null }) {
+  const name = teamLabel(code, label);
   return (
     <span
+      title={name}
       className={`truncate rounded-lg px-2.5 py-1 text-center text-sm font-extrabold ${GLASS} text-stone-800 dark:text-stone-50`}
     >
-      {teamLabel(code, label)}
+      {name}
     </span>
   );
 }
@@ -193,7 +195,7 @@ function Score({
         <span>{away}</span>
       </div>
       {label && (
-        <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">{label}</div>
+        <div className="text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">{label}</div>
       )}
     </div>
   );
@@ -213,7 +215,7 @@ function MiniScore({
 }) {
   return (
     <div className="text-center">
-      <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
+      <div className="text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
         {label}
       </div>
       <div className={`flex items-center justify-center gap-1.5 text-2xl font-black tabular-nums ${tone}`}>
@@ -262,7 +264,7 @@ function DualScore({
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        className={`rounded-xl px-4 py-1.5 ${GLASS} transition active:scale-95`}
+        className={`rounded-xl px-4 py-1.5 ${GLASS} transition active:scale-95 ${FOCUS_RING}`}
       >
         <div className="flex items-center justify-center gap-3">
           <MiniScore
@@ -279,7 +281,7 @@ function DualScore({
             tone={live ? LIVE_TEXT : "text-stone-800 dark:text-stone-50"}
           />
         </div>
-        <div className="mt-0.5 flex items-center justify-center gap-1 text-[9px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
+        <div className="mt-0.5 flex items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
           <span className={`font-black ${live ? LIVE_TEXT : RESULT_TEXT}`}>
             {live ? "~" : ""}{b.total} pt{b.total === 1 ? "" : "s"}
           </span>
@@ -378,7 +380,7 @@ export function MatchCard({ data, opensAt, entry, pick, status, footer, onExpire
           <span className="text-xl font-black text-stone-300 dark:text-stone-600">:</span>
           <Stepper size="sm" value={entry.away} onChange={(n) => entry.onChange("away", n)} />
         </div>
-        <div className="text-center text-[9px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
+        <div className="text-center text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
           your call
         </div>
       </div>
@@ -387,13 +389,13 @@ export function MatchCard({ data, opensAt, entry, pick, status, footer, onExpire
     // Window shut at kickoff: drop the +/- and show the locked-in pick.
     focal = (
       <div className={`rounded-xl px-4 py-1.5 ${GLASS}`}>
-        <div className="flex items-center justify-center gap-2 text-2xl font-black tabular-nums text-stone-400 dark:text-stone-400">
+        <div className="flex items-center justify-center gap-2 text-2xl font-black tabular-nums text-stone-400 dark:text-stone-300">
           <span className="text-xl leading-none">🔒</span>
           <span>{entry.home}</span>
           <span className="text-stone-300 dark:text-stone-600">:</span>
           <span>{entry.away}</span>
         </div>
-        <div className="text-center text-[9px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
+        <div className="text-center text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
           locked
         </div>
       </div>
@@ -404,7 +406,7 @@ export function MatchCard({ data, opensAt, entry, pick, status, footer, onExpire
     // place this timing lives, with the host city already shown top-right.
     focal = (
       <div className={`rounded-xl px-4 py-2 text-center ${GLASS}`}>
-        <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">opens in</div>
+        <div className="text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">opens in</div>
         <div className="text-xl font-black tabular-nums text-ocean dark:text-sky-400">
           <Countdown target={opensAt} expiredLabel="open now" onExpire={onExpire} />
         </div>
@@ -418,12 +420,18 @@ export function MatchCard({ data, opensAt, entry, pick, status, footer, onExpire
         <div className="text-lg font-black leading-tight text-stone-700 dark:text-stone-100">
           {formatKickoffDateCompact(data.kickoffAt)}
         </div>
-        <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
+        <div className="text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
           {formatKickoffTime(data.kickoffAt)} · kickoff
         </div>
       </div>
     );
   }
+
+  // The header pill truncates on narrow cards, so it carries its full text as a
+  // hover title too.
+  const stageLabel = data.trial
+    ? "🎯 Practice"
+    : formatStageLabel(data.groupLabel, data.stage);
 
   return (
     <div className={`relative animate-pop-in overflow-hidden rounded-2xl bg-stone-200 shadow-lg ring-1 ring-white/30 dark:bg-stone-800 dark:ring-white/15${revealOnHover ? " glass-reveal" : ""}`}>
@@ -451,10 +459,11 @@ export function MatchCard({ data, opensAt, entry, pick, status, footer, onExpire
 
       <div className="relative flex min-h-[9rem] flex-col justify-between gap-2 p-3 text-xs font-bold">
         <div className="relative flex items-center justify-between gap-2">
-          <span className={`min-w-0 truncate rounded-full px-2.5 py-0.5 ${GLASS} text-stone-600 dark:text-stone-200`}>
-            {data.trial
-              ? "🎯 Practice"
-              : formatStageLabel(data.groupLabel, data.stage)}
+          <span
+            title={stageLabel}
+            className={`min-w-0 truncate rounded-full px-2.5 py-0.5 ${GLASS} text-stone-600 dark:text-stone-200`}
+          >
+            {stageLabel}
           </span>
           {status && (
             <span

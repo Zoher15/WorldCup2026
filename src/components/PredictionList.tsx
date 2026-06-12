@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { MatchCard } from "./MatchCard";
-import { LIVE_TEXT } from "./theme";
+import { FOCUS_RING, LIVE_TEXT } from "./theme";
 import { useLiveRefresh } from "./useLiveRefresh";
 import { groupByDate } from "@/lib/group-by-date";
 import { isLiveMatch } from "@/lib/match-predicates";
@@ -97,7 +97,9 @@ export function PredictionList({
           <h3 className="mb-2 px-1 text-sm font-black uppercase tracking-wide text-stone-400">
             {g.date}
           </h3>
-          <div className="space-y-6">
+          {/* Two columns once there's room (the page caps at max-w-3xl, where a
+              third column would squeeze the cards below a readable width). */}
+          <div className="grid gap-6 sm:grid-cols-2">
             {g.items.map((m) => {
               const pick = picks[m.id];
               const open = m.state === "open";
@@ -163,7 +165,7 @@ export function PredictionList({
           <button
             onClick={save}
             disabled={pending || dirtyIds.length === 0}
-            className="rounded-full glass px-6 py-3 font-bold text-pitch dark:text-emerald-400 transition active:scale-95 disabled:opacity-40"
+            className={`rounded-full glass px-6 py-3 font-bold text-pitch dark:text-emerald-400 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${FOCUS_RING}`}
           >
             {pending ? "Saving…" : "Save predictions"}
           </button>
