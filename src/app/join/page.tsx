@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getUserId } from "@/lib/identity";
 import { getProfile } from "@/lib/profile";
 import { JoinForms } from "@/components/JoinForms";
+import { FOCUS_RING } from "@/components/theme";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,7 @@ export default async function JoinPage({
 
   return (
     <main className="mx-auto max-w-md px-4 py-10">
-      <Link href="/" className="text-sm font-bold text-stone-400">
+      <Link href="/" className={`rounded-md text-sm font-bold text-stone-400 ${FOCUS_RING}`}>
         ← Back
       </Link>
       <h1 className="mt-3 mb-6 gradient-text font-display pb-1 text-3xl leading-tight">

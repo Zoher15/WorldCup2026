@@ -149,6 +149,8 @@ export interface PastPrediction {
   venue: string | null;
   result: { home: number; away: number; advancedCode: string | null };
   pick: { home: number; away: number; advancePick: string | null } | null;
+  /** The retired practice match — history only, never a bragging right. */
+  isTrial: boolean;
 }
 
 /**
@@ -216,6 +218,7 @@ export async function getPastPredictionBoard(
         pick: p
           ? { home: p.pred_home, away: p.pred_away, advancePick: p.advance_pick }
           : null,
+        isTrial: Boolean(m.is_trial),
       };
     });
 }

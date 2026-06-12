@@ -5,6 +5,7 @@ import { getViewerMembership } from "@/lib/groups";
 import { getMatchLeaderboard } from "@/lib/match-leaderboard";
 import { MatchLeaderboard } from "@/components/MatchLeaderboard";
 import { LoadError } from "@/components/LoadError";
+import { FOCUS_RING } from "@/components/theme";
 
 export const dynamic = "force-dynamic";
 
@@ -40,12 +41,12 @@ export default async function MatchBoardPage({
     <main className="mx-auto max-w-3xl px-4 py-8">
       <Link
         href={`/g/${board.group.code}`}
-        className="text-sm font-bold text-stone-400"
+        className={`rounded-md text-sm font-bold text-stone-400 ${FOCUS_RING}`}
       >
         ← {board.group.name}
       </Link>
 
-      <h1 className="mt-3 mb-6 gradient-text pb-1 text-3xl font-black leading-tight">
+      <h1 className="mt-3 mb-6 gradient-text font-display pb-1 text-3xl leading-tight">
         Match predictions
       </h1>
 

@@ -8,6 +8,7 @@ import { getProfile, initials } from "@/lib/profile";
 import { appBaseUrl } from "@/lib/app-url";
 import { AccountMenu } from "@/components/AccountMenu";
 import { GlassGlow } from "@/components/GlassGlow";
+import { FOCUS_RING } from "@/components/theme";
 
 /* Punchy display face for headlines and big score digits. Exposed as a CSS
    variable on <html>; globals.css maps it onto the `--font-display` theme token
@@ -52,7 +53,7 @@ export default async function RootLayout({
         <header className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 rounded-full glass px-3 py-1.5 text-sm font-black tracking-tight text-pitch dark:text-emerald-400"
+            className={`inline-flex items-center gap-1.5 rounded-full glass px-3 py-1.5 text-sm font-black tracking-tight text-pitch dark:text-emerald-400 ${FOCUS_RING}`}
           >
             ⚽ World Cup 2026
           </Link>

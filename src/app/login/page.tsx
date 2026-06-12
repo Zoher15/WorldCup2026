@@ -4,12 +4,15 @@ import { use, useActionState } from "react";
 import Link from "next/link";
 import { sendMagicLinkAction, verifyEmailOtpAction } from "./actions";
 import { INITIAL_LOGIN_STATE, INITIAL_VERIFY_STATE } from "./login-state";
+import { FOCUS_RING } from "@/components/theme";
 
+// Dark-only fields, like form-styles.ts: the app forces dark mode, so there
+// are no light/`dark:` pairs that could flash a white field.
 const input =
-  "w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-base font-medium outline-none focus:border-pitch focus:ring-2 focus:ring-pitch/30 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100 dark:placeholder:text-stone-500";
+  "w-full rounded-xl border border-stone-600 bg-stone-800 px-4 py-3 text-base font-medium text-stone-100 outline-none placeholder:text-stone-500 focus:border-pitch focus:ring-2 focus:ring-pitch/50";
 
 const codeInput =
-  "w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-center text-2xl font-black tracking-[0.5em] outline-none focus:border-pitch focus:ring-2 focus:ring-pitch/30 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100 dark:placeholder:text-stone-600";
+  "w-full rounded-xl border border-stone-600 bg-stone-800 px-4 py-3 text-center text-2xl font-black tracking-[0.5em] text-stone-100 outline-none placeholder:text-stone-600 focus:border-pitch focus:ring-2 focus:ring-pitch/50";
 
 export default function LoginPage({
   searchParams,
@@ -28,7 +31,7 @@ export default function LoginPage({
 
   return (
     <main className="mx-auto max-w-md px-4 py-12">
-      <Link href="/" className="text-sm font-bold text-stone-400">
+      <Link href="/" className={`rounded-md text-sm font-bold text-stone-400 ${FOCUS_RING}`}>
         ← Home
       </Link>
       <h1 className="mt-3 mb-2 gradient-text font-display pb-1 text-3xl leading-tight">

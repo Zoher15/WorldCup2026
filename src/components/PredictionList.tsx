@@ -37,7 +37,11 @@ export function PredictionList({
     return p;
   });
   const [pending, startTransition] = useTransition();
-  const [flash, setFlash] = useState<string | null>(null);
+  // Save feedback carries its kind so the bar can colour success vs failure.
+  const [flash, setFlash] = useState<{
+    kind: "ok" | "error";
+    text: string;
+  } | null>(null);
 
   const openIds = useMemo(
     () => new Set(matches.filter((m) => m.state === "open").map((m) => m.id)),
@@ -83,7 +87,7 @@ export function PredictionList({
     startTransition(async () => {
       const res = await savePredictionsAction(items);
       if (!res.ok) {
-        setFlash(res.error ?? "Save failed.");
+        setFlash({ kind: "error", text: res.error ?? "Save failed." });
         return;
       }
       setSavedSnapshot((snap) => {
@@ -91,9 +95,10 @@ export function PredictionList({
         for (const id of dirtyIds) next[id] = { ...picks[id] };
         return next;
       });
-      setFlash(
-        `Saved ${res.saved}${res.skipped ? ` · ${res.skipped} skipped` : ""} ✓`,
-      );
+      setFlash({
+        kind: "ok",
+        text: `Saved ${res.saved}${res.skipped ? ` · ${res.skipped} skipped` : ""} ✓`,
+      });
     });
   }
 
@@ -114,8 +119,10 @@ export function PredictionList({
       {/* Urgency hero: the next lock moment, ticking down. Refreshing on expiry
           re-derives match states so the banner (and the locked cards) update. */}
       {nextLock && (
-        <div className="mb-6 flex items-center justify-center gap-2 rounded-2xl glass px-4 py-3 text-sm font-bold text-stone-600 dark:text-stone-200">
-          <span aria-hidden>⏳</span>
+        <div className="mb-6 flex items-center justify-center gap-2 rounded-2xl glass px-4 py-3 text-sm font-bold text-stone-700 ring-1 ring-flame/30 dark:text-stone-100">
+          <span className="animate-pulse" aria-hidden>
+            ⏳
+          </span>
           <span>
             {nextLock.count} match{nextLock.count === 1 ? "" : "es"} lock
             {nextLock.count === 1 ? "s" : ""} in
@@ -216,13 +223,23 @@ export function PredictionList({
       {/* Sticky save bar */}
       <div className="fixed inset-x-0 bottom-0 z-10 glass glass-frost px-4 py-3">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
-          <span className="text-sm font-bold text-stone-500 dark:text-stone-300">
-            {flash
-              ? flash
-              : dirtyIds.length
+          {flash ? (
+            <span
+              className={`text-sm font-bold ${
+                flash.kind === "ok"
+                  ? "text-pitch dark:text-emerald-400"
+                  : "text-flame"
+              }`}
+            >
+              {flash.text}
+            </span>
+          ) : (
+            <span className="text-sm font-bold text-stone-500 dark:text-stone-300">
+              {dirtyIds.length
                 ? `${dirtyIds.length} unsaved`
                 : "All caught up"}
-          </span>
+            </span>
+          )}
           <button
             onClick={save}
             disabled={pending || dirtyIds.length === 0}

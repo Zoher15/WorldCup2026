@@ -5,6 +5,7 @@ import { getViewerMembership } from "@/lib/groups";
 import { getPlayerProfile } from "@/lib/player";
 import { PlayerPredictions } from "@/components/PlayerPredictions";
 import { LoadError } from "@/components/LoadError";
+import { FOCUS_RING } from "@/components/theme";
 
 export const dynamic = "force-dynamic";
 
@@ -55,11 +56,11 @@ export default async function PlayerPastPage({
     <main className="mx-auto max-w-3xl px-4 py-8">
       <Link
         href={`/g/${group.code}/p/${userId}`}
-        className="text-sm font-bold text-stone-400"
+        className={`rounded-md text-sm font-bold text-stone-400 ${FOCUS_RING}`}
       >
         ← {player.displayName}
       </Link>
-      <h1 className="mt-3 mb-1 gradient-text pb-1 text-3xl font-black leading-tight">
+      <h1 className="mt-3 mb-1 gradient-text font-display pb-1 text-3xl leading-tight">
         Past results
       </h1>
       <p className="mb-6 text-sm font-medium text-stone-500 dark:text-stone-300">

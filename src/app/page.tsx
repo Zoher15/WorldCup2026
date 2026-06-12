@@ -2,6 +2,7 @@ import Link from "next/link";
 import { MatchCard, type MatchCardData } from "@/components/MatchCard";
 import { Leaderboard } from "@/components/Leaderboard";
 import { PredictionList } from "@/components/PredictionList";
+import { FOCUS_RING } from "@/components/theme";
 import { DEMO_LEADERBOARD } from "@/lib/mock";
 import { getUserId } from "@/lib/identity";
 import { getPredictionBoard } from "@/lib/predictions";
@@ -95,7 +96,7 @@ export default async function Home() {
             {board && (
               <Link
                 href="/predict"
-                className="text-sm font-bold text-grape underline-offset-2 hover:underline dark:text-violet-300"
+                className={`rounded-md text-sm font-bold text-grape underline-offset-2 hover:underline dark:text-violet-300 ${FOCUS_RING}`}
               >
                 All matches →
               </Link>
@@ -120,7 +121,7 @@ export default async function Home() {
               {/* Signed out: predictions live behind a login. Say so up front. */}
               <Link
                 href="/login?next=/"
-                className="mb-4 flex items-center justify-center gap-2 rounded-2xl glass px-4 py-3 text-sm font-bold text-pitch transition active:scale-[0.99] dark:text-emerald-400"
+                className={`mb-4 flex items-center justify-center gap-2 rounded-2xl glass px-4 py-3 text-sm font-bold text-pitch transition active:scale-[0.99] dark:text-emerald-400 ${FOCUS_RING}`}
               >
                 🔓 Log in to make your predictions →
               </Link>
@@ -150,17 +151,29 @@ export default async function Home() {
                 👥 Your groups
               </h2>
               {groups.length === 0 ? (
-                <p className="text-center text-sm font-medium text-stone-500 dark:text-stone-300">
-                  You&apos;re not in a group yet — create one or join with a
-                  code, and your picks count there instantly.
-                </p>
+                <div className="text-center">
+                  <div className="mb-2 text-4xl">📭</div>
+                  <h3 className="text-lg font-black text-stone-700 dark:text-stone-100">
+                    No groups yet
+                  </h3>
+                  <p className="mt-1 text-sm font-medium text-stone-500 dark:text-stone-300">
+                    Create one or join with a code — your picks count there
+                    instantly.
+                  </p>
+                  <Link
+                    href="/join"
+                    className={`mt-4 inline-block rounded-full chrome px-6 py-3 font-bold text-pitch transition active:scale-95 dark:text-emerald-400 ${FOCUS_RING}`}
+                  >
+                    Create or join a group
+                  </Link>
+                </div>
               ) : (
                 <ul className="space-y-2">
                   {groups.map((g) => (
                     <li key={g.code}>
                       <Link
                         href={`/g/${g.code}`}
-                        className="flex items-center justify-between gap-3 rounded-2xl glass px-4 py-3 font-bold text-stone-700 transition hover:scale-[1.01] active:scale-[0.99] dark:text-stone-100"
+                        className={`flex items-center justify-between gap-3 rounded-2xl glass px-4 py-3 font-bold text-stone-700 transition hover:scale-[1.01] active:scale-[0.99] dark:text-stone-100 ${FOCUS_RING}`}
                       >
                         <span className="truncate">{g.name}</span>
                         <span className="shrink-0 text-xs font-bold text-stone-400">

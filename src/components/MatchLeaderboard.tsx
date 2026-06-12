@@ -147,7 +147,7 @@ export function MatchLeaderboard({ board }: { board: MatchBoard }) {
             return (
               <li
                 key={r.userId}
-                className={`flex items-center gap-3 rounded-2xl px-4 py-2.5 ${
+                className={`flex items-center gap-3 rounded-2xl px-4 py-2.5 transition hover:scale-[1.01] ${
                   r.isViewer
                     ? "glass ring-2 ring-grape/40 dark:ring-violet-300/40"
                     : "glass"

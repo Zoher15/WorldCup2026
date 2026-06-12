@@ -58,7 +58,7 @@ function MatchRow({ code, match }: { code: string; match: BoardMatchSummary }) {
       <Link
         href={`/g/${code}/m/${match.id}`}
         prefetch={false}
-        className={`flex items-center gap-3 rounded-2xl glass px-4 py-2.5 transition active:scale-[0.99] ${FOCUS_RING}`}
+        className={`flex items-center gap-3 rounded-2xl glass px-4 py-2.5 transition hover:scale-[1.01] active:scale-[0.99] ${FOCUS_RING}`}
       >
         <span
           title={stageLabel}

@@ -460,10 +460,12 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
       />
     );
   } else if (entry && editing) {
-    // Open for editing: active steppers are the control (thumb-size on the hero).
+    // Open for editing: active steppers are the control (thumb-size on the
+    // hero). Half-width cards trade the breathing room between the steppers
+    // for the bigger buttons, so the row still fits a two-column grid.
     focal = (
-      <div className={`rounded-xl px-3 py-1.5 ${GLASS}`}>
-        <div className="flex items-center justify-center gap-3">
+      <div className={`rounded-xl ${hero ? "px-3" : "px-2"} py-1.5 ${GLASS}`}>
+        <div className={`flex items-center justify-center ${hero ? "gap-3" : "gap-2"}`}>
           <Stepper size={hero ? "md" : "sm"} value={entry.home} onChange={(n) => entry.onChange("home", n)} />
           <span className="text-xl font-black text-stone-300 dark:text-stone-600">:</span>
           <Stepper size={hero ? "md" : "sm"} value={entry.away} onChange={(n) => entry.onChange("away", n)} />

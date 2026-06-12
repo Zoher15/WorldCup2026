@@ -3,7 +3,8 @@
 import { FOCUS_RING } from "./theme";
 
 const SIZES = {
-  sm: { btn: "h-9 w-9 text-lg", value: "w-7 text-2xl" },
+  // Even "small" keeps a 40px button so prediction-card steppers stay tappable.
+  sm: { btn: "h-10 w-10 text-lg", value: "w-7 text-2xl" },
   md: { btn: "h-11 w-11 text-xl", value: "w-8 text-2xl" },
 } as const;
 
