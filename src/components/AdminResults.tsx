@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { Flag } from "./Flag";
+import { inputClassesGrape } from "./form-styles";
 import { teamLabel } from "@/lib/fifa";
 import { formatKickoffDateTime, formatStageLabel } from "@/lib/format";
 import { isKnockoutStage } from "@/lib/polling";
@@ -189,7 +190,7 @@ export function AdminResults({ matches }: { matches: AdminMatch[] }) {
         value={q}
         onChange={(e) => setQ(e.target.value)}
         placeholder="Search by team or match #"
-        className="mb-4 w-full rounded-xl border border-stone-200 bg-white px-4 py-3 font-medium outline-none focus:border-grape focus:ring-2 focus:ring-grape/30 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100 dark:placeholder:text-stone-500"
+        className={`mb-4 ${inputClassesGrape}`}
       />
 
       <div className="space-y-2">

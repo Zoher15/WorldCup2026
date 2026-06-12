@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { PlayerLink } from "./PlayerLink";
 import { ShareLeaderboard } from "./ShareLeaderboard";
 import { useLiveRefresh } from "./useLiveRefresh";
-import type { Standings, StandingsRow } from "@/lib/standings";
+import type { Standings } from "@/lib/standings";
 
 const TABS = [
   { key: "overall", label: "Overall" },
@@ -34,34 +34,6 @@ function Movement({ value }: { value: number }) {
     >
       {up ? "▲" : "▼"} {Math.abs(value)}
     </span>
-  );
-}
-
-/** A player's name, linked to their in-group profile when a group code is set. */
-function PlayerName({
-  row,
-  code,
-  className,
-}: {
-  row: StandingsRow;
-  code?: string;
-  className?: string;
-}) {
-  // No profile to link to without a group (BoringBot has a synthetic one).
-  if (!code) return <span className={className}>{row.displayName}</span>;
-  return (
-    <Link
-      href={`/g/${code}/p/${row.userId}`}
-      // Don't prefetch: a leaderboard renders one of these per player, and each
-      // target is a force-dynamic profile page. Eagerly prefetching them all at
-      // once floods the connection with RSC requests; on mobile one gets
-      // cancelled mid-stream and the router throws "Connection closed". Profiles
-      // are an occasional tap, so load them on click instead.
-      prefetch={false}
-      className={`${className ?? ""} hover:underline`}
-    >
-      {row.displayName}
-    </Link>
   );
 }
 
@@ -135,11 +107,14 @@ export function Leaderboard({
           return (
             <div key={slot} className="flex w-20 flex-col items-center">
               <div className="text-2xl">{MEDALS[idx]}</div>
-              <PlayerName
-                row={r}
+              {/* No profile to link to without a group (BoringBot has a synthetic one). */}
+              <PlayerLink
+                userId={r.userId}
                 code={code}
                 className="mb-1 max-w-full truncate text-xs font-bold"
-              />
+              >
+                {r.displayName}
+              </PlayerLink>
               {/* Glass sheet floating over the vibrant medal gradient — the
                   gold/silver/bronze glows through the frost, matching the
                   "glass over flags" treatment on the match cards. */}
@@ -167,7 +142,9 @@ export function Leaderboard({
             <span className="w-6 text-center font-black text-stone-400">
               {i + 4}
             </span>
-            <PlayerName row={r} code={code} className="flex-1 truncate font-bold" />
+            <PlayerLink userId={r.userId} code={code} className="flex-1 truncate font-bold">
+              {r.displayName}
+            </PlayerLink>
             <Movement value={r.movement} />
             <span className="w-10 text-right text-lg font-extrabold tabular-nums">
               {r.points}

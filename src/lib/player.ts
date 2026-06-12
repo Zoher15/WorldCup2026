@@ -1,12 +1,13 @@
 import { createAdminClient } from "./supabase/admin";
 import { normalizeCode } from "./codes";
+import { deriveMatchScore, mapMatchFields } from "./match-status";
 import {
   predictionState,
   isTrialActive,
   type PredictionState,
 } from "./prediction-rules";
 import { scorePrediction } from "./recompute";
-import { BORINGBOT_ID, BORINGBOT_NAME } from "./standings";
+import { BORINGBOT_ID, BORINGBOT_NAME, BORINGBOT_PICK } from "./standings";
 import type { Stage } from "./types";
 
 export interface PlayerPredictionRow {
@@ -133,9 +134,6 @@ export async function getPlayerProfile(opts: {
   const predByMatch = new Map(
     (predsRes.data ?? []).map((p) => [p.match_id, p as StoredPrediction & { match_id: string }]),
   );
-  // BoringBot's pick is the same 0–0 for every match.
-  const BOT_PICK: StoredPrediction = { pred_home: 0, pred_away: 0, advance_pick: null };
-
   const isViewer = opts.viewerId === opts.userId && !isBot;
   const lowerBound =
     group.late_join_policy === "start_even" ? Date.parse(group.created_at) : null;
@@ -150,7 +148,10 @@ export async function getPlayerProfile(opts: {
       m.is_trial && !trialActive
         ? "locked"
         : predictionState(m.kickoff_at, new Date(), m.is_trial);
-    const pred = isBot ? BOT_PICK : predByMatch.get(m.id);
+    // BoringBot's pick is the same 0–0 for every match.
+    const pred: StoredPrediction | undefined = isBot
+      ? BORINGBOT_PICK
+      : predByMatch.get(m.id);
     const hasPrediction = pred != null;
     if (hasPrediction) predicted++;
 
@@ -161,24 +162,10 @@ export async function getPlayerProfile(opts: {
       ? { home: pred!.pred_home, away: pred!.pred_away, advancePick: pred!.advance_pick }
       : null;
 
-    // A match is "over" the moment the feed reports it finished — we don't wait
-    // on the admin confirmation gate to treat it as final, so a finished match
-    // moves to past results (with its score and points) right away.
-    const isOver = m.status === "finished" || m.result_confirmed;
-    const result =
-      isOver && m.home_goals != null && m.away_goals != null
-        ? { home: m.home_goals, away: m.away_goals, advancedCode: m.advanced_code }
-        : null;
-
-    // In-play score: shown while the match is live (kicked off, not yet over).
-    // Mutually exclusive with `result`.
-    const live =
-      !isOver &&
-      m.status === "live" &&
-      m.home_goals != null &&
-      m.away_goals != null
-        ? { home: m.home_goals, away: m.away_goals, minute: m.minute }
-        : null;
+    // Over the moment the feed reports it finished (no waiting on the admin
+    // confirmation gate), so a finished match moves to past results — with its
+    // score and points — right away. `live` is the in-play score otherwise.
+    const { result, live } = deriveMatchScore(m);
 
     // Points count once the match is over and it falls within the group's
     // scoring window — graded against the final score the feed reported, without
@@ -213,14 +200,7 @@ export async function getPlayerProfile(opts: {
     return {
       matchId: m.id,
       matchNumber: m.match_number,
-      stage: m.stage,
-      groupLabel: m.group_label,
-      homeCode: m.home_code,
-      awayCode: m.away_code,
-      homeLabel: m.home_team,
-      awayLabel: m.away_team,
-      kickoffAt: m.kickoff_at,
-      venue: m.venue,
+      ...mapMatchFields(m),
       state,
       hasPrediction,
       pick,

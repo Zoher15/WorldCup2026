@@ -1,52 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { MatchCard, type MatchCardData, type MatchCardState } from "./MatchCard";
+import { MatchCard, toMatchCardData } from "./MatchCard";
+import { PREDICTION_TEXT, RESULT_TEXT } from "./theme";
 import { useLiveRefresh } from "./useLiveRefresh";
+import { isFinal, isInPlay, isLive } from "@/lib/match-predicates";
 import type { PlayerPredictionRow, PlayerProfile } from "@/lib/player";
-
-/** A match that's been finalized (its result confirmed) — the only thing that
- *  belongs on the "past results" page. */
-function isFinal(row: PlayerPredictionRow): boolean {
-  return row.result != null;
-}
-
-/** Kicked off but not yet finalized — in play, whether or not the live-score
- *  feed has caught up yet. Stays in the current view; never falls to "past"
- *  (so a just-kicked-off match doesn't briefly vanish into past results). */
-function isInPlay(row: PlayerPredictionRow): boolean {
-  return row.state === "locked" && row.result == null;
-}
-
-/** In play AND we have a live score to show (drives the live card visual). */
-function isLive(row: PlayerPredictionRow): boolean {
-  return isInPlay(row) && row.live != null;
-}
 
 /** A single match in a player's profile, rendered as the shared scoreboard —
  *  identical whether it's the viewer's own card or another group member's. */
 function PlayerCard({ row, isBot }: { row: PlayerPredictionRow; isBot: boolean }) {
   // Live (in-play) reads as "live"; a confirmed result as "final"; otherwise the
   // card keeps its prediction-window state (upcoming / open / locked-awaiting).
-  let state: MatchCardState = row.state;
-  if (row.state === "locked" && row.result) state = "final";
-  else if (isLive(row)) state = "live";
-
-  const data: MatchCardData = {
-    homeCode: row.homeCode,
-    awayCode: row.awayCode,
-    homeLabel: row.homeLabel,
-    awayLabel: row.awayLabel,
-    kickoffAt: row.kickoffAt,
-    stage: row.stage,
-    groupLabel: row.groupLabel,
-    venue: row.venue,
-    state,
-    minute: row.live?.minute,
-    homeGoals: row.result?.home ?? row.live?.home,
-    awayGoals: row.result?.away ?? row.live?.away,
-    advancedCode: row.result?.advancedCode,
-  };
+  const data = toMatchCardData(row);
 
   const status =
     row.state === "locked" ? (
@@ -80,10 +46,10 @@ function PastStatus({ row }: { row: PlayerPredictionRow }) {
   if (row.pick && row.points != null) {
     return (
       <span className="inline-flex items-center gap-1.5">
-        <span className="text-grape dark:text-violet-300">
+        <span className={PREDICTION_TEXT}>
           {row.pick.home}–{row.pick.away}
         </span>
-        <span className="font-black text-pitch dark:text-emerald-400">+{row.points}</span>
+        <span className={`font-black ${RESULT_TEXT}`}>+{row.points}</span>
       </span>
     );
   }
@@ -92,7 +58,7 @@ function PastStatus({ row }: { row: PlayerPredictionRow }) {
   // live in the tappable tile, so the chip just shows their call.
   if (isLive(row)) {
     return (
-      <span className="text-grape dark:text-violet-300">
+      <span className={PREDICTION_TEXT}>
         {row.pick.home}–{row.pick.away}
       </span>
     );
@@ -103,7 +69,7 @@ function PastStatus({ row }: { row: PlayerPredictionRow }) {
 
 /** Open/upcoming match: the pick stays private — only entered-or-not is shown. */
 function FutureStatus({ row, isBot }: { row: PlayerPredictionRow; isBot: boolean }) {
-  if (isBot) return <span className="text-grape dark:text-violet-300">Predicts 0–0</span>;
+  if (isBot) return <span className={PREDICTION_TEXT}>Predicts 0–0</span>;
   if (row.pick) return <span className="text-pitch dark:text-emerald-400">✓ Entered</span>;
   if (row.hasPrediction)
     return <span className="text-stone-500 dark:text-stone-300">🔒 Hidden</span>;

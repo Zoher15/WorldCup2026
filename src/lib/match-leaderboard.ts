@@ -13,14 +13,17 @@
 
 import { createAdminClient } from "./supabase/admin";
 import { normalizeCode } from "./codes";
+import { isMatchOver } from "./match-predicates";
+import { deriveMatchScore, mapMatchFields } from "./match-status";
 import { liveWindowExpired } from "./polling";
 import {
+  isLocked,
   predictionState,
   isTrialActive,
   type PredictionState,
 } from "./prediction-rules";
 import { computeBreakdown, type ScoreBreakdown } from "./score-breakdown";
-import { BORINGBOT_ID, BORINGBOT_NAME } from "./standings";
+import { BORINGBOT_ID, BORINGBOT_NAME, BORINGBOT_PICK } from "./standings";
 import type { Stage } from "./types";
 
 export interface MatchBoardMatch {
@@ -130,30 +133,15 @@ export async function getMatchLeaderboard(opts: {
       : predictionState(match.kickoff_at, new Date(), match.is_trial);
   const revealed = state === "locked";
 
-  // A match is "over" the moment the feed reports it finished — we don't wait on
-  // the admin confirmation gate to treat it as final.
-  const isOver = match.status === "finished" || match.result_confirmed;
-  const hasScore = match.home_goals != null && match.away_goals != null;
   // A stale "live" (its window long passed but the finish was never recorded)
   // must not keep showing as live — trial demos use a synthetic clock, so they're
   // exempt from the real-time window guard.
-  const isLive =
-    !isOver &&
-    match.status === "live" &&
-    hasScore &&
-    (match.is_trial ||
-      !liveWindowExpired({ kickoffAt: match.kickoff_at, stage: match.stage }));
-  const result =
-    isOver && hasScore
-      ? {
-          home: match.home_goals!,
-          away: match.away_goals!,
-          advancedCode: match.advanced_code,
-        }
-      : null;
-  const live = isLive
-    ? { home: match.home_goals!, away: match.away_goals!, minute: match.minute }
-    : null;
+  const { result, live } = deriveMatchScore(match, {
+    liveAllowed:
+      match.is_trial ||
+      !liveWindowExpired({ kickoffAt: match.kickoff_at, stage: match.stage }),
+  });
+  const isLive = live != null;
   // A scoreline we can grade picks against — the confirmed result, or the live
   // in-play score as a provisional projection (computeBreakdown handles both).
   const scoreline =
@@ -228,14 +216,7 @@ export async function getMatchLeaderboard(opts: {
   );
   // BoringBot: the 0-0 baseline, shown once there's a scoreline to score it on.
   if (revealed && scoreline) {
-    rows.push(
-      buildRow(
-        BORINGBOT_ID,
-        BORINGBOT_NAME,
-        { pred_home: 0, pred_away: 0, advance_pick: null },
-        true,
-      ),
-    );
+    rows.push(buildRow(BORINGBOT_ID, BORINGBOT_NAME, BORINGBOT_PICK, true));
   }
 
   rows.sort((a, b) => {
@@ -254,14 +235,7 @@ export async function getMatchLeaderboard(opts: {
   return {
     group: { code: group.code, name: group.name },
     match: {
-      homeCode: match.home_code,
-      awayCode: match.away_code,
-      homeLabel: match.home_team,
-      awayLabel: match.away_team,
-      kickoffAt: match.kickoff_at,
-      stage: match.stage,
-      groupLabel: match.group_label,
-      venue: match.venue,
+      ...mapMatchFields(match),
       trial: Boolean(match.is_trial),
       state,
       result,
@@ -325,24 +299,20 @@ export async function listBoardMatches(
     // Mirror the per-match board: a finished/over match is never live, and a
     // stale "live" past its window stops showing as live (these are non-trial).
     isLive:
-      !(m.status === "finished" || m.result_confirmed) &&
+      !isMatchOver(m) &&
       m.status === "live" &&
       !liveWindowExpired({ kickoffAt: m.kickoff_at, stage: m.stage }, now),
-    isFinished: m.status === "finished" || m.result_confirmed,
+    isFinished: isMatchOver(m),
     homeGoals: m.home_goals,
     awayGoals: m.away_goals,
   });
 
-  const isLocked = (m: (typeof all)[number]) =>
-    predictionState(m.kickoff_at, now, false) === "locked";
-  const isFinished = (m: (typeof all)[number]) =>
-    m.status === "finished" || m.result_confirmed;
   // In play: kicked off but not yet over — mirrors the profile/predict views so
   // a live match isn't lumped in with finished ones. Over is the feed's finished
   // status (or an admin confirmation), not a wait on confirmation.
-  const inPlay = all.filter((m) => isLocked(m) && !isFinished(m));
-  const finished = all.filter((m) => isFinished(m));
-  const upcoming = all.filter((m) => !isLocked(m));
+  const inPlay = all.filter((m) => isLocked(m.kickoff_at, now) && !isMatchOver(m));
+  const finished = all.filter((m) => isMatchOver(m));
+  const upcoming = all.filter((m) => !isLocked(m.kickoff_at, now));
 
   // Live/in-play first, then the soonest upcoming; every finished match trails
   // after (most-recent first) so the group page can split them into its

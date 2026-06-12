@@ -3,20 +3,12 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { MatchCard } from "./MatchCard";
+import { LIVE_TEXT } from "./theme";
 import { useLiveRefresh } from "./useLiveRefresh";
-import { formatKickoffDate } from "@/lib/format";
+import { groupByDate } from "@/lib/group-by-date";
+import { isLiveMatch } from "@/lib/match-predicates";
 import { savePredictionsAction } from "@/app/predict/actions";
 import type { MatchForPrediction, SavedPrediction } from "@/lib/predictions";
-
-/** A kicked-off, in-play match (locked, live status, score present). */
-function isLiveMatch(m: MatchForPrediction): boolean {
-  return (
-    m.state === "locked" &&
-    m.status === "live" &&
-    m.homeGoals != null &&
-    m.awayGoals != null
-  );
-}
 
 type Picks = Record<string, { home: number; away: number }>;
 
@@ -96,16 +88,7 @@ export function PredictionList({
 
   // Group matches under date headings, preserving kickoff order. Memoized so
   // editing a pick (which re-renders) doesn't rebuild the grouping.
-  const groups = useMemo(() => {
-    const out: { date: string; items: MatchForPrediction[] }[] = [];
-    for (const m of matches) {
-      const date = formatKickoffDate(m.kickoffAt);
-      const last = out[out.length - 1];
-      if (last && last.date === date) last.items.push(m);
-      else out.push({ date, items: [m] });
-    }
-    return out;
-  }, [matches]);
+  const groups = useMemo(() => groupByDate(matches), [matches]);
 
   return (
     <div className="pb-28">
@@ -155,7 +138,7 @@ export function PredictionList({
                         <span className="text-stone-500 dark:text-stone-300">Unsaved</span>
                       )
                     ) : live ? (
-                      <span className="text-flame">● Live</span>
+                      <span className={LIVE_TEXT}>● Live</span>
                     ) : (
                       <span className="text-stone-500 dark:text-stone-300">🔒 Locked</span>
                     )

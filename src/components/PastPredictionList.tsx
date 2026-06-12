@@ -1,20 +1,14 @@
 "use client";
 
 import { MatchCard } from "./MatchCard";
-import { formatKickoffDate } from "@/lib/format";
+import { groupByDate } from "@/lib/group-by-date";
 import type { PastPrediction } from "@/lib/predictions";
 
 /** The viewer's finished matches as full-time scoreboards — "your call" beside
  *  the result, tap for the points math. Same card as everywhere else. */
 export function PastPredictionList({ matches }: { matches: PastPrediction[] }) {
   // Group under date headings, preserving the (newest-first) order.
-  const groups: { date: string; items: PastPrediction[] }[] = [];
-  for (const m of matches) {
-    const date = formatKickoffDate(m.kickoffAt);
-    const last = groups[groups.length - 1];
-    if (last && last.date === date) last.items.push(m);
-    else groups.push({ date, items: [m] });
-  }
+  const groups = groupByDate(matches);
 
   return (
     <div>

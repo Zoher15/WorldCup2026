@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { LiveBadge, FullTimeBadge } from "./StatusBadge";
 import { teamLabel } from "@/lib/fifa";
 import {
   formatStageLabel,
@@ -16,21 +17,20 @@ function MatchStatus({ match }: { match: BoardMatchSummary }) {
 
   if (match.isLive && hasScore) {
     return (
-      <span className="inline-flex items-center gap-1.5 text-flame">
-        <span className="live-dot h-2 w-2 rounded-full bg-flame" />
+      <LiveBadge>
         <span className="font-black tabular-nums">
           {match.homeGoals}–{match.awayGoals}
         </span>
-      </span>
+      </LiveBadge>
     );
   }
   if (match.state === "locked") {
     if (match.isFinished && hasScore) {
       return (
-        <span className="font-black tabular-nums text-pitch dark:text-emerald-400">
+        <FullTimeBadge className="font-black tabular-nums">
           {match.homeGoals}–{match.awayGoals}
           <span className="ml-1 text-[10px] font-bold text-stone-400">FT</span>
-        </span>
+        </FullTimeBadge>
       );
     }
     return <span className="text-xs font-bold text-stone-400">In play</span>;
