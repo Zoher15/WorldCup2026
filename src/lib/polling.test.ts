@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   expectedMatchWindow,
+  liveWindowExpired,
   mergeWindows,
   isKnockoutStage,
   DEFAULT_POLLING_CONFIG,
@@ -58,6 +59,21 @@ test("cooling breaks lengthen the live window", () => {
 
 test("invalid kickoff is rejected", () => {
   assert.throws(() => expectedMatchWindow(m("not-a-date")), RangeError);
+});
+
+test("liveWindowExpired is false during the window and true once it passes", () => {
+  const kickoff = "2026-06-20T18:00:00Z";
+  const w = expectedMatchWindow(m(kickoff));
+  // Mid-match: still live.
+  assert.equal(liveWindowExpired(m(kickoff), new Date(w.startMs + 60_000)), false);
+  // Just before the window closes: still live.
+  assert.equal(liveWindowExpired(m(kickoff), new Date(w.endMs - 1)), false);
+  // After the window closes: a stale "live" should no longer count as live.
+  assert.equal(liveWindowExpired(m(kickoff), new Date(w.endMs)), true);
+  assert.equal(
+    liveWindowExpired(m(kickoff), new Date(w.endMs + 60 * 60_000)),
+    true,
+  );
 });
 
 test("overlapping windows merge into their union", () => {

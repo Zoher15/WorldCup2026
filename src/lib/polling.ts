@@ -76,6 +76,20 @@ export function expectedMatchWindow(
 }
 
 /**
+ * True once a match's expected live window has fully elapsed — it should be over
+ * by now even if the feed (or our poll) hasn't reported the finish yet. Used as a
+ * UI guard so a stale "live" status — e.g. a match whose FINISHED was missed and
+ * is stuck on "live" in the DB — can't keep rendering as live indefinitely.
+ */
+export function liveWindowExpired(
+  match: Pick<Match, "kickoffAt" | "stage">,
+  now: Date = new Date(),
+  config: PollingConfig = DEFAULT_POLLING_CONFIG,
+): boolean {
+  return now.getTime() >= expectedMatchWindow(match, config).endMs;
+}
+
+/**
  * Merge overlapping windows into their union. Windows separated by a gap no
  * larger than `gapMergeMin` are also merged (to avoid stop/start churn).
  */

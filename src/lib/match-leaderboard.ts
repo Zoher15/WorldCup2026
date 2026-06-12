@@ -13,6 +13,7 @@
 
 import { createAdminClient } from "./supabase/admin";
 import { normalizeCode } from "./codes";
+import { liveWindowExpired } from "./polling";
 import {
   predictionState,
   isTrialActive,
@@ -133,7 +134,15 @@ export async function getMatchLeaderboard(opts: {
   // the admin confirmation gate to treat it as final.
   const isOver = match.status === "finished" || match.result_confirmed;
   const hasScore = match.home_goals != null && match.away_goals != null;
-  const isLive = !isOver && match.status === "live" && hasScore;
+  // A stale "live" (its window long passed but the finish was never recorded)
+  // must not keep showing as live — trial demos use a synthetic clock, so they're
+  // exempt from the real-time window guard.
+  const isLive =
+    !isOver &&
+    match.status === "live" &&
+    hasScore &&
+    (match.is_trial ||
+      !liveWindowExpired({ kickoffAt: match.kickoff_at, stage: match.stage }));
   const result =
     isOver && hasScore
       ? {
@@ -313,7 +322,12 @@ export async function listBoardMatches(
     awayLabel: m.away_team,
     kickoffAt: m.kickoff_at,
     state: predictionState(m.kickoff_at, now, false),
-    isLive: m.status === "live",
+    // Mirror the per-match board: a finished/over match is never live, and a
+    // stale "live" past its window stops showing as live (these are non-trial).
+    isLive:
+      !(m.status === "finished" || m.result_confirmed) &&
+      m.status === "live" &&
+      !liveWindowExpired({ kickoffAt: m.kickoff_at, stage: m.stage }, now),
     isFinished: m.status === "finished" || m.result_confirmed,
     homeGoals: m.home_goals,
     awayGoals: m.away_goals,

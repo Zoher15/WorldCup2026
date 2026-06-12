@@ -156,28 +156,40 @@ export interface PollResult {
 const MIN_POLL_INTERVAL_SEC = 30;
 
 /**
+ * Coarse cadence for reconciling stragglers — matches that kicked off and are
+ * still unconfirmed but whose live window passed long ago (e.g. a FINISHED the
+ * feed never delivered, or a cron gap that outlasted the live window). One feed
+ * request returns the whole schedule, so a straggler costs nothing extra to fold
+ * into a live poll; this floor only governs the case where a straggler is the
+ * *only* reason to poll, so a match the feed never finishes can't burn requests
+ * every minute forever while it still self-heals within a few minutes.
+ */
+const STRAGGLER_POLL_INTERVAL_SEC = 5 * 60;
+
+/**
  * Poll guard, meant to be called frequently (e.g. a once-a-minute cron). It
  * calls football-data when a match is in (or near) its expected window, AND
- * keeps polling past that window for any kicked-off match we haven't confirmed
- * yet — the feed's FINISHED can lag, and we must keep checking until it lands so
- * a finished game never stays stuck on "live". A recent-kickoff floor caps the
- * tail so a data gap can't poll forever, and considering all recent matches (not
- * just today's, UTC) keeps games that span midnight updating. De-dupes polls
- * closer than MIN_POLL_INTERVAL_SEC; otherwise returns without touching the API.
+ * keeps polling for ANY kicked-off match we haven't confirmed yet — the feed's
+ * FINISHED can lag (or be missed entirely if the cron has a gap), and we must
+ * keep checking until it lands so a finished game never stays stuck on "live".
+ * Live/just-finished matches poll at MIN_POLL_INTERVAL_SEC; older unconfirmed
+ * stragglers reconcile at the coarser STRAGGLER_POLL_INTERVAL_SEC. Considering
+ * all matches (not just today's, UTC) keeps games that span midnight — and ones
+ * stranded by an earlier outage — updating until they're resolved.
  */
 export async function pollIfDue(now: Date = new Date()): Promise<PollResult> {
   const db = createAdminClient();
   const nowMs = now.getTime();
-  // Don't chase ancient fixtures: only matches kicked off within this window
-  // (longer than the longest possible knockout + extra time + penalties) can
-  // still be live or awaiting a final whistle.
+  // Matches kicked off within this window (longer than the longest possible
+  // knockout + extra time + penalties) are the live / just-finished ones that
+  // drive the fast cadence; older unconfirmed ones are reconciled more coarsely.
   const recentFloorMs = nowMs - 4 * 60 * 60 * 1000;
 
   const { data } = await db
     .from("matches")
-    .select("kickoff_at, stage, last_synced_at, status, result_confirmed");
+    .select("kickoff_at, stage, last_synced_at, status, result_confirmed, is_trial");
   const rows = data ?? [];
-  // Recent or imminent matches — the only ones that can need a poll right now.
+  // Recent or imminent matches — the ones that can be inside a live window now.
   const recent = rows.filter((r) => {
     const ko = Date.parse(r.kickoff_at);
     return ko >= recentFloorMs && ko <= nowMs + 10 * 60_000;
@@ -188,28 +200,37 @@ export async function pollIfDue(now: Date = new Date()): Promise<PollResult> {
   );
   const inWindow = windows.some((w) => nowMs >= w.startMs && nowMs < w.endMs);
 
-  // Past its window but kicked off and still unconfirmed: keep polling until the
-  // feed reports the finish (auto-confirms) — this is what stops a delayed or
-  // missed FINISHED from leaving a game stuck on "live".
-  const awaitingFinish = recent.some((r) => {
+  // Kicked off and still unconfirmed: keep polling until the feed reports the
+  // finish (which auto-confirms). Checked across ALL matches, not just recent
+  // ones — a single missed FINISHED (e.g. a cron gap outlasting the live window)
+  // would otherwise strand a game on "live" forever, hiding it from past results.
+  // Trial/demo matches are never fed, so they're excluded.
+  const unfinished = (r: (typeof rows)[number]): boolean => {
     const ko = Date.parse(r.kickoff_at);
     return (
       ko <= nowMs &&
       !r.result_confirmed &&
       r.status !== "cancelled" &&
-      r.status !== "postponed"
+      r.status !== "postponed" &&
+      !r.is_trial
     );
-  });
+  };
+  const awaitingFinish = recent.some(unfinished);
+  const anyUnfinished = rows.some(unfinished);
 
-  if (!inWindow && !awaitingFinish) {
+  if (!inWindow && !anyUnfinished) {
     return { synced: false, reason: "no live window" };
   }
 
-  const lastSynced = recent.reduce((max, r) => {
+  // Fast cadence while a match is live or just finished; a coarse one when the
+  // only thing left to do is reconcile an older straggler.
+  const fast = inWindow || awaitingFinish;
+  const minIntervalSec = fast ? MIN_POLL_INTERVAL_SEC : STRAGGLER_POLL_INTERVAL_SEC;
+  const lastSynced = rows.reduce((max, r) => {
     const t = r.last_synced_at ? Date.parse(r.last_synced_at) : 0;
     return t > max ? t : max;
   }, 0);
-  if (lastSynced && nowMs - lastSynced < MIN_POLL_INTERVAL_SEC * 1000) {
+  if (lastSynced && nowMs - lastSynced < minIntervalSec * 1000) {
     return { synced: false, reason: "paced" };
   }
 
