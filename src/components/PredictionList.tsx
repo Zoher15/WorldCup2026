@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Countdown } from "./Countdown";
 import { MatchCard } from "./MatchCard";
 import { FOCUS_RING, LIVE_TEXT } from "./theme";
 import { useLiveRefresh } from "./useLiveRefresh";
@@ -45,6 +46,16 @@ export function PredictionList({
 
   // Tick the in-play score forward while any listed match is live.
   useLiveRefresh(matches.some(isLiveMatch));
+
+  // Urgency banner: how many open matches lock at the very next kickoff, and
+  // when. Matches arrive kickoff-ordered, so the first open one locks soonest;
+  // simultaneous kickoffs (a shared lock moment) are counted together.
+  const nextLock = useMemo(() => {
+    const open = matches.filter((m) => m.state === "open");
+    if (open.length === 0) return null;
+    const target = open[0].kickoffAt;
+    return { target, count: open.filter((m) => m.kickoffAt === target).length };
+  }, [matches]);
 
   const dirtyIds = useMemo(
     () =>
@@ -90,8 +101,34 @@ export function PredictionList({
   // editing a pick (which re-renders) doesn't rebuild the grouping.
   const groups = useMemo(() => groupByDate(matches), [matches]);
 
+  // The single most urgent match gets the hero treatment: the first live match
+  // if one's in play, else the first open match of the first date group.
+  const heroId = useMemo(() => {
+    const live = matches.find(isLiveMatch);
+    if (live) return live.id;
+    return groups[0]?.items.find((m) => m.state === "open")?.id ?? null;
+  }, [matches, groups]);
+
   return (
     <div className="pb-28">
+      {/* Urgency hero: the next lock moment, ticking down. Refreshing on expiry
+          re-derives match states so the banner (and the locked cards) update. */}
+      {nextLock && (
+        <div className="mb-6 flex items-center justify-center gap-2 rounded-2xl glass px-4 py-3 text-sm font-bold text-stone-600 dark:text-stone-200">
+          <span aria-hidden>⏳</span>
+          <span>
+            {nextLock.count} match{nextLock.count === 1 ? "" : "es"} lock
+            {nextLock.count === 1 ? "s" : ""} in
+          </span>
+          <span className="font-display text-flame">
+            <Countdown
+              target={nextLock.target}
+              onExpire={() => router.refresh()}
+            />
+          </span>
+        </div>
+      )}
+
       {groups.map((g) => (
         <section key={g.date} className="mb-6">
           <h3 className="mb-2 px-1 text-sm font-black uppercase tracking-wide text-stone-400">
@@ -105,9 +142,17 @@ export function PredictionList({
               const open = m.state === "open";
               const live = isLiveMatch(m);
               const isSaved = !dirtyIdSet.has(m.id) && savedSnapshot[m.id];
-              return (
+              const hero = m.id === heroId;
+              // Gentle nag: an open match with no saved pick where the steppers
+              // still sit at their 0–0 default (no draft in progress either).
+              const nag =
+                open &&
+                !savedSnapshot[m.id] &&
+                pick.home === 0 &&
+                pick.away === 0;
+              const card = (
                 <MatchCard
-                  key={m.id}
+                  hero={hero}
                   data={{
                     homeCode: m.homeCode,
                     awayCode: m.awayCode,
@@ -147,6 +192,22 @@ export function PredictionList({
                   }
                 />
               );
+              // The hero spans both columns so the most urgent match leads.
+              // The nag ring lives on this wrapper, whose radius must match
+              // what it wraps: the hero's gradient band is rounded-[18px], a
+              // plain card rounded-2xl.
+              return hero ? (
+                <div
+                  key={m.id}
+                  className={`sm:col-span-2${nag ? " nag-pulse rounded-[18px]" : ""}`}
+                >
+                  {card}
+                </div>
+              ) : (
+                <div key={m.id} className={nag ? "nag-pulse rounded-2xl" : undefined}>
+                  {card}
+                </div>
+              );
             })}
           </div>
         </section>
@@ -165,7 +226,7 @@ export function PredictionList({
           <button
             onClick={save}
             disabled={pending || dirtyIds.length === 0}
-            className={`rounded-full glass px-6 py-3 font-bold text-pitch dark:text-emerald-400 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${FOCUS_RING}`}
+            className={`rounded-full chrome px-6 py-3 font-bold text-pitch dark:text-emerald-400 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${FOCUS_RING}`}
           >
             {pending ? "Saving…" : "Save predictions"}
           </button>

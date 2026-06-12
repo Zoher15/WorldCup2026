@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { Avatar } from "./Avatar";
 import { BreakdownRow } from "./BreakdownRow";
+import { CountUp } from "./CountUp";
 import { MatchCard, toMatchCardData } from "./MatchCard";
 import { PlayerLink } from "./PlayerLink";
 import { FOCUS_RING, LIVE_TEXT, PREDICTION_TEXT, RESULT_TEXT } from "./theme";
@@ -62,7 +64,7 @@ function RevealedScore({ row }: { row: MatchBoardRow }) {
           }`}
         >
           {row.provisional ? "~" : ""}
-          {row.points} pt{row.points === 1 ? "" : "s"}
+          <CountUp value={row.points} /> pt{row.points === 1 ? "" : "s"}
         </span>
         <span className="text-[10px] font-bold text-stone-400">
           {open ? "▲" : "▼"}
@@ -78,11 +80,11 @@ function RevealedScore({ row }: { row: MatchBoardRow }) {
               {row.provisional ? "If it ends now" : "Total"}
             </span>
             <span
-              className={`text-sm font-black ${
+              className={`text-sm font-black tabular-nums ${
                 row.provisional ? LIVE_TEXT : RESULT_TEXT
               }`}
             >
-              {b.total} pt{b.total === 1 ? "" : "s"}
+              <CountUp value={b.total} /> pt{b.total === 1 ? "" : "s"}
             </span>
           </div>
         </div>
@@ -157,7 +159,12 @@ export function MatchLeaderboard({ board }: { board: MatchBoard }) {
                     {rank ?? "—"}
                   </span>
                 )}
-                <span className="flex min-w-0 flex-1 items-center">
+                <span className="flex min-w-0 flex-1 items-center gap-2">
+                  <Avatar
+                    userId={r.userId}
+                    displayName={r.displayName}
+                    size="sm"
+                  />
                   <PlayerName row={r} code={group.code} />
                 </span>
                 {revealed ? (

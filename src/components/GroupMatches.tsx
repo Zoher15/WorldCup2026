@@ -124,7 +124,7 @@ export function GroupMatches({
             <button
               onClick={() => setShowFinished((v) => !v)}
               aria-expanded={showFinished}
-              className={`rounded-full glass px-4 py-2 text-sm font-bold text-grape transition active:scale-95 dark:text-violet-300 ${FOCUS_RING}`}
+              className={`rounded-full chrome px-4 py-2 text-sm font-bold text-grape transition active:scale-95 dark:text-violet-300 ${FOCUS_RING}`}
             >
               {showFinished
                 ? "Hide finished"

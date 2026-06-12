@@ -105,7 +105,13 @@ export default async function GroupPage({
         </Link>
       </header>
 
-      <Leaderboard data={standings} code={group.code} groupName={group.name} live={live} />
+      <Leaderboard
+        data={standings}
+        code={group.code}
+        groupName={group.name}
+        live={live}
+        viewerId={userId}
+      />
 
       <GroupMatches code={group.code} matches={boardMatches} />
 

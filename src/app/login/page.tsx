@@ -31,7 +31,7 @@ export default function LoginPage({
       <Link href="/" className="text-sm font-bold text-stone-400">
         ← Home
       </Link>
-      <h1 className="mt-3 mb-2 gradient-text pb-1 text-3xl font-black leading-tight">
+      <h1 className="mt-3 mb-2 gradient-text font-display pb-1 text-3xl leading-tight">
         Sign in
       </h1>
       <p className="mb-6 text-sm font-medium text-stone-500 dark:text-stone-300">

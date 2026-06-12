@@ -23,10 +23,15 @@ export function GlassGlow() {
     let raf = 0;
     let pending: { x: number; y: number } | null = null;
 
-    // The first glass element in the front-to-back paint stack at this point.
+    // The first glass (or solid-chrome) element in the front-to-back paint
+    // stack at this point. Chrome surfaces don't render the sheen (their solid
+    // fill ignores the highlight vars) but share the tactile press dip.
     const frontGlass = (x: number, y: number): HTMLElement | null => {
       for (const node of document.elementsFromPoint(x, y)) {
-        if (node instanceof HTMLElement && node.classList.contains("glass")) {
+        if (
+          node instanceof HTMLElement &&
+          (node.classList.contains("glass") || node.classList.contains("chrome"))
+        ) {
           return node;
         }
       }

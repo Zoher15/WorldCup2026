@@ -85,7 +85,7 @@ export function ShareLeaderboard({
       onClick={share}
       disabled={busy}
       aria-label="Share the leaderboard image"
-      className={`rounded-full glass px-4 py-2 text-sm font-bold text-grape transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-70 dark:text-violet-300 ${FOCUS_RING}`}
+      className={`rounded-full chrome px-4 py-2 text-sm font-bold text-grape transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-70 dark:text-violet-300 ${FOCUS_RING}`}
     >
       {busy ? "Preparing…" : (msg ?? "📸 Share")}
     </button>

@@ -14,7 +14,16 @@
   --color-grape: #6b2fb3;
   --color-ocean: #1e8fd5;
   --color-cream: #fff8ec;
-  --font-display: "Poppins", system-ui, sans-serif;
+}
+
+/* Display face for headlines and big scores. `--font-archivo` is set on <html>
+   by next/font (see layout.tsx), so the `font-display` utility resolves to the
+   self-optimised Archivo Black with next/font's size-matched fallback. Declared
+   `inline` so the generated utility references the runtime variable instead of
+   trying to resolve it at build time. */
+@theme inline {
+  --font-display: var(--font-archivo, "Archivo Black"), "Arial Black", system-ui,
+    sans-serif;
 }
 
 :root {
@@ -24,8 +33,9 @@
 
 body {
   background:
-    radial-gradient(1200px 600px at 10% -10%, rgba(255, 210, 63, 0.10), transparent 60%),
-    radial-gradient(1000px 600px at 110% 10%, rgba(255, 90, 54, 0.10), transparent 55%),
+    radial-gradient(1200px 600px at 10% -10%, rgba(255, 210, 63, 0.18), transparent 60%),
+    radial-gradient(1000px 600px at 110% 10%, rgba(255, 90, 54, 0.19), transparent 55%),
+    radial-gradient(900px 500px at 50% 110%, rgba(11, 138, 62, 0.08), transparent 60%),
     linear-gradient(160deg, #1c1917 0%, #1a1422 45%, #1b1418 100%);
   color: #e7e5e4;
   min-height: 100dvh;
@@ -45,6 +55,79 @@ body {
 }
 .live-dot { animation: live-pulse 1.1s ease-in-out infinite; }
 
+/* Exact-score confetti (Confetti.tsx): each piece launches from the card's
+   centre along its own --dx/--dy custom properties, spinning and fading out;
+   `forwards` parks it at opacity 0 so nothing lingers (and no JS cleanup is
+   needed). The whole layer is decorative, so reduced-motion drops it
+   entirely rather than freezing pieces mid-air. */
+@keyframes confetti-burst {
+  0% { opacity: 1; transform: translate(0, 0) rotate(0deg) scale(1); }
+  70% { opacity: 1; }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx, 0px), var(--dy, -64px))
+      rotate(var(--rot, 360deg)) scale(0.5);
+  }
+}
+.confetti-piece {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  opacity: 0;
+  animation: confetti-burst 1.2s ease-out forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .confetti { display: none; }
+}
+
+/* One-shot gold wash for a leaderboard row / podium slot that just climbed:
+   an absolutely-positioned overlay (so the glass tint underneath is never
+   touched) fades a soft sunburst from 18% to nothing over ~1.5s. With
+   animations off it simply stays at its base opacity 0 — invisible. */
+@keyframes overtake-flash {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.overtake-flash {
+  background-color: rgba(255, 210, 63, 0.18);
+  opacity: 0;
+  animation: overtake-flash 1.5s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .overtake-flash { animation: none; }
+}
+
+/* Goal! A live score tile whose score just changed gets a soft sunburst wash
+   (it sits behind the translucent glass tile, so it reads as a glow through
+   the frost) plus a slight scale pop, easing back to rest over ~0.9s. */
+@keyframes goal-flash {
+  0% { background-color: rgba(255, 210, 63, 0.3); transform: scale(1.05); }
+  100% { background-color: transparent; transform: scale(1); }
+}
+.goal-flash { animation: goal-flash 0.9s ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .goal-flash { animation: none; }
+}
+
+/* Gentle nag for an open match card with no pick yet: a soft pitch-green ring
+   breathing in and out on a ~2s loop. A hint, not an alarm — the ring never
+   goes fully opaque. Applied to the card's wrapper (which carries the matching
+   border-radius), so the card's own glass layers are untouched. Reduced motion
+   swaps the loop for a static ring. */
+@keyframes nag-pulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(11, 138, 62, 0.12); }
+  50% { box-shadow: 0 0 0 3px rgba(11, 138, 62, 0.45); }
+}
+.nag-pulse { animation: nag-pulse 2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .nag-pulse {
+    animation: none;
+    box-shadow: 0 0 0 2px rgba(11, 138, 62, 0.3);
+  }
+}
+
 /* Gradient headline with a solid-colour fallback. Only the text *fill* is made
    transparent (not `color`), so if an extension like Dark Reader strips the
    clipped background, the text stays visible in the fallback colour instead of
@@ -60,6 +143,19 @@ body {
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+/* The same flame→grape→ocean sweep as a paintable background — echoes the hero
+   headline on small accents: the active leaderboard-tab indicator and the hero
+   match card's 2px ring (a padded wrapper, since `border-image` can't follow
+   rounded corners). */
+.gradient-accent {
+  background-image: linear-gradient(
+    to right,
+    var(--color-flame),
+    var(--color-grape),
+    var(--color-ocean)
+  );
 }
 
 /* Liquid-glass surface for the text panels floating over the flags. A frosted,
@@ -142,8 +238,9 @@ body {
   -webkit-backdrop-filter: blur(24px) saturate(120%);
 }
 /* Vivid glass: thinner frost + punchier saturation so the flag colours come
-   forward. Used on the flag layer of an *open* (playable) match so it reads
-   brighter than the still-frosted upcoming cards. */
+   forward, with a whisper of pitch-green blended in so "playable" reads as a
+   state, not just a clarity change. Used on the flag layer of an *open*
+   (playable) match so it reads brighter than the still-frosted upcoming cards. */
 .glass.glass-vivid,
 .glass-reveal:hover .glass-flag {
   background:
@@ -152,9 +249,25 @@ body {
       rgba(255, 255, 255, calc(0.1 * var(--g-on, 0))),
       transparent 72%
     ),
+    linear-gradient(rgba(11, 138, 62, 0.10), rgba(11, 138, 62, 0.04)),
     rgba(40, 36, 32, 0.3);
   backdrop-filter: blur(7px) saturate(210%);
   -webkit-backdrop-filter: blur(7px) saturate(210%);
+}
+/* Live glass: the flag frost of an in-play match carries a faint flame cast —
+   the same heat as the LIVE badge, kept to a cast (not a wash) so the flags and
+   copy stay true. */
+.glass.glass-live {
+  background:
+    radial-gradient(
+      circle 3rem at var(--gx, 50%) var(--gy, 50%),
+      rgba(255, 255, 255, calc(0.1 * var(--g-on, 0))),
+      transparent 72%
+    ),
+    linear-gradient(rgba(255, 90, 54, 0.10), rgba(255, 90, 54, 0.04)),
+    rgba(52, 48, 44, 0.7);
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
 }
 /* Muted glass: heavier frost + low saturation for a locked match, so a card
    whose window has closed reads paler and recedes. */
@@ -169,6 +282,32 @@ body {
   backdrop-filter: blur(28px) saturate(90%);
   -webkit-backdrop-filter: blur(28px) saturate(90%);
 }
+/* Solid "chrome" — the second material. Buttons, tabs and pills wear this
+   instead of glass: a near-opaque dark fill with a crisp edge and the same
+   tactile press as glass, but no backdrop blur — so controls read as solid
+   hardware sitting on top of the glass panels rather than more glass. */
+.chrome {
+  background-color: rgba(38, 35, 32, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10);
+  transition: transform 0.13s ease, box-shadow 0.13s ease,
+    background-color 0.25s ease;
+}
+.chrome.glass-press {
+  transform: scale(0.985);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 0 18px rgba(255, 255, 255, 0.07);
+}
+@media (prefers-reduced-motion: reduce) {
+  .chrome {
+    transition: box-shadow 0.13s ease;
+  }
+  .chrome.glass-press {
+    transform: none;
+  }
+}
+
 /* Graceful fallback: if the browser can't blur the backdrop, lean opaque so
    text never sits on a bare flag. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {

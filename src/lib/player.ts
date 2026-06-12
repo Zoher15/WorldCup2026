@@ -59,6 +59,43 @@ type StoredPrediction = {
   advance_pick: string | null;
 };
 
+export interface PlayerBadges {
+  /** Consecutive most-recent finished matches scoring > 0 points. */
+  streak: number;
+  /** Finished matches where the pick equals the result exactly. */
+  exact: number;
+}
+
+/**
+ * Derive the profile's badge chips from rows already in hand — pure, no extra
+ * queries. Rows arrive kickoff-ascending (see getPlayerProfile's match query),
+ * so "most recent" walks backwards from the end; a finished match is one with
+ * a result, and its pick is always revealed, so this works for any player.
+ * A finished match with no points (no pick, scored 0, or outside the group's
+ * window) breaks the streak.
+ */
+export function derivePlayerBadges(rows: PlayerPredictionRow[]): PlayerBadges {
+  const finished = rows.filter((r) => r.result != null);
+  let streak = 0;
+  for (let i = finished.length - 1; i >= 0; i--) {
+    const p = finished[i].points;
+    if (p == null || p <= 0) break;
+    streak++;
+  }
+  let exact = 0;
+  for (const r of finished) {
+    if (
+      r.pick &&
+      r.result &&
+      r.pick.home === r.result.home &&
+      r.pick.away === r.result.away
+    ) {
+      exact++;
+    }
+  }
+  return { streak, exact };
+}
+
 /**
  * One player's predictions within a group, with privacy enforced: a pick for a
  * match that hasn't kicked off is only revealed to the player themselves —
