@@ -294,10 +294,10 @@ export interface BoardMatchSummary {
 }
 
 /**
- * A bounded set of matches to surface on the group page as entry points to
- * their per-match boards: live now, the most recent finished, and the next
- * upcoming — not the whole ~104-match schedule. The retired practice match is
- * left out.
+ * Matches to surface on the group page as entry points to their per-match
+ * boards: live/in-play and the soonest upcoming (bounded), plus every finished
+ * match (the group page tucks these into a collapsible "finished" section). The
+ * retired practice match is left out.
  */
 export async function listBoardMatches(
   limitEach = 6,
@@ -344,8 +344,10 @@ export async function listBoardMatches(
   const finished = all.filter((m) => isFinished(m));
   const upcoming = all.filter((m) => !isLocked(m));
 
-  // In play first, then most-recent finished, then the soonest upcoming.
-  const recent = finished.slice(-limitEach).reverse();
+  // Live/in-play first, then the soonest upcoming; every finished match trails
+  // after (most-recent first) so the group page can split them into its
+  // collapsible "finished" section.
   const next = upcoming.slice(0, limitEach);
-  return [...inPlay.reverse(), ...recent, ...next].map(toSummary);
+  const recentFirst = [...finished].reverse();
+  return [...inPlay.reverse(), ...next, ...recentFirst].map(toSummary);
 }

@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import { teamLabel } from "@/lib/fifa";
 import {
@@ -44,7 +47,33 @@ function MatchStatus({ match }: { match: BoardMatchSummary }) {
   );
 }
 
-/** A group's matches as entry points to each one's per-match leaderboard. */
+/** One match row, linking to its per-match leaderboard. */
+function MatchRow({ code, match }: { code: string; match: BoardMatchSummary }) {
+  return (
+    <li>
+      <Link
+        href={`/g/${code}/m/${match.id}`}
+        prefetch={false}
+        className="flex items-center gap-3 rounded-2xl glass px-4 py-2.5 transition active:scale-[0.99]"
+      >
+        <span className="hidden w-24 shrink-0 truncate text-[11px] font-bold uppercase tracking-wide text-stone-400 sm:block">
+          {formatStageLabel(match.groupLabel, match.stage)}
+        </span>
+        <span className="min-w-0 flex-1 truncate font-bold text-stone-800 dark:text-stone-100">
+          {teamLabel(match.homeCode, match.homeLabel)}
+          <span className="px-1.5 text-stone-400">v</span>
+          {teamLabel(match.awayCode, match.awayLabel)}
+        </span>
+        <MatchStatus match={match} />
+        <span className="text-grape dark:text-violet-300">→</span>
+      </Link>
+    </li>
+  );
+}
+
+/** A group's matches as entry points to each one's per-match leaderboard. Live
+ *  and upcoming show by default; finished matches tuck into an expander so a
+ *  full-time game moves out of the active list but stays one tap away. */
 export function GroupMatches({
   code,
   matches,
@@ -52,7 +81,11 @@ export function GroupMatches({
   code: string;
   matches: BoardMatchSummary[];
 }) {
+  const [showFinished, setShowFinished] = useState(false);
   if (matches.length === 0) return null;
+
+  const current = matches.filter((m) => !m.isFinished);
+  const finished = matches.filter((m) => m.isFinished);
 
   return (
     <section className="mt-6 rounded-3xl glass p-5">
@@ -63,28 +96,40 @@ export function GroupMatches({
         See everyone&apos;s predictions, match by match
       </p>
 
-      <ul className="space-y-2">
-        {matches.map((m) => (
-          <li key={m.id}>
-            <Link
-              href={`/g/${code}/m/${m.id}`}
-              prefetch={false}
-              className="flex items-center gap-3 rounded-2xl glass px-4 py-2.5 transition active:scale-[0.99]"
+      {current.length > 0 ? (
+        <ul className="space-y-2">
+          {current.map((m) => (
+            <MatchRow key={m.id} code={code} match={m} />
+          ))}
+        </ul>
+      ) : (
+        <p className="rounded-2xl glass px-4 py-3 text-center text-sm font-medium text-stone-400">
+          No live or upcoming matches right now.
+        </p>
+      )}
+
+      {finished.length > 0 && (
+        <div className="mt-4">
+          <div className="flex justify-center">
+            <button
+              onClick={() => setShowFinished((v) => !v)}
+              aria-expanded={showFinished}
+              className="rounded-full glass px-4 py-2 text-sm font-bold text-grape transition active:scale-95 dark:text-violet-300"
             >
-              <span className="hidden w-24 shrink-0 truncate text-[11px] font-bold uppercase tracking-wide text-stone-400 sm:block">
-                {formatStageLabel(m.groupLabel, m.stage)}
-              </span>
-              <span className="min-w-0 flex-1 truncate font-bold text-stone-800 dark:text-stone-100">
-                {teamLabel(m.homeCode, m.homeLabel)}
-                <span className="px-1.5 text-stone-400">v</span>
-                {teamLabel(m.awayCode, m.awayLabel)}
-              </span>
-              <MatchStatus match={m} />
-              <span className="text-grape dark:text-violet-300">→</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
+              {showFinished
+                ? "Hide finished"
+                : `Show finished (${finished.length}) →`}
+            </button>
+          </div>
+          {showFinished && (
+            <ul className="mt-3 space-y-2">
+              {finished.map((m) => (
+                <MatchRow key={m.id} code={code} match={m} />
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </section>
   );
 }
