@@ -5,7 +5,7 @@ import { PlayerLink } from "./PlayerLink";
 import { ShareLeaderboard } from "./ShareLeaderboard";
 import { FOCUS_RING } from "./theme";
 import { useLiveRefresh } from "./useLiveRefresh";
-import type { Standings } from "@/lib/standings";
+import { competitionRanks, type Standings } from "@/lib/standings";
 
 const TABS = [
   { key: "overall", label: "Overall" },
@@ -61,12 +61,8 @@ export function Leaderboard({
   const top3 = rows.slice(0, 3);
   const rest = rows.slice(3);
 
-  // Standard competition ranking (1, 1, 3): everyone on the same points shares
-  // a rank — ten people tied for 2nd are ALL "=2", not 2 through 11.
-  const ranks: number[] = [];
-  rows.forEach((r, i) => {
-    ranks[i] = i > 0 && rows[i - 1].points === r.points ? ranks[i - 1] : i + 1;
-  });
+  // Tied players share a rank ("=4"), competition style.
+  const ranks = competitionRanks(rows);
   const isTied = (i: number) =>
     (i > 0 && rows[i - 1].points === rows[i].points) ||
     (i < rows.length - 1 && rows[i + 1].points === rows[i].points);

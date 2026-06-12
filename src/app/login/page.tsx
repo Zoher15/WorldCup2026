@@ -4,13 +4,11 @@ import { use, useActionState } from "react";
 import Link from "next/link";
 import { sendMagicLinkAction, verifyEmailOtpAction } from "./actions";
 import { INITIAL_LOGIN_STATE, INITIAL_VERIFY_STATE } from "./login-state";
+import { inputClasses } from "@/components/form-styles";
 import { FOCUS_RING } from "@/components/theme";
 
-// Dark-only fields, like form-styles.ts: the app forces dark mode, so there
-// are no light/`dark:` pairs that could flash a white field.
-const input =
-  "w-full rounded-xl border border-stone-600 bg-stone-800 px-4 py-3 text-base font-medium text-stone-100 outline-none placeholder:text-stone-500 focus:border-pitch focus:ring-2 focus:ring-pitch/50";
-
+// The OTP field is a one-off (big centered digits), styled dark-only like
+// form-styles.ts since the app forces dark mode.
 const codeInput =
   "w-full rounded-xl border border-stone-600 bg-stone-800 px-4 py-3 text-center text-2xl font-black tracking-[0.5em] text-stone-100 outline-none placeholder:text-stone-600 focus:border-pitch focus:ring-2 focus:ring-pitch/50";
 
@@ -107,7 +105,7 @@ export default function LoginPage({
             type="email"
             inputMode="email"
             autoComplete="email"
-            className={input}
+            className={inputClasses}
             placeholder="you@example.com"
             required
           />

@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   buildStandings,
+  competitionRanks,
   BORINGBOT_ID,
   type StandingMatch,
   type StandingMember,
@@ -327,4 +328,15 @@ test("the trial match never feeds a streak once retired", () => {
     countTrialMatches: false,
   });
   assert.equal(s.overall.find((r) => r.userId === "u1")?.streak, 0);
+});
+
+test("competitionRanks shares a rank across ties (1, 1, 3 style)", () => {
+  const pts = (...points: number[]) => points.map((p) => ({ points: p }));
+  assert.deepEqual(competitionRanks(pts(9, 7, 5)), [1, 2, 3]);
+  // Ten tied for 2nd are all "=2", and the next rank skips past them.
+  assert.deepEqual(
+    competitionRanks(pts(9, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 4)),
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 12],
+  );
+  assert.deepEqual(competitionRanks([]), []);
 });

@@ -84,6 +84,17 @@ interface Totals {
   streak: number;
 }
 
+/** Standard competition ranking (1, 1, 3) over rows already sorted by points
+ *  descending: everyone on the same points shares a rank — ten people tied for
+ *  2nd are ALL "=2", not 2 through 11. */
+export function competitionRanks(rows: readonly { points: number }[]): number[] {
+  const ranks: number[] = [];
+  rows.forEach((r, i) => {
+    ranks[i] = i > 0 && rows[i - 1].points === r.points ? ranks[i - 1] : i + 1;
+  });
+  return ranks;
+}
+
 function rank(
   totals: Totals[],
   pick: (t: Totals) => number,

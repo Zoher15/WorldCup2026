@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getUserId } from "@/lib/identity";
 import { getUserGroups } from "@/lib/groups";
+import { EmptyState } from "@/components/EmptyState";
 import { FOCUS_RING } from "@/components/theme";
 
 export const dynamic = "force-dynamic";
@@ -28,22 +29,13 @@ export default async function GroupsPage() {
       </p>
 
       {groups.length === 0 ? (
-        <div className="rounded-2xl glass p-6 text-center">
-          <div className="mb-2 text-4xl">📭</div>
-          <h2 className="text-lg font-black text-stone-700 dark:text-stone-100">
-            No groups yet
-          </h2>
-          <p className="mt-1 text-sm font-medium text-stone-500 dark:text-stone-300">
-            Create one or join with a friend&apos;s code — your picks count
-            there instantly.
-          </p>
-          <Link
-            href="/join"
-            className={`mt-4 inline-block rounded-full chrome px-6 py-3 font-bold text-pitch transition active:scale-95 dark:text-emerald-400 ${FOCUS_RING}`}
-          >
-            Create or join a group
-          </Link>
-        </div>
+        <EmptyState
+          icon="📭"
+          title="No groups yet"
+          hint="Create one or join with a friend's code — your picks count there instantly."
+          href="/join"
+          cta="Create or join a group"
+        />
       ) : (
         <>
           <ul className="space-y-3">

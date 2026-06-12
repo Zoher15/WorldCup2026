@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EmptyState } from "@/components/EmptyState";
 import { MatchCard, type MatchCardData } from "@/components/MatchCard";
 import { Leaderboard } from "@/components/Leaderboard";
 import { PredictionList } from "@/components/PredictionList";
@@ -151,22 +152,15 @@ export default async function Home() {
                 👥 Your groups
               </h2>
               {groups.length === 0 ? (
-                <div className="text-center">
-                  <div className="mb-2 text-4xl">📭</div>
-                  <h3 className="text-lg font-black text-stone-700 dark:text-stone-100">
-                    No groups yet
-                  </h3>
-                  <p className="mt-1 text-sm font-medium text-stone-500 dark:text-stone-300">
-                    Create one or join with a code — your picks count there
-                    instantly.
-                  </p>
-                  <Link
-                    href="/join"
-                    className={`mt-4 inline-block rounded-full chrome px-6 py-3 font-bold text-pitch transition active:scale-95 dark:text-emerald-400 ${FOCUS_RING}`}
-                  >
-                    Create or join a group
-                  </Link>
-                </div>
+                <EmptyState
+                  framed={false}
+                  heading="h3"
+                  icon="📭"
+                  title="No groups yet"
+                  hint="Create one or join with a code — your picks count there instantly."
+                  href="/join"
+                  cta="Create or join a group"
+                />
               ) : (
                 <ul className="space-y-2">
                   {groups.map((g) => (
