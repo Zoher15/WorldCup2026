@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   isLocked,
+  isValidAdvanceCode,
   isValidGoals,
   isWindowOpen,
   windowOpensAt,
@@ -56,4 +57,26 @@ test("isValidGoals accepts sane scores, rejects junk", () => {
   assert.equal(isValidGoals(0, 1.5), false);
   assert.equal(isValidGoals(0, 99), false);
   assert.equal(isValidGoals(Number.NaN, 0), false);
+});
+
+test("isValidAdvanceCode: null is always fine, codes must be a match team", () => {
+  const ko = { stage: "round_of_16", homeCode: "ARG", awayCode: "FRA" };
+  assert.equal(isValidAdvanceCode(null, ko), true);
+  assert.equal(isValidAdvanceCode(undefined, ko), true);
+  assert.equal(isValidAdvanceCode("ARG", ko), true);
+  assert.equal(isValidAdvanceCode("FRA", ko), true);
+  assert.equal(isValidAdvanceCode("BRA", ko), false);
+  assert.equal(isValidAdvanceCode("INVALID", ko), false);
+});
+
+test("isValidAdvanceCode: group games take no advance pick", () => {
+  const group = { stage: "group", homeCode: "ARG", awayCode: "FRA" };
+  assert.equal(isValidAdvanceCode(null, group), true);
+  assert.equal(isValidAdvanceCode("ARG", group), false);
+});
+
+test("isValidAdvanceCode: knockout placeholders (TBD teams) accept no code", () => {
+  const tbd = { stage: "final", homeCode: null, awayCode: null };
+  assert.equal(isValidAdvanceCode(null, tbd), true);
+  assert.equal(isValidAdvanceCode("ARG", tbd), false);
 });
