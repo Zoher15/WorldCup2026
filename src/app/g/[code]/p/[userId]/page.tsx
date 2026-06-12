@@ -3,9 +3,9 @@ import { notFound, redirect } from "next/navigation";
 import { getUserId } from "@/lib/identity";
 import { getViewerMembership } from "@/lib/groups";
 import { derivePlayerBadges, getPlayerProfile } from "@/lib/player";
-import { Avatar } from "@/components/Avatar";
 import { PlayerPredictions } from "@/components/PlayerPredictions";
 import { LoadError } from "@/components/LoadError";
+import { FOCUS_RING } from "@/components/theme";
 
 export const dynamic = "force-dynamic";
 
@@ -44,15 +44,12 @@ export default async function PlayerPage({
     <main className="mx-auto max-w-3xl px-4 py-8">
       <Link
         href={`/g/${group.code}`}
-        className="text-sm font-bold text-stone-400"
+        className={`rounded-md text-sm font-bold text-stone-400 ${FOCUS_RING}`}
       >
         ← {group.name}
       </Link>
 
       <header className="mt-3 mb-6 rounded-3xl glass p-6 text-center">
-        <div className="mb-2 flex justify-center">
-          <Avatar userId={userId} displayName={player.displayName} size="md" />
-        </div>
         <h1 className="text-3xl font-black text-grape dark:text-violet-300">
           {player.displayName}
           {player.isViewer && (
@@ -70,7 +67,7 @@ export default async function PlayerPage({
           <p className="mt-0.5 text-xs font-medium text-stone-400 dark:text-stone-500">
             <a
               href={`mailto:${player.email}`}
-              className="underline-offset-2 hover:underline"
+              className={`rounded-md underline-offset-2 hover:underline ${FOCUS_RING}`}
             >
               {player.email}
             </a>
@@ -81,17 +78,25 @@ export default async function PlayerPage({
           matches
         </p>
         {/* Badge chips, derived from the rows already loaded. Chips below their
-            threshold simply don't render; the predicted count fills the row. */}
+            threshold simply don't render; the predicted count fills the row.
+            Earned chips link to the matches behind them on the past-results
+            page (highlighted and scrolled into view). */}
         <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
           {badges.streak >= 2 && (
-            <span className="rounded-full chrome px-3 py-1 text-xs font-bold text-flame">
-              🔥 {badges.streak} in a row
-            </span>
+            <Link
+              href={`/g/${group.code}/p/${userId}/past?hl=${badges.streakMatchIds.join(",")}#m-${badges.streakMatchIds[0]}`}
+              className={`rounded-full chrome px-3 py-1 text-xs font-bold text-flame transition active:scale-95 ${FOCUS_RING}`}
+            >
+              🔥 {badges.streak} in a row →
+            </Link>
           )}
           {badges.exact >= 1 && (
-            <span className="rounded-full chrome px-3 py-1 text-xs font-bold text-sunburst">
-              🎯 {badges.exact} exact
-            </span>
+            <Link
+              href={`/g/${group.code}/p/${userId}/past?hl=${badges.exactMatchIds.join(",")}#m-${badges.exactMatchIds[0]}`}
+              className={`rounded-full chrome px-3 py-1 text-xs font-bold text-sunburst transition active:scale-95 ${FOCUS_RING}`}
+            >
+              🎯 {badges.exact} exact →
+            </Link>
           )}
           <span className="rounded-full chrome px-3 py-1 text-xs font-bold text-stone-300">
             🧮 {summary.predicted} predicted
@@ -109,7 +114,7 @@ export default async function PlayerPage({
         <div className="mt-3">
           <Link
             href={`/g/${group.code}/p/${userId}/past`}
-            className="text-sm font-bold text-grape underline-offset-2 hover:underline dark:text-violet-300"
+            className={`rounded-md text-sm font-bold text-grape underline-offset-2 hover:underline dark:text-violet-300 ${FOCUS_RING}`}
           >
             Past results →
           </Link>

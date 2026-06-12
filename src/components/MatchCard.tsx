@@ -101,6 +101,9 @@ export interface MatchCardProps {
    *  paired with the live/final score (with tap-to-see-points) once a match has
    *  kicked off. `advancePick` feeds the knockout advance-bonus math. */
   pick?: { home: number; away: number; advancePick?: string | null } | null;
+  /** Whose pick this is — "your call" by default; a group-mate's profile passes
+   *  "their call" so the tile never claims someone else's pick as yours. */
+  pickLabel?: string;
   /** A small status chip in the header row (between the stage label and the
    *  status pill) — e.g. the predict page's Saved / Unsaved / Locked indicator. */
   status?: React.ReactNode;
@@ -282,12 +285,14 @@ function DualScore({
   data,
   live,
   large,
+  pickLabel = "your call",
 }: {
   pick: { home: number; away: number; advancePick?: string | null };
   data: MatchCardData;
   live: boolean;
   /** Hero card: one step larger digits. */
   large?: boolean;
+  pickLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
   const result = {
@@ -305,6 +310,16 @@ function DualScore({
   // Nailed the scoreline exactly (only celebrated once the result is final —
   // a live "exact" can still slip away).
   const exact = !live && pick.home === result.home && pick.away === result.away;
+  // Recap tone once it's full time: a strong call glows green, a middling one
+  // reads neutral blue, a miss cools to flame — so a finished card carries the
+  // celebrate/commiserate verdict at a glance.
+  const pointsTone = live
+    ? LIVE_TEXT
+    : b.total >= 8
+      ? RESULT_TEXT
+      : b.total <= 3
+        ? "text-flame"
+        : "text-ocean dark:text-sky-400";
 
   return (
     <div className="flex flex-col items-stretch">
@@ -316,7 +331,7 @@ function DualScore({
       >
         <div className="flex items-center justify-center gap-3">
           <MiniScore
-            label="your call"
+            label={pickLabel}
             home={pick.home}
             away={pick.away}
             tone={PREDICTION_TEXT}
@@ -332,7 +347,7 @@ function DualScore({
           />
         </div>
         <div className="mt-0.5 flex items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
-          <span className={`font-black tabular-nums ${live ? LIVE_TEXT : RESULT_TEXT}`}>
+          <span className={`font-black tabular-nums ${pointsTone}`}>
             {live ? "~" : ""}<CountUp value={b.total} /> pt{b.total === 1 ? "" : "s"}
           </span>
           {exact && (
@@ -395,7 +410,7 @@ function FlagHalf({ code, side }: { code: string | null; side: "left" | "right" 
   );
 }
 
-export function MatchCard({ data, opensAt, entry, pick, status, footer, onExpire, revealOnHover, hero }: MatchCardProps) {
+export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, footer, onExpire, revealOnHover, hero }: MatchCardProps) {
   const editing = data.state === "open" && entry != null;
   const hasResult =
     (data.state === "live" || data.state === "final") &&
@@ -425,7 +440,15 @@ export function MatchCard({ data, opensAt, entry, pick, status, footer, onExpire
   if (hasResult && myPick) {
     // Kicked off and we know the player's call: show both scores side by side in
     // the same tile, tappable for the points math (provisional while live).
-    focal = <DualScore pick={myPick} data={data} live={data.state === "live"} large={hero} />;
+    focal = (
+      <DualScore
+        pick={myPick}
+        data={data}
+        live={data.state === "live"}
+        large={hero}
+        pickLabel={pickLabel}
+      />
+    );
   } else if (hasResult) {
     // A score but no known pick (e.g. they didn't predict): just the scoreline.
     focal = (
@@ -437,10 +460,12 @@ export function MatchCard({ data, opensAt, entry, pick, status, footer, onExpire
       />
     );
   } else if (entry && editing) {
-    // Open for editing: active steppers are the control (thumb-size on the hero).
+    // Open for editing: active steppers are the control (thumb-size on the
+    // hero). Half-width cards trade the breathing room between the steppers
+    // for the bigger buttons, so the row still fits a two-column grid.
     focal = (
-      <div className={`rounded-xl px-3 py-1.5 ${GLASS}`}>
-        <div className="flex items-center justify-center gap-3">
+      <div className={`rounded-xl ${hero ? "px-3" : "px-2"} py-1.5 ${GLASS}`}>
+        <div className={`flex items-center justify-center ${hero ? "gap-3" : "gap-2"}`}>
           <Stepper size={hero ? "md" : "sm"} value={entry.home} onChange={(n) => entry.onChange("home", n)} />
           <span className="text-xl font-black text-stone-300 dark:text-stone-600">:</span>
           <Stepper size={hero ? "md" : "sm"} value={entry.away} onChange={(n) => entry.onChange("away", n)} />
@@ -478,7 +503,15 @@ export function MatchCard({ data, opensAt, entry, pick, status, footer, onExpire
       </div>
     );
   } else if (pick) {
-    focal = <Score home={pick.home} away={pick.away} tone={PREDICTION_TEXT} label="your pick" large={hero} />;
+    focal = (
+      <Score
+        home={pick.home}
+        away={pick.away}
+        tone={PREDICTION_TEXT}
+        label={pickLabel ?? "your pick"}
+        large={hero}
+      />
+    );
   } else {
     focal = (
       <div className={`rounded-xl px-4 py-2 text-center ${GLASS}`}>
@@ -527,11 +560,21 @@ export function MatchCard({ data, opensAt, entry, pick, status, footer, onExpire
 
       <div className={`relative flex ${hero ? "min-h-[10.5rem]" : "min-h-[9rem]"} flex-col justify-between gap-2 p-3 text-xs font-bold`}>
         <div className="relative flex items-center justify-between gap-2">
-          <span
-            title={stageLabel}
-            className={`min-w-0 truncate rounded-full px-2.5 py-0.5 ${GLASS} text-stone-600 dark:text-stone-200`}
-          >
-            {stageLabel}
+          <span className="flex min-w-0 items-center gap-1.5">
+            <span
+              title={stageLabel}
+              className={`min-w-0 truncate rounded-full px-2.5 py-0.5 ${GLASS} text-stone-600 dark:text-stone-200`}
+            >
+              {stageLabel}
+            </span>
+            {/* The hero is the next thing to act on — say so. */}
+            {hero && (data.state === "open" || data.state === "upcoming") && (
+              <span
+                className={`shrink-0 rounded-full px-2.5 py-0.5 ${GLASS} font-black text-ocean dark:text-sky-400`}
+              >
+                ⚡ Next up
+              </span>
+            )}
           </span>
           {status && (
             <span
@@ -575,11 +618,17 @@ export function MatchCard({ data, opensAt, entry, pick, status, footer, onExpire
     </div>
   );
 
-  // The hero ring: a 2px brand-gradient band hugging the card. Built as a
+  // A live match wears the animated flame ring: a band of light sweeping
+  // around the card (see .live-ring in globals.css). Takes precedence over the
+  // hero's static gradient ring — the moving light IS the urgency cue.
+  if (data.state === "live") {
+    return <div className="live-ring rounded-[18px] p-[2px]">{card}</div>;
+  }
+  // The hero ring: a 3px brand-gradient band hugging the card. Built as a
   // padded gradient wrapper because `border-image` can't follow rounded
-  // corners. Outer radius = card's 16px + the 2px pad so the curves nest.
+  // corners. Outer radius = card's 16px + the 3px pad so the curves nest.
   if (hero) {
-    return <div className="gradient-accent rounded-[18px] p-[2px]">{card}</div>;
+    return <div className="gradient-accent rounded-[19px] p-[3px]">{card}</div>;
   }
   return card;
 }

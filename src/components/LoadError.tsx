@@ -1,3 +1,5 @@
+import { FOCUS_RING } from "./theme";
+
 /**
  * Friendly full-page fallback for a server-side data-load failure. We render the
  * real error message as normal page content (caught in the page, not thrown) so
@@ -20,7 +22,7 @@ export function LoadError({
       </p>
       <a
         href="/"
-        className="mt-6 inline-block rounded-full glass px-6 py-3 font-bold text-pitch dark:text-emerald-400 transition active:scale-95"
+        className={`mt-6 inline-block rounded-full glass px-6 py-3 font-bold text-pitch dark:text-emerald-400 transition active:scale-95 ${FOCUS_RING}`}
       >
         ← Back home
       </a>

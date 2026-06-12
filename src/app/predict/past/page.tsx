@@ -4,6 +4,7 @@ import { getUserId } from "@/lib/identity";
 import { getPastPredictionBoard } from "@/lib/predictions";
 import { PastPredictionList } from "@/components/PastPredictionList";
 import { LoadError } from "@/components/LoadError";
+import { FOCUS_RING } from "@/components/theme";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,10 @@ export default async function PastPredictionsPage() {
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
-      <Link href="/predict" className="text-sm font-bold text-stone-400">
+      <Link
+        href="/predict"
+        className={`rounded-md text-sm font-bold text-stone-400 ${FOCUS_RING}`}
+      >
         ← Predictions
       </Link>
       <h1 className="mt-3 mb-1 gradient-text font-display pb-1 text-3xl leading-tight">

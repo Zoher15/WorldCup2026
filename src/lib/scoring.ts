@@ -109,7 +109,7 @@ function outcomePoints(predicted: Direction, actual: Direction): number {
   return Math.max(0, OUTCOME_FOR_CORRECT_DIRECTION - OUTCOME_PENALTY_PER_STEP * steps);
 }
 
-/** Closeness points (0–4) for a prediction vs the actual result. */
+/** Closeness points (0–5) for a prediction vs the actual result. */
 function closenessPoints(prediction: Scoreline, actual: Scoreline): number {
   const goalError =
     Math.abs(prediction.homeGoals - actual.homeGoals) +

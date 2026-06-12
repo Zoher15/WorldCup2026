@@ -2,6 +2,7 @@ import Link from "next/link";
 import { HowToPlayDemo } from "@/components/HowToPlayDemo";
 import { ADVANCE_BONUS, MAX_MATCH_POINTS } from "@/lib/scoring";
 import { BORINGBOT_NAME } from "@/lib/standings";
+import { FOCUS_RING } from "@/components/theme";
 
 export const metadata = {
   title: "How to play · World Cup 2026 Predictions",
@@ -35,7 +36,7 @@ function Step({
 export default function HowToPlayPage() {
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
-      <Link href="/" className="text-sm font-bold text-stone-400">
+      <Link href="/" className={`rounded-md text-sm font-bold text-stone-400 ${FOCUS_RING}`}>
         ← Home
       </Link>
 

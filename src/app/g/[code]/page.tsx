@@ -10,6 +10,7 @@ import { GroupAdmin } from "@/components/GroupAdmin";
 import { LeaveGroup } from "@/components/LeaveGroup";
 import { InviteLink } from "@/components/InviteLink";
 import { LoadError } from "@/components/LoadError";
+import { FOCUS_RING } from "@/components/theme";
 
 export const dynamic = "force-dynamic";
 
@@ -50,13 +51,13 @@ export default async function GroupPage({
         <div className="mt-6 flex justify-center gap-3">
           <Link
             href="/join"
-            className="rounded-full glass px-6 py-3 font-bold text-pitch transition active:scale-95 dark:text-emerald-400"
+            className={`rounded-full glass px-6 py-3 font-bold text-pitch transition active:scale-95 dark:text-emerald-400 ${FOCUS_RING}`}
           >
             Join a group
           </Link>
           <Link
             href="/groups"
-            className="rounded-full glass px-6 py-3 font-bold text-grape transition active:scale-95 dark:text-violet-300"
+            className={`rounded-full glass px-6 py-3 font-bold text-grape transition active:scale-95 dark:text-violet-300 ${FOCUS_RING}`}
           >
             My groups
           </Link>
@@ -73,7 +74,10 @@ export default async function GroupPage({
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
-      <Link href="/" className="text-sm font-bold text-stone-400">
+      <Link
+        href="/"
+        className={`rounded-md text-sm font-bold text-stone-400 ${FOCUS_RING}`}
+      >
         ← Home
       </Link>
 
@@ -99,7 +103,7 @@ export default async function GroupPage({
         </p>
         <Link
           href="/predict"
-          className="mt-4 inline-block rounded-full glass px-6 py-3 font-bold text-pitch transition active:scale-95 dark:text-emerald-400"
+          className={`mt-4 inline-block rounded-full glass px-6 py-3 font-bold text-pitch transition active:scale-95 dark:text-emerald-400 ${FOCUS_RING}`}
         >
           ⚽ Make your predictions
         </Link>

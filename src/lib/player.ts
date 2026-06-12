@@ -35,6 +35,8 @@ export interface PlayerPredictionRow {
   live: { home: number; away: number; minute: number | null } | null;
   /** Points earned, when scored and counted under the group's policy. */
   points: number | null;
+  /** India vs Italy practice match — shown as history, excluded from badges. */
+  isTrial: boolean;
 }
 
 export interface PlayerProfile {
@@ -64,6 +66,10 @@ export interface PlayerBadges {
   streak: number;
   /** Finished matches where the pick equals the result exactly. */
   exact: number;
+  /** The matches behind each badge (most recent first), so a tapped chip can
+   *  link straight to those cards on the past-results page. */
+  streakMatchIds: string[];
+  exactMatchIds: string[];
 }
 
 /**
@@ -72,28 +78,34 @@ export interface PlayerBadges {
  * so "most recent" walks backwards from the end; a finished match is one with
  * a result, and its pick is always revealed, so this works for any player.
  * A finished match with no points (no pick, scored 0, or outside the group's
- * window) breaks the streak.
+ * window) breaks the streak. The retired practice match never counts.
  */
 export function derivePlayerBadges(rows: PlayerPredictionRow[]): PlayerBadges {
-  const finished = rows.filter((r) => r.result != null);
-  let streak = 0;
+  const finished = rows.filter((r) => r.result != null && !r.isTrial);
+  const streakMatchIds: string[] = [];
   for (let i = finished.length - 1; i >= 0; i--) {
     const p = finished[i].points;
     if (p == null || p <= 0) break;
-    streak++;
+    streakMatchIds.push(finished[i].matchId);
   }
-  let exact = 0;
-  for (const r of finished) {
+  const exactMatchIds: string[] = [];
+  for (let i = finished.length - 1; i >= 0; i--) {
+    const r = finished[i];
     if (
       r.pick &&
       r.result &&
       r.pick.home === r.result.home &&
       r.pick.away === r.result.away
     ) {
-      exact++;
+      exactMatchIds.push(r.matchId);
     }
   }
-  return { streak, exact };
+  return {
+    streak: streakMatchIds.length,
+    exact: exactMatchIds.length,
+    streakMatchIds,
+    exactMatchIds,
+  };
 }
 
 /**
@@ -244,6 +256,7 @@ export async function getPlayerProfile(opts: {
       result,
       live,
       points: rowPoints,
+      isTrial: Boolean(m.is_trial),
     };
   });
 

@@ -1,6 +1,7 @@
 import { createAdminClient } from "./supabase/admin";
 import {
   isWindowOpen,
+  isValidAdvanceCode,
   isValidGoals,
   predictionState,
   windowOpensAt,
@@ -148,6 +149,8 @@ export interface PastPrediction {
   venue: string | null;
   result: { home: number; away: number; advancedCode: string | null };
   pick: { home: number; away: number; advancePick: string | null } | null;
+  /** The retired practice match — history only, never a bragging right. */
+  isTrial: boolean;
 }
 
 /**
@@ -215,6 +218,7 @@ export async function getPastPredictionBoard(
         pick: p
           ? { home: p.pred_home, away: p.pred_away, advancePick: p.advance_pick }
           : null,
+        isTrial: Boolean(m.is_trial),
       };
     });
 }
@@ -234,10 +238,19 @@ export async function savePredictions(
   const ids = items.map((i) => i.matchId);
   const { data: rows } = await db
     .from("matches")
-    .select("id, kickoff_at, is_trial")
+    .select("id, kickoff_at, is_trial, stage, home_code, away_code")
     .in("id", ids);
   const matchById = new Map(
-    (rows ?? []).map((r) => [r.id, { kickoff: r.kickoff_at, isTrial: r.is_trial }]),
+    (rows ?? []).map((r) => [
+      r.id,
+      {
+        kickoff: r.kickoff_at,
+        isTrial: r.is_trial,
+        stage: r.stage as string,
+        homeCode: r.home_code as string | null,
+        awayCode: r.away_code as string | null,
+      },
+    ]),
   );
 
   const valid = items.filter((i) => {
@@ -245,7 +258,8 @@ export async function savePredictions(
     return (
       m != null &&
       isWindowOpen(m.kickoff, new Date(), m.isTrial) &&
-      isValidGoals(i.predHome, i.predAway)
+      isValidGoals(i.predHome, i.predAway) &&
+      isValidAdvanceCode(i.advancePick, m)
     );
   });
 

@@ -24,6 +24,7 @@ import {
 } from "./prediction-rules";
 import { computeBreakdown, type ScoreBreakdown } from "./score-breakdown";
 import { BORINGBOT_ID, BORINGBOT_NAME, BORINGBOT_PICK } from "./standings";
+import { upsetCallerIds } from "./upsets";
 import type { Stage } from "./types";
 
 export interface MatchBoardMatch {
@@ -61,6 +62,8 @@ export interface MatchBoardRow {
   provisional: boolean;
   /** Whether the match falls within the group's scoring window. */
   counts: boolean;
+  /** Called the result right against the group's wrong consensus (final only). */
+  upset: boolean;
 }
 
 export interface MatchBoard {
@@ -208,6 +211,7 @@ export async function getMatchLeaderboard(opts: {
       breakdown,
       provisional: isLive,
       counts: counts || isBot,
+      upset: false,
     };
   };
 
@@ -217,6 +221,21 @@ export async function getMatchLeaderboard(opts: {
   // BoringBot: the 0-0 baseline, shown once there's a scoreline to score it on.
   if (revealed && scoreline) {
     rows.push(buildRow(BORINGBOT_ID, BORINGBOT_NAME, BORINGBOT_PICK, true));
+  }
+
+  // Consensus upsets, once the result is settled: the few who called it right
+  // while most of the group backed the wrong outcome get the credit.
+  if (result) {
+    const upsets = upsetCallerIds(
+      rows
+        .filter((r) => r.breakdown != null)
+        .map((r) => ({
+          userId: r.userId,
+          outcome: r.breakdown!.outcome,
+          isBot: r.isBot,
+        })),
+    );
+    for (const r of rows) r.upset = upsets.has(r.userId);
   }
 
   rows.sort((a, b) => {

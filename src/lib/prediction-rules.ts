@@ -90,3 +90,19 @@ export function isValidGoals(home: number, away: number): boolean {
   const ok = (n: number) => Number.isInteger(n) && n >= 0 && n <= 30;
   return ok(home) && ok(away);
 }
+
+/**
+ * Validate a knockout advance pick (or an admin's advanced-team code) against
+ * the match it belongs to: absent is always fine; a non-null code is only valid
+ * on a knockout match whose teams are known, and must be one of the two. Keeps
+ * arbitrary codes out of the database — a typo here would otherwise silently
+ * deny everyone who picked the real team their advance bonus.
+ */
+export function isValidAdvanceCode(
+  code: string | null | undefined,
+  match: { stage: string; homeCode: string | null; awayCode: string | null },
+): boolean {
+  if (code == null) return true;
+  if (match.stage === "group") return false;
+  return code === match.homeCode || code === match.awayCode;
+}

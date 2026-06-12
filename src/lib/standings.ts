@@ -63,6 +63,10 @@ export interface StandingsRow {
   displayName: string;
   points: number;
   movement: number;
+  /** Consecutive most-recent settled matches scoring > 0 points (trial and
+   *  out-of-window matches excluded). Optional so synthetic boards (the
+   *  home-page demo) can omit it. */
+  streak?: number;
 }
 
 export interface Standings {
@@ -77,6 +81,18 @@ interface Totals {
   total: number;
   outcome: number;
   closeness: number;
+  streak: number;
+}
+
+/** Standard competition ranking (1, 1, 3) over rows already sorted by points
+ *  descending: everyone on the same points shares a rank — ten people tied for
+ *  2nd are ALL "=2", not 2 through 11. */
+export function competitionRanks(rows: readonly { points: number }[]): number[] {
+  const ranks: number[] = [];
+  rows.forEach((r, i) => {
+    ranks[i] = i > 0 && rows[i - 1].points === r.points ? ranks[i - 1] : i + 1;
+  });
+  return ranks;
 }
 
 function rank(
@@ -89,6 +105,7 @@ function rank(
       displayName: t.displayName,
       points: pick(t),
       movement: 0,
+      streak: t.streak,
     }))
     .sort(
       (a, b) =>
@@ -117,6 +134,7 @@ export function buildStandings(input: {
       total: 0,
       outcome: 0,
       closeness: 0,
+      streak: 0,
     });
   }
 
@@ -134,6 +152,16 @@ export function buildStandings(input: {
     if (lowerBound != null && kickoffMs < lowerBound) return false;
     if (match.isTrial && !input.countTrialMatches) return false;
     return true;
+  };
+
+  // Per-user points on SETTLED (confirmed) matches, kept aside for the streak
+  // walk below — provisional live scores don't move a streak, so it can't
+  // flip-flop mid-match.
+  const settledPoints = new Map<string, Map<string, number>>();
+  const recordSettled = (userId: string, matchId: string, pts: number) => {
+    let byMatch = settledPoints.get(userId);
+    if (!byMatch) settledPoints.set(userId, (byMatch = new Map()));
+    byMatch.set(matchId, pts);
   };
 
   for (const p of predictions) {
@@ -161,6 +189,7 @@ export function buildStandings(input: {
     agg.total += score.totalPoints;
     agg.outcome += score.outcomePoints + score.advancePoints;
     agg.closeness += score.closenessPoints;
+    if (match.resultConfirmed) recordSettled(p.userId, match.id, score.totalPoints);
   }
 
   const list = [...totals.values()];
@@ -175,6 +204,7 @@ export function buildStandings(input: {
       total: 0,
       outcome: 0,
       closeness: 0,
+      streak: 0,
     };
     for (const { match, kickoffMs } of matchById.values()) {
       if (!counts(match, kickoffMs)) continue;
@@ -193,8 +223,32 @@ export function buildStandings(input: {
       bot.outcome += outcome;
       bot.closeness += closeness;
       bot.total += outcome + closeness;
+      if (match.resultConfirmed) {
+        recordSettled(BORINGBOT_ID, match.id, outcome + closeness);
+      }
     }
     list.push(bot);
+  }
+
+  // Streaks: walk the settled, counted matches newest-first; a match with no
+  // points (no pick, scored 0, or outside the window) breaks the run. The trial
+  // never counts here (counts() excludes it once retired).
+  const settledDesc = [...matchById.values()]
+    .filter(
+      ({ match, kickoffMs }) =>
+        counts(match, kickoffMs) &&
+        match.resultConfirmed &&
+        match.homeGoals != null &&
+        match.awayGoals != null,
+    )
+    .sort((a, b) => b.kickoffMs - a.kickoffMs);
+  for (const t of list) {
+    const byMatch = settledPoints.get(t.userId);
+    for (const { match } of settledDesc) {
+      const pts = byMatch?.get(match.id);
+      if (pts == null || pts <= 0) break;
+      t.streak++;
+    }
   }
 
   return {

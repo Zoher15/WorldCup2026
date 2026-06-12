@@ -3,7 +3,7 @@ import type { Standings } from "@/lib/standings";
 /** Sample leaderboard for the home-page visual demo (real data comes from the DB). */
 export const DEMO_LEADERBOARD: Standings = {
   overall: [
-    { userId: "d1", displayName: "GoalMachine", points: 142, movement: 1 },
+    { userId: "d1", displayName: "GoalMachine", points: 142, movement: 1, streak: 4 },
     { userId: "d2", displayName: "Dad", points: 138, movement: -1 },
     { userId: "d3", displayName: "Auntie Sam", points: 131, movement: 2 },
     { userId: "d4", displayName: "ElPibe10", points: 119, movement: 0 },

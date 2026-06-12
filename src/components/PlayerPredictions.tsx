@@ -8,8 +8,17 @@ import { isFinal, isInPlay, isLive } from "@/lib/match-predicates";
 import type { PlayerPredictionRow, PlayerProfile } from "@/lib/player";
 
 /** A single match in a player's profile, rendered as the shared scoreboard —
- *  identical whether it's the viewer's own card or another group member's. */
-function PlayerCard({ row, isBot }: { row: PlayerPredictionRow; isBot: boolean }) {
+ *  identical whether it's the viewer's own card or another group member's,
+ *  except the pick label says whose call it is. */
+function PlayerCard({
+  row,
+  isBot,
+  pickLabel,
+}: {
+  row: PlayerPredictionRow;
+  isBot: boolean;
+  pickLabel?: string;
+}) {
   // Live (in-play) reads as "live"; a confirmed result as "final"; otherwise the
   // card keeps its prediction-window state (upcoming / open / locked-awaiting).
   const data = toMatchCardData(row);
@@ -33,6 +42,7 @@ function PlayerCard({ row, isBot }: { row: PlayerPredictionRow; isBot: boolean }
             }
           : null
       }
+      pickLabel={pickLabel}
       status={status}
     />
   );
@@ -81,11 +91,13 @@ function Section({
   rows,
   empty,
   isBot,
+  pickLabel,
 }: {
   title: string;
   rows: PlayerPredictionRow[];
   empty: string;
   isBot: boolean;
+  pickLabel?: string;
 }) {
   return (
     <section className="mb-6">
@@ -99,7 +111,7 @@ function Section({
       ) : (
         <div className="grid gap-6 sm:grid-cols-2">
           {rows.map((r) => (
-            <PlayerCard key={r.matchId} row={r} isBot={isBot} />
+            <PlayerCard key={r.matchId} row={r} isBot={isBot} pickLabel={pickLabel} />
           ))}
         </div>
       )}
@@ -110,15 +122,22 @@ function Section({
 export function PlayerPredictions({
   profile,
   view = "current",
+  highlightIds = [],
 }: {
   profile: PlayerProfile;
   /** "current" shows live/open/upcoming (plus the edit button on your own
    *  profile); "past" shows only finished matches — their own page, mirroring
    *  the predict → past-results split. */
   view?: "current" | "past";
+  /** Matches to highlight (and anchor to) — the badge chips link here with the
+   *  matches the badge was earned on. */
+  highlightIds?: string[];
 }) {
-  const { isBot } = profile.player;
+  const { isBot, isViewer } = profile.player;
   const inPlay = profile.rows.filter(isInPlay);
+  // The card tiles say whose call a pick is: yours on your own profile, theirs
+  // on a group-mate's, the bot's on the baseline.
+  const pickLabel = isViewer ? undefined : isBot ? "bot's call" : "their call";
 
   // Tick scores forward while any match on this profile is in play (only the
   // current view carries in-play cards; the past page never does).
@@ -136,10 +155,21 @@ export function PlayerPredictions({
         </div>
       );
     }
+    const highlight = new Set(highlightIds);
     return (
       <div className="grid gap-6 sm:grid-cols-2">
         {past.map((r) => (
-          <PlayerCard key={r.matchId} row={r} isBot={isBot} />
+          <div
+            key={r.matchId}
+            id={`m-${r.matchId}`}
+            className={
+              highlight.has(r.matchId)
+                ? "rounded-2xl ring-2 ring-sunburst scroll-mt-24"
+                : "scroll-mt-24"
+            }
+          >
+            <PlayerCard row={r} isBot={isBot} pickLabel={pickLabel} />
+          </div>
         ))}
       </div>
     );
@@ -151,19 +181,21 @@ export function PlayerPredictions({
   return (
     <div>
       {inPlay.length > 0 && (
-        <Section title="🔴 Live now" rows={inPlay} empty="" isBot={isBot} />
+        <Section title="🔴 Live now" rows={inPlay} empty="" isBot={isBot} pickLabel={pickLabel} />
       )}
       <Section
         title="Open now"
         rows={open}
         empty="No matches are open for prediction right now."
         isBot={isBot}
+        pickLabel={pickLabel}
       />
       <Section
         title="Upcoming"
         rows={upcoming}
         empty="Nothing on the horizon yet."
         isBot={isBot}
+        pickLabel={pickLabel}
       />
 
       {profile.player.isViewer && (

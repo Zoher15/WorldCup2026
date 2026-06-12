@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Avatar } from "./Avatar";
 import { BreakdownRow } from "./BreakdownRow";
 import { CountUp } from "./CountUp";
 import { MatchCard, toMatchCardData } from "./MatchCard";
@@ -148,7 +147,7 @@ export function MatchLeaderboard({ board }: { board: MatchBoard }) {
             return (
               <li
                 key={r.userId}
-                className={`flex items-center gap-3 rounded-2xl px-4 py-2.5 ${
+                className={`flex items-center gap-3 rounded-2xl px-4 py-2.5 transition hover:scale-[1.01] ${
                   r.isViewer
                     ? "glass ring-2 ring-grape/40 dark:ring-violet-300/40"
                     : "glass"
@@ -160,12 +159,16 @@ export function MatchLeaderboard({ board }: { board: MatchBoard }) {
                   </span>
                 )}
                 <span className="flex min-w-0 flex-1 items-center gap-2">
-                  <Avatar
-                    userId={r.userId}
-                    displayName={r.displayName}
-                    size="sm"
-                  />
                   <PlayerName row={r} code={group.code} />
+                  {/* Called it right while most of the group got it wrong. */}
+                  {r.upset && (
+                    <span
+                      className="shrink-0 rounded-full glass px-2 py-0.5 text-[10px] font-bold text-sunburst"
+                      title="Called it against the group's consensus"
+                    >
+                      🔮 Against the crowd
+                    </span>
+                  )}
                 </span>
                 {revealed ? (
                   <RevealedScore row={r} />

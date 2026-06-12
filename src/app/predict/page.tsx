@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 import { getUserId } from "@/lib/identity";
 import { getPredictionBoard } from "@/lib/predictions";
 import { PredictionList } from "@/components/PredictionList";
+import { EmptyState } from "@/components/EmptyState";
 import { LoadError } from "@/components/LoadError";
+import { FOCUS_RING } from "@/components/theme";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +28,10 @@ export default async function PredictPage() {
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
-      <Link href="/" className="text-sm font-bold text-stone-400">
+      <Link
+        href="/"
+        className={`rounded-md text-sm font-bold text-stone-400 ${FOCUS_RING}`}
+      >
         ← Home
       </Link>
       <h1 className="mt-3 mb-1 gradient-text font-display pb-1 text-3xl leading-tight">
@@ -39,17 +44,20 @@ export default async function PredictPage() {
         every group you&apos;re in.{" "}
         <Link
           href="/predict/past"
-          className="font-bold text-grape underline-offset-2 hover:underline dark:text-violet-300"
+          className={`rounded-md font-bold text-grape underline-offset-2 hover:underline dark:text-violet-300 ${FOCUS_RING}`}
         >
           Past results →
         </Link>
       </p>
 
       {matches.length === 0 ? (
-        <div className="rounded-2xl glass p-6 text-center font-medium text-stone-500 dark:text-stone-300">
-          <div className="mb-2 text-4xl">⚽</div>
-          No upcoming matches to predict right now.
-        </div>
+        <EmptyState
+          icon="⚽"
+          title="No matches open right now"
+          hint="A day's games open for prediction the day before kickoff — check back then."
+          href="/predict/past"
+          cta="See your past results →"
+        />
       ) : (
         <PredictionList matches={matches} initial={predictions} />
       )}

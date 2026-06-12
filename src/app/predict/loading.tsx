@@ -15,6 +15,13 @@ export default function Loading() {
           <div className="h-36 rounded-2xl glass" />
           <div className="h-36 rounded-2xl glass" />
         </div>
+        {/* The sticky save bar: status text and save-button placeholders. */}
+        <div className="fixed inset-x-0 bottom-0 z-10 glass glass-frost px-4 py-3">
+          <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
+            <div className="h-4 w-24 rounded-full glass" />
+            <div className="h-12 w-44 rounded-full glass" />
+          </div>
+        </div>
       </div>
     </main>
   );

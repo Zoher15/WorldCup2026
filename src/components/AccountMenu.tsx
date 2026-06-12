@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { signOutAction } from "@/app/auth/actions";
+import { FOCUS_RING } from "./theme";
 
 /**
  * Top-right account indicator: a circular avatar with the user's initials and a
@@ -42,7 +43,7 @@ export function AccountMenu({
     return (
       <Link
         href="/login"
-        className="rounded-full glass px-4 py-1.5 text-sm font-bold text-grape dark:text-violet-300"
+        className={`rounded-full glass px-4 py-1.5 text-sm font-bold text-grape dark:text-violet-300 ${FOCUS_RING}`}
       >
         Sign in
       </Link>
@@ -51,13 +52,15 @@ export function AccountMenu({
 
   return (
     <div ref={ref} className="relative">
+      {/* Padding widens the touch zone past 44px; the negative margin cancels
+          it out visually so the header keeps its compact height. */}
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="Account menu"
-        className="flex cursor-pointer items-center"
+        className={`-m-1.5 flex cursor-pointer items-center rounded-full p-1.5 ${FOCUS_RING}`}
       >
         <span className="grid h-9 w-9 place-items-center rounded-full glass text-sm font-black text-grape dark:text-violet-300">
           {initials}
@@ -74,7 +77,7 @@ export function AccountMenu({
             <Link
               href="/welcome"
               onClick={() => setOpen(false)}
-              className="block rounded-lg px-3 py-1.5 text-sm font-bold text-grape hover:bg-stone-100 dark:text-violet-300 dark:hover:bg-stone-700"
+              className={`block rounded-lg px-3 py-1.5 text-sm font-bold text-grape hover:bg-stone-100 dark:text-violet-300 dark:hover:bg-stone-700 ${FOCUS_RING}`}
             >
               Finish setup →
             </Link>
@@ -85,14 +88,14 @@ export function AccountMenu({
           <Link
             href="/predict"
             onClick={() => setOpen(false)}
-            className="block rounded-lg px-3 py-1.5 text-sm font-bold text-stone-700 hover:bg-stone-100 dark:text-stone-100 dark:hover:bg-stone-700"
+            className={`block rounded-lg px-3 py-1.5 text-sm font-bold text-stone-700 hover:bg-stone-100 dark:text-stone-100 dark:hover:bg-stone-700 ${FOCUS_RING}`}
           >
             ⚽ My predictions
           </Link>
           <Link
             href="/groups"
             onClick={() => setOpen(false)}
-            className="block rounded-lg px-3 py-1.5 text-sm font-bold text-stone-700 hover:bg-stone-100 dark:text-stone-100 dark:hover:bg-stone-700"
+            className={`block rounded-lg px-3 py-1.5 text-sm font-bold text-stone-700 hover:bg-stone-100 dark:text-stone-100 dark:hover:bg-stone-700 ${FOCUS_RING}`}
           >
             🏆 My groups
           </Link>
@@ -100,7 +103,9 @@ export function AccountMenu({
           <div className="my-1 border-t border-black/5 dark:border-white/10" />
 
           <form action={signOutAction}>
-            <button className="w-full rounded-lg px-3 py-1.5 text-left text-sm font-bold text-flame hover:bg-stone-100 dark:hover:bg-stone-700">
+            <button
+              className={`w-full rounded-lg px-3 py-1.5 text-left text-sm font-bold text-flame hover:bg-stone-100 dark:hover:bg-stone-700 ${FOCUS_RING}`}
+            >
               Sign out
             </button>
           </form>

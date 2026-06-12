@@ -1,4 +1,5 @@
 import { createAdminClient } from "./supabase/admin";
+import { isValidAdvanceCode } from "./prediction-rules";
 import type { Stage } from "./types";
 
 export interface AdminMatch {
@@ -51,6 +52,27 @@ export async function setMatchResult(opts: {
   advancedCode?: string | null;
 }): Promise<void> {
   const db = createAdminClient();
+  // A confirmed result is never overwritten by the feed sync, so a mistyped
+  // advanced-team code would be locked in — and silently cost everyone who
+  // picked the real team their advance bonus. Check it against the match.
+  if (opts.advancedCode != null) {
+    const { data: match } = await db
+      .from("matches")
+      .select("stage, home_code, away_code")
+      .eq("id", opts.matchId)
+      .single();
+    if (!match) throw new Error("Match not found.");
+    const m = {
+      stage: match.stage,
+      homeCode: match.home_code,
+      awayCode: match.away_code,
+    };
+    if (!isValidAdvanceCode(opts.advancedCode, m)) {
+      throw new Error(
+        `Advanced team must be one of the match's teams (${m.homeCode ?? "?"} or ${m.awayCode ?? "?"}).`,
+      );
+    }
+  }
   const { error } = await db
     .from("matches")
     .update({

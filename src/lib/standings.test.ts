@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   buildStandings,
+  competitionRanks,
   BORINGBOT_ID,
   type StandingMatch,
   type StandingMember,
@@ -70,8 +71,8 @@ test("carry_over counts every locked prediction", () => {
   // Alice: m1 exact = 10, m2 (1-1 vs 2-2) = outcome 5 + closeness 3 = 8 -> 18
   // Bob: m2 exact = 10
   assert.deepEqual(s.overall, [
-    { userId: "u1", displayName: "Alice", points: 18, movement: 0 },
-    { userId: "u2", displayName: "Bob", points: 10, movement: 0 },
+    { userId: "u1", displayName: "Alice", points: 18, movement: 0, streak: 2 },
+    { userId: "u2", displayName: "Bob", points: 10, movement: 0, streak: 1 },
   ]);
 });
 
@@ -130,8 +131,8 @@ test("start_even ignores matches before the group was created", () => {
   // m1 excluded for everyone; only m2 counts.
   // Alice m2 = 8, Bob m2 = 10 -> Bob leads
   assert.deepEqual(s.overall, [
-    { userId: "u2", displayName: "Bob", points: 10, movement: 0 },
-    { userId: "u1", displayName: "Alice", points: 8, movement: 0 },
+    { userId: "u2", displayName: "Bob", points: 10, movement: 0, streak: 1 },
+    { userId: "u1", displayName: "Alice", points: 8, movement: 0, streak: 1 },
   ]);
 });
 
@@ -145,13 +146,13 @@ test("win and scoreline boards split the score components", () => {
   });
   // Alice outcome: m1=5, m2=5 -> 10 ; Bob outcome: m2=5
   assert.deepEqual(s.win, [
-    { userId: "u1", displayName: "Alice", points: 10, movement: 0 },
-    { userId: "u2", displayName: "Bob", points: 5, movement: 0 },
+    { userId: "u1", displayName: "Alice", points: 10, movement: 0, streak: 2 },
+    { userId: "u2", displayName: "Bob", points: 5, movement: 0, streak: 1 },
   ]);
   // Alice closeness: m1=5, m2=3 -> 8 ; Bob closeness: m2=5
   assert.deepEqual(s.scoreline, [
-    { userId: "u1", displayName: "Alice", points: 8, movement: 0 },
-    { userId: "u2", displayName: "Bob", points: 5, movement: 0 },
+    { userId: "u1", displayName: "Alice", points: 8, movement: 0, streak: 2 },
+    { userId: "u2", displayName: "Bob", points: 5, movement: 0, streak: 1 },
   ]);
 });
 
@@ -267,4 +268,75 @@ test("BoringBot also ignores the trial once it stops counting", () => {
     countTrialMatches: false,
   });
   assert.equal(off.overall.find((r) => r.userId === BORINGBOT_ID)?.points, 0);
+});
+
+test("streaks count consecutive settled wins, newest first", () => {
+  // Alice scored on m2 (latest settled) and m1 -> streak 2.
+  // Bob scored on m2 but has no pick on m1 -> streak 1.
+  const s = buildStandings({
+    members,
+    matches,
+    predictions,
+    lateJoinPolicy: "carry_over",
+    groupCreatedAt: "2026-06-01T00:00:00Z",
+  });
+  assert.equal(s.overall.find((r) => r.userId === "u1")?.streak, 2);
+  assert.equal(s.overall.find((r) => r.userId === "u2")?.streak, 1);
+});
+
+test("a zero-point settled match breaks the streak", () => {
+  // Bob's pick on the LATEST match is a 0-pointer (wrong winner by two steps,
+  // scoreline miles off), so even a perfect earlier match doesn't run.
+  const late: StandingMatch = {
+    ...matches[0],
+    id: "m4",
+    kickoffAt: "2026-06-30T19:00:00Z", // 0-1 away win, after m2
+  };
+  const s = buildStandings({
+    members,
+    matches: [...matches, late],
+    predictions: [
+      { userId: "u2", matchId: "m2", predHome: 2, predAway: 2, advancePick: null },
+      { userId: "u2", matchId: "m4", predHome: 5, predAway: 0, advancePick: null },
+    ],
+    lateJoinPolicy: "carry_over",
+    groupCreatedAt: "2026-06-01T00:00:00Z",
+  });
+  assert.equal(s.overall.find((r) => r.userId === "u2")?.streak, 0);
+});
+
+test("live provisional scores never move a streak", () => {
+  const s = buildStandings({
+    members: [members[0]],
+    matches: [{ ...matches[2], homeGoals: 3, awayGoals: 0, live: true }],
+    predictions: predictions.filter((p) => p.matchId === "m3"),
+    lateJoinPolicy: "carry_over",
+    groupCreatedAt: "2026-06-01T00:00:00Z",
+  });
+  // The live exact 10 counts toward points but not the streak.
+  assert.equal(s.overall[0].points, 10);
+  assert.equal(s.overall[0].streak, 0);
+});
+
+test("the trial match never feeds a streak once retired", () => {
+  const s = buildStandings({
+    members,
+    matches: [trialMatch],
+    predictions: [trialPrediction],
+    lateJoinPolicy: "carry_over",
+    groupCreatedAt: "2026-06-01T00:00:00Z",
+    countTrialMatches: false,
+  });
+  assert.equal(s.overall.find((r) => r.userId === "u1")?.streak, 0);
+});
+
+test("competitionRanks shares a rank across ties (1, 1, 3 style)", () => {
+  const pts = (...points: number[]) => points.map((p) => ({ points: p }));
+  assert.deepEqual(competitionRanks(pts(9, 7, 5)), [1, 2, 3]);
+  // Ten tied for 2nd are all "=2", and the next rank skips past them.
+  assert.deepEqual(
+    competitionRanks(pts(9, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 4)),
+    [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 12],
+  );
+  assert.deepEqual(competitionRanks([]), []);
 });
