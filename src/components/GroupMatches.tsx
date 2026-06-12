@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { LiveBadge, FullTimeBadge } from "./StatusBadge";
+import { FOCUS_RING } from "./theme";
 import { teamLabel } from "@/lib/fifa";
 import {
   formatStageLabel,
@@ -16,21 +18,20 @@ function MatchStatus({ match }: { match: BoardMatchSummary }) {
 
   if (match.isLive && hasScore) {
     return (
-      <span className="inline-flex items-center gap-1.5 text-flame">
-        <span className="live-dot h-2 w-2 rounded-full bg-flame" />
+      <LiveBadge>
         <span className="font-black tabular-nums">
           {match.homeGoals}–{match.awayGoals}
         </span>
-      </span>
+      </LiveBadge>
     );
   }
   if (match.state === "locked") {
     if (match.isFinished && hasScore) {
       return (
-        <span className="font-black tabular-nums text-pitch dark:text-emerald-400">
+        <FullTimeBadge className="font-black tabular-nums">
           {match.homeGoals}–{match.awayGoals}
           <span className="ml-1 text-[10px] font-bold text-stone-400">FT</span>
-        </span>
+        </FullTimeBadge>
       );
     }
     return <span className="text-xs font-bold text-stone-400">In play</span>;
@@ -49,20 +50,29 @@ function MatchStatus({ match }: { match: BoardMatchSummary }) {
 
 /** One match row, linking to its per-match leaderboard. */
 function MatchRow({ code, match }: { code: string; match: BoardMatchSummary }) {
+  const home = teamLabel(match.homeCode, match.homeLabel);
+  const away = teamLabel(match.awayCode, match.awayLabel);
+  const stageLabel = formatStageLabel(match.groupLabel, match.stage);
   return (
     <li>
       <Link
         href={`/g/${code}/m/${match.id}`}
         prefetch={false}
-        className="flex items-center gap-3 rounded-2xl glass px-4 py-2.5 transition active:scale-[0.99]"
+        className={`flex items-center gap-3 rounded-2xl glass px-4 py-2.5 transition active:scale-[0.99] ${FOCUS_RING}`}
       >
-        <span className="hidden w-24 shrink-0 truncate text-[11px] font-bold uppercase tracking-wide text-stone-400 sm:block">
-          {formatStageLabel(match.groupLabel, match.stage)}
+        <span
+          title={stageLabel}
+          className="hidden w-24 shrink-0 truncate text-[11px] font-bold uppercase tracking-wide text-stone-400 sm:block"
+        >
+          {stageLabel}
         </span>
-        <span className="min-w-0 flex-1 truncate font-bold text-stone-800 dark:text-stone-100">
-          {teamLabel(match.homeCode, match.homeLabel)}
+        <span
+          title={`${home} v ${away}`}
+          className="min-w-0 flex-1 truncate font-bold text-stone-800 dark:text-stone-100"
+        >
+          {home}
           <span className="px-1.5 text-stone-400">v</span>
-          {teamLabel(match.awayCode, match.awayLabel)}
+          {away}
         </span>
         <MatchStatus match={match} />
         <span className="text-grape dark:text-violet-300">→</span>
@@ -114,7 +124,7 @@ export function GroupMatches({
             <button
               onClick={() => setShowFinished((v) => !v)}
               aria-expanded={showFinished}
-              className="rounded-full glass px-4 py-2 text-sm font-bold text-grape transition active:scale-95 dark:text-violet-300"
+              className={`rounded-full glass px-4 py-2 text-sm font-bold text-grape transition active:scale-95 dark:text-violet-300 ${FOCUS_RING}`}
             >
               {showFinished
                 ? "Hide finished"

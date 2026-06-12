@@ -54,7 +54,10 @@ export default function Home() {
           <h2 className="mb-3 px-1 text-lg font-black text-stone-700 dark:text-stone-100">
             Upcoming matches
           </h2>
-          <div className="grid gap-6 sm:grid-cols-2">
+          {/* Below lg this section spans the full container, so tablets fit a
+              third card per row; at lg+ it shares the row with the leaderboard
+              column (~half width), where two columns is the readable maximum. */}
+          <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-2">
             {UPCOMING.map((m, i) => (
               <MatchCard key={i} data={m} revealOnHover />
             ))}

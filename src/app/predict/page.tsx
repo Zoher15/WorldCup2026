@@ -46,9 +46,10 @@ export default async function PredictPage() {
       </p>
 
       {matches.length === 0 ? (
-        <p className="rounded-2xl glass p-6 text-center font-medium text-stone-500 dark:text-stone-300">
+        <div className="rounded-2xl glass p-6 text-center font-medium text-stone-500 dark:text-stone-300">
+          <div className="mb-2 text-4xl">⚽</div>
           No upcoming matches to predict right now.
-        </p>
+        </div>
       ) : (
         <PredictionList matches={matches} initial={predictions} />
       )}

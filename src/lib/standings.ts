@@ -19,6 +19,13 @@ import type { LateJoinPolicy, Stage } from "./types.ts";
 export const BORINGBOT_ID = "boringbot";
 export const BORINGBOT_NAME = "BoringBot 🤖";
 
+/** The bot's pick for every match: always 0–0, never an advance call. */
+export const BORINGBOT_PICK: {
+  pred_home: number;
+  pred_away: number;
+  advance_pick: string | null;
+} = { pred_home: 0, pred_away: 0, advance_pick: null };
+
 export interface StandingMember {
   userId: string;
   displayName: string;
@@ -179,7 +186,7 @@ export function buildStandings(input: {
         continue;
       }
       const { outcome, closeness } = scoreMatch(
-        { homeGoals: 0, awayGoals: 0 },
+        { homeGoals: BORINGBOT_PICK.pred_home, awayGoals: BORINGBOT_PICK.pred_away },
         { homeGoals: match.homeGoals, awayGoals: match.awayGoals },
         actualWinnerDirection(match),
       );

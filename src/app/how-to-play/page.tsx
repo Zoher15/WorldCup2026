@@ -43,7 +43,7 @@ export default function HowToPlayPage() {
         <div className="inline-flex items-center gap-2 rounded-full glass px-4 py-1.5 text-sm font-bold text-pitch dark:text-emerald-400">
           ⚽ How to play
         </div>
-        <h1 className="mt-3 gradient-text pb-1 text-4xl font-black leading-tight tracking-tight">
+        <h1 className="mt-3 gradient-text pb-1 text-4xl font-black leading-tight tracking-tight sm:text-5xl">
           Predict the scores. Beat your group.
         </h1>
         <p className="mt-2 font-medium text-stone-500 dark:text-stone-300">

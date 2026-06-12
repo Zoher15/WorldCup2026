@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { Flag } from "./Flag";
+import { inputClassesGrape } from "./form-styles";
 import { teamLabel } from "@/lib/fifa";
 import { formatKickoffDateTime, formatStageLabel } from "@/lib/format";
 import { isKnockoutStage } from "@/lib/polling";
@@ -114,7 +115,7 @@ function Row({ m }: { m: AdminMatch }) {
           <button
             onClick={clear}
             disabled={pending}
-            className="rounded-full glass px-3 py-1.5 text-xs font-bold text-stone-700 disabled:opacity-50 dark:text-stone-200"
+            className="rounded-full glass px-3 py-1.5 text-xs font-bold text-stone-700 disabled:cursor-not-allowed disabled:opacity-50 dark:text-stone-200"
           >
             Clear
           </button>
@@ -122,7 +123,7 @@ function Row({ m }: { m: AdminMatch }) {
         <button
           onClick={confirm}
           disabled={pending}
-          className="rounded-full glass px-4 py-1.5 text-xs font-bold text-pitch dark:text-emerald-400 disabled:opacity-50"
+          className="rounded-full glass px-4 py-1.5 text-xs font-bold text-pitch dark:text-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {m.resultConfirmed ? "Update" : "Confirm result"}
         </button>
@@ -168,7 +169,7 @@ export function AdminResults({ matches }: { matches: AdminMatch[] }) {
           <button
             onClick={syncNow}
             disabled={syncing}
-            className="rounded-full glass px-4 py-2 text-sm font-bold text-ocean dark:text-sky-400 disabled:opacity-50"
+            className="rounded-full glass px-4 py-2 text-sm font-bold text-ocean dark:text-sky-400 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {syncing ? "Syncing…" : "Sync live scores"}
           </button>
@@ -189,7 +190,7 @@ export function AdminResults({ matches }: { matches: AdminMatch[] }) {
         value={q}
         onChange={(e) => setQ(e.target.value)}
         placeholder="Search by team or match #"
-        className="mb-4 w-full rounded-xl border border-stone-200 bg-white px-4 py-3 font-medium outline-none focus:border-grape focus:ring-2 focus:ring-grape/30 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100 dark:placeholder:text-stone-500"
+        className={`mb-4 ${inputClassesGrape}`}
       />
 
       <div className="space-y-2">

@@ -80,7 +80,7 @@ function CreateForm({ defaultName }: { defaultName: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-full glass py-3.5 text-lg font-bold text-pitch dark:text-emerald-400 transition active:scale-95 disabled:opacity-50"
+        className="w-full rounded-full glass py-3.5 text-lg font-bold text-pitch dark:text-emerald-400 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {pending ? "Creating…" : "Create group"}
       </button>
@@ -126,7 +126,7 @@ function JoinForm({ defaultName }: { defaultName: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-full glass py-3.5 text-lg font-bold text-grape dark:text-violet-300 transition active:scale-95 disabled:opacity-50"
+        className="w-full rounded-full glass py-3.5 text-lg font-bold text-grape dark:text-violet-300 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {pending ? "Joining…" : "Join group"}
       </button>

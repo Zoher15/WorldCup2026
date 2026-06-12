@@ -3,8 +3,12 @@
 import { useState } from "react";
 import { Stepper } from "./Stepper";
 import { Countdown } from "./Countdown";
+import { BreakdownRow } from "./BreakdownRow";
+import { LiveBadge, FullTimeBadge } from "./StatusBadge";
+import { FOCUS_RING, LIVE_TEXT, PREDICTION_TEXT, RESULT_TEXT } from "./theme";
 import { teamByCode, teamColor, teamLabel } from "@/lib/fifa";
 import { formatHostCity, formatKickoffDateCompact, formatKickoffTime, formatStageLabel, shortHostCity } from "@/lib/format";
+import type { PredictionState } from "@/lib/prediction-rules";
 import { computeBreakdown } from "@/lib/score-breakdown";
 import type { Stage } from "@/lib/types";
 
@@ -37,6 +41,47 @@ export interface MatchCardData {
   awayGoals?: number | null;
   /** Knockout: the team that advanced (for the advance-bonus math). */
   advancedCode?: string | null;
+}
+
+/**
+ * Map a derived match shape (camelCase, with `result`/`live` objects — a
+ * profile row or a per-match board's match) onto the card: a locked match with
+ * a result reads as "final", with an in-play score as "live", and the score
+ * fields come from whichever of the two is present.
+ */
+export function toMatchCardData(m: {
+  homeCode: string | null;
+  awayCode: string | null;
+  homeLabel: string | null;
+  awayLabel: string | null;
+  kickoffAt: string;
+  stage: Stage;
+  groupLabel: string | null;
+  venue: string | null;
+  trial?: boolean;
+  state: PredictionState;
+  result: { home: number; away: number; advancedCode: string | null } | null;
+  live: { home: number; away: number; minute: number | null } | null;
+}): MatchCardData {
+  let state: MatchCardState = m.state;
+  if (m.state === "locked" && m.result) state = "final";
+  else if (m.state === "locked" && m.live) state = "live";
+  return {
+    homeCode: m.homeCode,
+    awayCode: m.awayCode,
+    homeLabel: m.homeLabel,
+    awayLabel: m.awayLabel,
+    kickoffAt: m.kickoffAt,
+    stage: m.stage,
+    groupLabel: m.groupLabel,
+    venue: m.venue,
+    trial: m.trial,
+    state,
+    minute: m.live?.minute,
+    homeGoals: m.result?.home ?? m.live?.home,
+    awayGoals: m.result?.away ?? m.live?.away,
+    advancedCode: m.result?.advancedCode,
+  };
 }
 
 export interface MatchCardProps {
@@ -81,13 +126,12 @@ function StatusPill({
   switch (data.state) {
     case "live":
       return (
-        <span className={`${base} glass inline-flex items-center gap-1.5 text-flame`}>
-          <span className="live-dot h-2 w-2 rounded-full bg-flame" />
+        <LiveBadge className={`${base} glass`}>
           LIVE{data.minute ? ` ${data.minute}'` : ""}
-        </span>
+        </LiveBadge>
       );
     case "final":
-      return <span className={`${base} glass text-pitch dark:text-emerald-400`}>FULL TIME</span>;
+      return <FullTimeBadge className={`${base} glass`}>FULL TIME</FullTimeBadge>;
     case "locked":
       return <span className={`${base} ${GLASS} text-stone-500 dark:text-stone-300`}>🔒 Locked</span>;
     case "open":
@@ -120,11 +164,13 @@ function StatusPill({
 
 /** A team's name on a solid bar — the flags carry identity, this keeps it legible. */
 function TeamName({ code, label }: { code: string | null; label?: string | null }) {
+  const name = teamLabel(code, label);
   return (
     <span
+      title={name}
       className={`truncate rounded-lg px-2.5 py-1 text-center text-sm font-extrabold ${GLASS} text-stone-800 dark:text-stone-50`}
     >
-      {teamLabel(code, label)}
+      {name}
     </span>
   );
 }
@@ -149,7 +195,7 @@ function Score({
         <span>{away}</span>
       </div>
       {label && (
-        <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">{label}</div>
+        <div className="text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">{label}</div>
       )}
     </div>
   );
@@ -169,7 +215,7 @@ function MiniScore({
 }) {
   return (
     <div className="text-center">
-      <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
+      <div className="text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
         {label}
       </div>
       <div className={`flex items-center justify-center gap-1.5 text-2xl font-black tabular-nums ${tone}`}>
@@ -218,25 +264,25 @@ function DualScore({
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        className={`rounded-xl px-4 py-1.5 ${GLASS} transition active:scale-95`}
+        className={`rounded-xl px-4 py-1.5 ${GLASS} transition active:scale-95 ${FOCUS_RING}`}
       >
         <div className="flex items-center justify-center gap-3">
           <MiniScore
             label="your call"
             home={pick.home}
             away={pick.away}
-            tone="text-grape dark:text-violet-300"
+            tone={PREDICTION_TEXT}
           />
           <span className="h-7 w-px bg-stone-300/70 dark:bg-stone-600/70" />
           <MiniScore
             label={live ? "live score" : "full time"}
             home={result.home}
             away={result.away}
-            tone={live ? "text-flame" : "text-stone-800 dark:text-stone-50"}
+            tone={live ? LIVE_TEXT : "text-stone-800 dark:text-stone-50"}
           />
         </div>
-        <div className="mt-0.5 flex items-center justify-center gap-1 text-[9px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
-          <span className={`font-black ${live ? "text-flame" : "text-pitch dark:text-emerald-400"}`}>
+        <div className="mt-0.5 flex items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
+          <span className={`font-black ${live ? LIVE_TEXT : RESULT_TEXT}`}>
             {live ? "~" : ""}{b.total} pt{b.total === 1 ? "" : "s"}
           </span>
           <span>· tap for math {open ? "▲" : "▼"}</span>
@@ -254,35 +300,12 @@ function DualScore({
             <span className="text-[11px] font-black uppercase tracking-wide text-stone-500 dark:text-stone-200">
               {live ? "If it ends now" : "Total"}
             </span>
-            <span className={`text-sm font-black ${live ? "text-flame" : "text-pitch dark:text-emerald-400"}`}>
+            <span className={`text-sm font-black ${live ? LIVE_TEXT : RESULT_TEXT}`}>
               {b.total} pt{b.total === 1 ? "" : "s"}
             </span>
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-/** One line of the points math: a label and the points it contributed. */
-function BreakdownRow({
-  label,
-  value,
-  max,
-}: {
-  label: string;
-  value: number;
-  max?: number;
-}) {
-  return (
-    <div className="flex items-center justify-between py-0.5 text-[11px] font-bold">
-      <span className="text-stone-500 dark:text-stone-300">{label}</span>
-      <span className="tabular-nums text-stone-700 dark:text-stone-100">
-        +{value}
-        {max != null && (
-          <span className="text-stone-400 dark:text-stone-500"> / {max}</span>
-        )}
-      </span>
     </div>
   );
 }
@@ -345,7 +368,7 @@ export function MatchCard({ data, opensAt, entry, pick, status, footer, onExpire
       <Score
         home={data.homeGoals!}
         away={data.awayGoals!}
-        tone={data.state === "live" ? "text-flame" : "text-stone-800 dark:text-stone-50"}
+        tone={data.state === "live" ? LIVE_TEXT : "text-stone-800 dark:text-stone-50"}
       />
     );
   } else if (entry && editing) {
@@ -357,7 +380,7 @@ export function MatchCard({ data, opensAt, entry, pick, status, footer, onExpire
           <span className="text-xl font-black text-stone-300 dark:text-stone-600">:</span>
           <Stepper size="sm" value={entry.away} onChange={(n) => entry.onChange("away", n)} />
         </div>
-        <div className="text-center text-[9px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
+        <div className="text-center text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
           your call
         </div>
       </div>
@@ -366,13 +389,13 @@ export function MatchCard({ data, opensAt, entry, pick, status, footer, onExpire
     // Window shut at kickoff: drop the +/- and show the locked-in pick.
     focal = (
       <div className={`rounded-xl px-4 py-1.5 ${GLASS}`}>
-        <div className="flex items-center justify-center gap-2 text-2xl font-black tabular-nums text-stone-400 dark:text-stone-400">
+        <div className="flex items-center justify-center gap-2 text-2xl font-black tabular-nums text-stone-400 dark:text-stone-300">
           <span className="text-xl leading-none">🔒</span>
           <span>{entry.home}</span>
           <span className="text-stone-300 dark:text-stone-600">:</span>
           <span>{entry.away}</span>
         </div>
-        <div className="text-center text-[9px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
+        <div className="text-center text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
           locked
         </div>
       </div>
@@ -383,26 +406,32 @@ export function MatchCard({ data, opensAt, entry, pick, status, footer, onExpire
     // place this timing lives, with the host city already shown top-right.
     focal = (
       <div className={`rounded-xl px-4 py-2 text-center ${GLASS}`}>
-        <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">opens in</div>
+        <div className="text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">opens in</div>
         <div className="text-xl font-black tabular-nums text-ocean dark:text-sky-400">
           <Countdown target={opensAt} expiredLabel="open now" onExpire={onExpire} />
         </div>
       </div>
     );
   } else if (pick) {
-    focal = <Score home={pick.home} away={pick.away} tone="text-grape dark:text-violet-300" label="your pick" />;
+    focal = <Score home={pick.home} away={pick.away} tone={PREDICTION_TEXT} label="your pick" />;
   } else {
     focal = (
       <div className={`rounded-xl px-4 py-2 text-center ${GLASS}`}>
         <div className="text-lg font-black leading-tight text-stone-700 dark:text-stone-100">
           {formatKickoffDateCompact(data.kickoffAt)}
         </div>
-        <div className="text-[9px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
+        <div className="text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
           {formatKickoffTime(data.kickoffAt)} · kickoff
         </div>
       </div>
     );
   }
+
+  // The header pill truncates on narrow cards, so it carries its full text as a
+  // hover title too.
+  const stageLabel = data.trial
+    ? "🎯 Practice"
+    : formatStageLabel(data.groupLabel, data.stage);
 
   return (
     <div className={`relative animate-pop-in overflow-hidden rounded-2xl bg-stone-200 shadow-lg ring-1 ring-white/30 dark:bg-stone-800 dark:ring-white/15${revealOnHover ? " glass-reveal" : ""}`}>
@@ -430,10 +459,11 @@ export function MatchCard({ data, opensAt, entry, pick, status, footer, onExpire
 
       <div className="relative flex min-h-[9rem] flex-col justify-between gap-2 p-3 text-xs font-bold">
         <div className="relative flex items-center justify-between gap-2">
-          <span className={`min-w-0 truncate rounded-full px-2.5 py-0.5 ${GLASS} text-stone-600 dark:text-stone-200`}>
-            {data.trial
-              ? "🎯 Practice"
-              : formatStageLabel(data.groupLabel, data.stage)}
+          <span
+            title={stageLabel}
+            className={`min-w-0 truncate rounded-full px-2.5 py-0.5 ${GLASS} text-stone-600 dark:text-stone-200`}
+          >
+            {stageLabel}
           </span>
           {status && (
             <span

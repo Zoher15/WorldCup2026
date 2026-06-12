@@ -1,56 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { MatchCard, type MatchCardData, type MatchCardState } from "./MatchCard";
+import { BreakdownRow } from "./BreakdownRow";
+import { MatchCard, toMatchCardData } from "./MatchCard";
+import { PlayerLink } from "./PlayerLink";
+import { FOCUS_RING, LIVE_TEXT, PREDICTION_TEXT, RESULT_TEXT } from "./theme";
 import { useLiveRefresh } from "./useLiveRefresh";
 import type { MatchBoard, MatchBoardRow } from "@/lib/match-leaderboard";
-
-/** Build the shared scoreboard card for the match itself (no single pick). */
-function cardData(match: MatchBoard["match"]): MatchCardData {
-  let state: MatchCardState = match.state;
-  if (match.state === "locked" && match.result) state = "final";
-  else if (match.state === "locked" && match.live) state = "live";
-  return {
-    homeCode: match.homeCode,
-    awayCode: match.awayCode,
-    homeLabel: match.homeLabel,
-    awayLabel: match.awayLabel,
-    kickoffAt: match.kickoffAt,
-    stage: match.stage,
-    groupLabel: match.groupLabel,
-    venue: match.venue,
-    trial: match.trial,
-    state,
-    minute: match.live?.minute,
-    homeGoals: match.result?.home ?? match.live?.home,
-    awayGoals: match.result?.away ?? match.live?.away,
-    advancedCode: match.result?.advancedCode,
-  };
-}
-
-/** One line of the points math, mirroring the match card's breakdown rows. */
-function BreakdownRow({
-  label,
-  value,
-  max,
-}: {
-  label: string;
-  value: number;
-  max?: number;
-}) {
-  return (
-    <div className="flex items-center justify-between py-0.5 text-[11px] font-bold">
-      <span className="text-stone-500 dark:text-stone-300">{label}</span>
-      <span className="tabular-nums text-stone-700 dark:text-stone-100">
-        +{value}
-        {max != null && (
-          <span className="text-stone-400 dark:text-stone-500"> / {max}</span>
-        )}
-      </span>
-    </div>
-  );
-}
 
 /** The right-hand status for a revealed row: the player's call + points, with
  *  the same tap-for-math expansion the match card uses. */
@@ -62,7 +18,7 @@ function RevealedScore({ row }: { row: MatchBoardRow }) {
   }
   const pick = row.pick!;
   const call = (
-    <span className="font-black text-grape dark:text-violet-300 tabular-nums">
+    <span className={`font-black ${PREDICTION_TEXT} tabular-nums`}>
       {pick.home}–{pick.away}
     </span>
   );
@@ -97,20 +53,18 @@ function RevealedScore({ row }: { row: MatchBoardRow }) {
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        className="inline-flex items-center gap-2 rounded-full glass px-2.5 py-1 transition active:scale-95"
+        className={`inline-flex items-center gap-2 rounded-full glass px-2.5 py-1 transition active:scale-95 ${FOCUS_RING}`}
       >
         {call}
         <span
           className={`font-black tabular-nums ${
-            row.provisional
-              ? "text-flame"
-              : "text-pitch dark:text-emerald-400"
+            row.provisional ? LIVE_TEXT : RESULT_TEXT
           }`}
         >
           {row.provisional ? "~" : ""}
           {row.points} pt{row.points === 1 ? "" : "s"}
         </span>
-        <span className="text-[9px] font-bold text-stone-400">
+        <span className="text-[10px] font-bold text-stone-400">
           {open ? "▲" : "▼"}
         </span>
       </button>
@@ -125,9 +79,7 @@ function RevealedScore({ row }: { row: MatchBoardRow }) {
             </span>
             <span
               className={`text-sm font-black ${
-                row.provisional
-                  ? "text-flame"
-                  : "text-pitch dark:text-emerald-400"
+                row.provisional ? LIVE_TEXT : RESULT_TEXT
               }`}
             >
               {b.total} pt{b.total === 1 ? "" : "s"}
@@ -141,23 +93,20 @@ function RevealedScore({ row }: { row: MatchBoardRow }) {
 
 /** A player's name, linked to their in-group profile (except the bot). */
 function PlayerName({ row, code }: { row: MatchBoardRow; code: string }) {
-  const name = (
-    <span className="truncate font-bold text-stone-800 dark:text-stone-100">
-      {row.displayName}
-      {row.isViewer && (
-        <span className="ml-1.5 text-[10px] font-bold text-stone-400">(you)</span>
-      )}
-    </span>
-  );
-  if (row.isBot) return name;
   return (
-    <Link
-      href={`/g/${code}/p/${row.userId}`}
-      prefetch={false}
-      className="truncate hover:underline"
+    <PlayerLink
+      userId={row.userId}
+      code={row.isBot ? undefined : code}
+      title={row.displayName}
+      className={row.isBot ? undefined : "truncate"}
     >
-      {name}
-    </Link>
+      <span className="truncate font-bold text-stone-800 dark:text-stone-100">
+        {row.displayName}
+        {row.isViewer && (
+          <span className="ml-1.5 text-[10px] font-bold text-stone-400">(you)</span>
+        )}
+      </span>
+    </PlayerLink>
   );
 }
 
@@ -174,7 +123,7 @@ export function MatchLeaderboard({ board }: { board: MatchBoard }) {
 
   return (
     <div>
-      <MatchCard data={cardData(board.match)} pick={null} />
+      <MatchCard data={toMatchCardData(board.match)} pick={null} />
 
       <div className="mt-6 rounded-3xl glass p-5">
         <h2 className="mb-1 text-center text-xl font-black text-grape dark:text-violet-300">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { FOCUS_RING } from "./theme";
 
 /**
  * Shares the group's leaderboard. Primarily it shares the rendered standings
@@ -83,7 +84,8 @@ export function ShareLeaderboard({
     <button
       onClick={share}
       disabled={busy}
-      className="rounded-full glass px-4 py-2 text-sm font-bold text-grape transition active:scale-95 disabled:opacity-70 dark:text-violet-300"
+      aria-label="Share the leaderboard image"
+      className={`rounded-full glass px-4 py-2 text-sm font-bold text-grape transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-70 dark:text-violet-300 ${FOCUS_RING}`}
     >
       {busy ? "Preparing…" : (msg ?? "📸 Share")}
     </button>

@@ -72,7 +72,7 @@ export function GroupAdmin({
             <button
               onClick={rename}
               disabled={renameDisabled}
-              className="shrink-0 rounded-full glass px-4 py-3 text-sm font-bold text-pitch transition active:scale-95 disabled:opacity-40 dark:text-emerald-400"
+              className="shrink-0 rounded-full glass px-4 py-3 text-sm font-bold text-pitch transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 dark:text-emerald-400"
             >
               Rename
             </button>
@@ -108,7 +108,7 @@ export function GroupAdmin({
                         start(() => removeMemberAction(code, m.userId));
                       }
                     }}
-                    className="rounded-full glass px-3 py-1 text-xs font-bold text-flame transition active:scale-95 disabled:opacity-50"
+                    className="rounded-full glass px-3 py-1 text-xs font-bold text-flame transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Remove
                   </button>
@@ -129,7 +129,7 @@ export function GroupAdmin({
                   start(() => deleteGroupAction(code));
                 }
               }}
-              className="rounded-full glass px-4 py-2 text-sm font-bold text-flame transition active:scale-95 disabled:opacity-50"
+              className="rounded-full glass px-4 py-2 text-sm font-bold text-flame transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Delete group
             </button>
