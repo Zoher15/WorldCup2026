@@ -39,6 +39,9 @@ body {
     linear-gradient(160deg, #1c1917 0%, #1a1422 45%, #1b1418 100%);
   color: #e7e5e4;
   min-height: 100dvh;
+  /* Clip any stray horizontal overflow so the page can never scroll sideways —
+     which on phones read as unequal left/right margins around the cards. */
+  overflow-x: clip;
 }
 
 /* Confetti-ish celebratory shimmer used on score updates / podium */
@@ -125,6 +128,41 @@ body {
   .nag-pulse {
     animation: none;
     box-shadow: 0 0 0 2px rgba(11, 138, 62, 0.3);
+  }
+}
+
+/* Live match ring: a band of flame→gold light sweeping around the card's rim.
+   The wrapper is a padded, clipped frame (like the hero's gradient ring); the
+   ::before is an oversized square painted with a mostly-transparent conic
+   gradient over a faint flame base, spun by transform so only the 2px rim ever
+   shows the moving light. Reduced motion keeps a static flame rim instead. */
+.live-ring {
+  position: relative;
+  overflow: hidden;
+}
+.live-ring::before {
+  content: "";
+  position: absolute;
+  /* Big enough that the square still covers the corners mid-rotation. */
+  inset: -100%;
+  background:
+    conic-gradient(
+      from 0deg,
+      transparent 0deg 250deg,
+      var(--color-flame) 310deg,
+      var(--color-sunburst) 332deg,
+      transparent 360deg
+    ),
+    rgba(255, 90, 54, 0.3);
+  animation: live-ring-spin 2.8s linear infinite;
+}
+@keyframes live-ring-spin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .live-ring::before {
+    animation: none;
+    background: rgba(255, 90, 54, 0.45);
   }
 }
 

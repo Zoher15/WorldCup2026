@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Avatar } from "./Avatar";
 import { PlayerLink } from "./PlayerLink";
 import { ShareLeaderboard } from "./ShareLeaderboard";
 import { FOCUS_RING } from "./theme";
@@ -62,19 +61,38 @@ export function Leaderboard({
   const top3 = rows.slice(0, 3);
   const rest = rows.slice(3);
 
-  // "You vs them": one small motivating line for the viewer — crown on top,
-  // otherwise the points gap to the player directly above them on this tab.
+  // Standard competition ranking (1, 1, 3): everyone on the same points shares
+  // a rank — ten people tied for 2nd are ALL "=2", not 2 through 11.
+  const ranks: number[] = [];
+  rows.forEach((r, i) => {
+    ranks[i] = i > 0 && rows[i - 1].points === r.points ? ranks[i - 1] : i + 1;
+  });
+  const isTied = (i: number) =>
+    (i > 0 && rows[i - 1].points === rows[i].points) ||
+    (i < rows.length - 1 && rows[i + 1].points === rows[i].points);
+
+  // "You vs them": one small motivating line for the viewer — every tie-mate
+  // when level, crown on top, otherwise the gap to the player directly above.
   const viewerIdx = viewerId ? rows.findIndex((r) => r.userId === viewerId) : -1;
   let viewerDelta: string | null = null;
-  if (viewerIdx === 0) {
-    viewerDelta = "👑 Top of the group";
-  } else if (viewerIdx > 0) {
-    const ahead = rows[viewerIdx - 1];
-    const gap = ahead.points - rows[viewerIdx].points;
-    viewerDelta =
-      gap === 0
-        ? `Tied with ${ahead.displayName}`
-        : `${gap} pt${gap === 1 ? "" : "s"} behind ${ahead.displayName}`;
+  if (viewerIdx >= 0) {
+    const mine = rows[viewerIdx].points;
+    const tiedOthers = rows.filter(
+      (r, i) => i !== viewerIdx && r.points === mine,
+    );
+    if (tiedOthers.length > 0) {
+      const lead = ranks[viewerIdx] === 1 ? "Tied for the lead with" : "Tied with";
+      viewerDelta =
+        tiedOthers.length === 1
+          ? `${lead} ${tiedOthers[0].displayName}`
+          : `${lead} ${tiedOthers.length} others`;
+    } else if (viewerIdx === 0) {
+      viewerDelta = "👑 Top of the group";
+    } else {
+      const ahead = rows[viewerIdx - 1];
+      const gap = ahead.points - mine;
+      viewerDelta = `${gap} pt${gap === 1 ? "" : "s"} behind ${ahead.displayName}`;
+    }
   }
   // Show the top 10 (podium + 7) by default so the share button stays in reach;
   // the rest is revealed on demand via the expander above the share button.
@@ -155,25 +173,22 @@ export function Leaderboard({
       </div>
 
       {/* Podium */}
-      <div className="mb-5 flex items-end justify-center gap-3">
+      <div className="mb-5 flex items-end justify-center gap-3 max-sm:gap-2">
         {PODIUM_ORDER.map((idx, slot) => {
           const r = top3[idx];
           if (!r)
             return (
               <div key={slot} className="w-20 max-sm:max-w-24 max-sm:flex-1 max-sm:w-auto" />
             );
+          // Tied podium places share the medal their rank earned — two players
+          // level at the top are both 🥇, and the next is 🥉.
           return (
             <div
               key={slot}
               className="flex w-20 flex-col items-center max-sm:max-w-24 max-sm:flex-1 max-sm:w-auto"
+              title={isTied(idx) ? `Tied at ${r.points} pts` : undefined}
             >
-              <div className="text-2xl">{MEDALS[idx]}</div>
-              <Avatar
-                userId={r.userId}
-                displayName={r.displayName}
-                size="md"
-                className="mb-1"
-              />
+              <div className="mb-1 text-2xl">{MEDALS[ranks[idx] - 1]}</div>
               {/* No profile to link to without a group (BoringBot has a synthetic one). */}
               <PlayerLink
                 userId={r.userId}
@@ -198,8 +213,21 @@ export function Leaderboard({
                     className="overtake-flash pointer-events-none absolute inset-0 rounded-t-xl"
                   />
                 )}
-                <div className="relative flex h-full items-start justify-center pt-1 font-display text-stone-800 dark:text-stone-50">
-                  {r.points}
+                <div className="relative flex h-full flex-col items-center gap-0.5 pt-1 font-display text-stone-800 dark:text-stone-50">
+                  <span>
+                    {isTied(idx) && (
+                      <span className="mr-0.5 text-stone-500 dark:text-stone-300">=</span>
+                    )}
+                    {r.points}
+                  </span>
+                  {(r.streak ?? 0) >= 2 && (
+                    <span
+                      className="font-sans text-[10px] font-bold text-flame"
+                      title={`${r.streak} scoring matches in a row`}
+                    >
+                      🔥{r.streak}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -217,10 +245,21 @@ export function Leaderboard({
 
       {/* The rest */}
       <ol className="space-y-2">
-        {shownRest.map((r, i) => (
+        {shownRest.map((r, i) => {
+          const rowIdx = i + top3.length;
+          const tied = isTied(rowIdx);
+          const streak = (r.streak ?? 0) >= 2 && (
+            <span
+              className="shrink-0 text-[10px] font-bold text-flame"
+              title={`${r.streak} scoring matches in a row`}
+            >
+              🔥{r.streak}
+            </span>
+          );
+          return (
           <li
             key={r.userId}
-            className="relative flex items-center gap-3 rounded-2xl glass px-4 py-3 text-stone-700 transition-transform dark:text-stone-100"
+            className="relative flex items-center gap-3 rounded-2xl glass px-4 py-3 text-stone-700 transition hover:scale-[1.01] dark:text-stone-100"
           >
             {/* Gold flash overlay (rather than animating the row's own
                 background, which would fight the .glass layers) when this
@@ -231,15 +270,36 @@ export function Leaderboard({
                 className="overtake-flash pointer-events-none absolute inset-0 rounded-2xl"
               />
             )}
-            <span className="w-6 text-center font-black text-stone-400">
-              {i + 4}
+            {/* Tied players share a rank ("=4"), competition style. */}
+            <span
+              className="w-7 text-center font-black text-stone-400 tabular-nums"
+              title={tied ? `Tied at ${r.points} pts` : undefined}
+            >
+              {tied ? "=" : ""}
+              {ranks[rowIdx]}
             </span>
-            <Avatar userId={r.userId} displayName={r.displayName} size="sm" />
             {viewerId === r.userId && viewerDelta ? (
               // The viewer's row: their name plus the small "you vs them" delta
               // tucked under it, inside the same flex slot so the rank, avatar
               // and points columns stay aligned with every other row.
               <span className="flex min-w-0 flex-1 flex-col">
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <PlayerLink
+                    userId={r.userId}
+                    code={code}
+                    title={r.displayName}
+                    className="truncate font-bold"
+                  >
+                    {r.displayName}
+                  </PlayerLink>
+                  {streak}
+                </span>
+                <span className="truncate text-xs font-medium text-stone-400">
+                  {viewerDelta}
+                </span>
+              </span>
+            ) : (
+              <span className="flex min-w-0 flex-1 items-center gap-1.5">
                 <PlayerLink
                   userId={r.userId}
                   code={code}
@@ -248,26 +308,16 @@ export function Leaderboard({
                 >
                   {r.displayName}
                 </PlayerLink>
-                <span className="truncate text-xs font-medium text-stone-400">
-                  {viewerDelta}
-                </span>
+                {streak}
               </span>
-            ) : (
-              <PlayerLink
-                userId={r.userId}
-                code={code}
-                title={r.displayName}
-                className="flex-1 truncate font-bold"
-              >
-                {r.displayName}
-              </PlayerLink>
             )}
             <Movement value={r.movement} />
             <span className="w-10 text-right font-display text-lg tabular-nums">
               {r.points}
             </span>
           </li>
-        ))}
+          );
+        })}
       </ol>
 
       {(canExpand || code) && (

@@ -10,10 +10,16 @@ export const dynamic = "force-dynamic";
 
 export default async function PlayerPastPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ code: string; userId: string }>;
+  searchParams: Promise<{ hl?: string }>;
 }) {
   const { code, userId } = await params;
+  // Badge chips on the profile link here with the matches they were earned on,
+  // so those cards can be highlighted and scrolled into view.
+  const { hl } = await searchParams;
+  const highlightIds = hl ? hl.split(",").filter(Boolean) : [];
 
   const viewerId = await getUserId();
   if (!viewerId) {
@@ -61,7 +67,11 @@ export default async function PlayerPastPage({
         beside the full-time score. Tap a card for the points math.
       </p>
 
-      <PlayerPredictions profile={profile} view="past" />
+      <PlayerPredictions
+        profile={profile}
+        view="past"
+        highlightIds={highlightIds}
+      />
     </main>
   );
 }

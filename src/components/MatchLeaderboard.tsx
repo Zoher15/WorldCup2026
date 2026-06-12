@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Avatar } from "./Avatar";
 import { BreakdownRow } from "./BreakdownRow";
 import { CountUp } from "./CountUp";
 import { MatchCard, toMatchCardData } from "./MatchCard";
@@ -160,11 +159,6 @@ export function MatchLeaderboard({ board }: { board: MatchBoard }) {
                   </span>
                 )}
                 <span className="flex min-w-0 flex-1 items-center gap-2">
-                  <Avatar
-                    userId={r.userId}
-                    displayName={r.displayName}
-                    size="sm"
-                  />
                   <PlayerName row={r} code={group.code} />
                 </span>
                 {revealed ? (

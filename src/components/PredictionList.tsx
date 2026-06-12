@@ -194,12 +194,12 @@ export function PredictionList({
               );
               // The hero spans both columns so the most urgent match leads.
               // The nag ring lives on this wrapper, whose radius must match
-              // what it wraps: the hero's gradient band is rounded-[18px], a
+              // what it wraps: the hero's gradient band is rounded-[19px], a
               // plain card rounded-2xl.
               return hero ? (
                 <div
                   key={m.id}
-                  className={`sm:col-span-2${nag ? " nag-pulse rounded-[18px]" : ""}`}
+                  className={`sm:col-span-2${nag ? " nag-pulse rounded-[19px]" : ""}`}
                 >
                   {card}
                 </div>
