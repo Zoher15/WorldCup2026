@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Stepper } from "./Stepper";
 import { Countdown } from "./Countdown";
 import { BreakdownRow } from "./BreakdownRow";
+import { Confetti } from "./Confetti";
+import { CountUp } from "./CountUp";
 import { LiveBadge, FullTimeBadge } from "./StatusBadge";
 import { FOCUS_RING, LIVE_TEXT, PREDICTION_TEXT, RESULT_TEXT } from "./theme";
 import { teamByCode, teamColor, teamLabel } from "@/lib/fifa";
@@ -118,6 +120,34 @@ export interface MatchCardProps {
  *  Keeps the same default text tones as before; the `.glass` class supplies the
  *  translucent tint, blur, edge and sheen. */
 const GLASS = "glass text-stone-700 dark:text-stone-100";
+
+/** Last seen live score per match, module-level so it survives the remounts a
+ *  `router.refresh` can cause — a goal still flashes whether the card
+ *  re-renders in place or comes back fresh with the new score. Keyed on
+ *  teams + kickoff because `MatchCardData` carries no match id. Capped so a
+ *  long session browsing many pages can't grow it without bound. */
+const lastLiveScores = new Map<string, string>();
+
+/** Bumps the returned counter once each time a *live* match's score changes
+ *  versus the last score this session saw for it (first sighting just records —
+ *  no flash on initial load). The counter keys the focal tile so the one-shot
+ *  `goal-flash` CSS animation re-fires on every goal. */
+function useGoalFlash(data: MatchCardData): number {
+  const [flash, setFlash] = useState(0);
+  const active =
+    data.state === "live" && data.homeGoals != null && data.awayGoals != null;
+  const key = `${data.homeCode}-${data.awayCode}-${data.kickoffAt}`;
+  const score = `${data.homeGoals}-${data.awayGoals}`;
+  useEffect(() => {
+    if (!active) return;
+    const prev = lastLiveScores.get(key);
+    if (prev === score) return;
+    if (lastLiveScores.size > 200) lastLiveScores.clear();
+    lastLiveScores.set(key, score);
+    if (prev !== undefined) setFlash((n) => n + 1);
+  }, [active, key, score]);
+  return flash;
+}
 
 function StatusPill({
   data,
@@ -272,6 +302,9 @@ function DualScore({
     homeCode: data.homeCode,
     awayCode: data.awayCode,
   });
+  // Nailed the scoreline exactly (only celebrated once the result is final —
+  // a live "exact" can still slip away).
+  const exact = !live && pick.home === result.home && pick.away === result.away;
 
   return (
     <div className="flex flex-col items-stretch">
@@ -299,9 +332,12 @@ function DualScore({
           />
         </div>
         <div className="mt-0.5 flex items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
-          <span className={`font-black ${live ? LIVE_TEXT : RESULT_TEXT}`}>
-            {live ? "~" : ""}{b.total} pt{b.total === 1 ? "" : "s"}
+          <span className={`font-black tabular-nums ${live ? LIVE_TEXT : RESULT_TEXT}`}>
+            {live ? "~" : ""}<CountUp value={b.total} /> pt{b.total === 1 ? "" : "s"}
           </span>
+          {exact && (
+            <span className="font-black normal-case text-sunburst">🎯 Exact!</span>
+          )}
           <span>· tap for math {open ? "▲" : "▼"}</span>
         </div>
       </button>
@@ -317,8 +353,8 @@ function DualScore({
             <span className="text-[11px] font-black uppercase tracking-wide text-stone-500 dark:text-stone-200">
               {live ? "If it ends now" : "Total"}
             </span>
-            <span className={`text-sm font-black ${live ? LIVE_TEXT : RESULT_TEXT}`}>
-              {b.total} pt{b.total === 1 ? "" : "s"}
+            <span className={`text-sm font-black tabular-nums ${live ? LIVE_TEXT : RESULT_TEXT}`}>
+              <CountUp value={b.total} /> pt{b.total === 1 ? "" : "s"}
             </span>
           </div>
         </div>
@@ -368,6 +404,17 @@ export function MatchCard({ data, opensAt, entry, pick, status, footer, onExpire
   // The player's own scoreline, whether it arrives as a revealed `pick` (profiles)
   // or via the `entry` they saved (the predict page). Drives the live/final tile.
   const myPick = pick ?? (entry ? { home: entry.home, away: entry.away } : null);
+
+  // Goal! Counts up whenever this live match's score moves during the session.
+  const goalFlash = useGoalFlash(data);
+  // Called the scoreline on the nose at full time: one celebratory confetti
+  // burst over the card (the 🎯 badge in the tile carries the static credit).
+  const exactCall =
+    data.state === "final" &&
+    hasResult &&
+    myPick != null &&
+    myPick.home === data.homeGoals &&
+    myPick.away === data.awayGoals;
 
   // The single focal tile, always the same size so the card's proportions never
   // shift between states. Where a score can be entered (`entry`), the steppers
@@ -498,8 +545,15 @@ export function MatchCard({ data, opensAt, entry, pick, status, footer, onExpire
 
         {/* Fixed-height focal region so the card never changes length as its
             centre swaps between the (taller) two-line steppers and a one-line
-            score/time — every state centres within the same space. */}
-        <div className="flex min-h-[4.25rem] items-center justify-center">{focal}</div>
+            score/time — every state centres within the same space. The inner
+            wrapper is keyed on the goal counter so a score change remounts it
+            and the one-shot `goal-flash` wash + pop re-fires; the wash sits
+            behind the translucent tile, glowing through the frost. */}
+        <div className="flex min-h-[4.25rem] items-center justify-center">
+          <div key={goalFlash} className={goalFlash > 0 ? "goal-flash rounded-xl" : undefined}>
+            {focal}
+          </div>
+        </div>
 
         <div className="flex flex-col gap-2">
           <div className="grid grid-cols-2 gap-2">
@@ -513,6 +567,11 @@ export function MatchCard({ data, opensAt, entry, pick, status, footer, onExpire
           )}
         </div>
       </div>
+
+      {/* Exact-score celebration: a single confetti burst floats over the whole
+          card on mount. Decorative and pointer-transparent, so the tap-for-math
+          tile underneath stays fully usable. */}
+      {exactCall && <Confetti />}
     </div>
   );
 

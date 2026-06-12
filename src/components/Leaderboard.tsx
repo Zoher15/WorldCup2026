@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PlayerLink } from "./PlayerLink";
 import { ShareLeaderboard } from "./ShareLeaderboard";
 import { FOCUS_RING } from "./theme";
@@ -65,6 +65,33 @@ export function Leaderboard({
 
   // Refresh the board while a match is live so provisional points keep up.
   useLiveRefresh(live);
+
+  // Overtake flash: remember where each player ranked the last time this tab's
+  // rows rendered (per tab, so switching tabs never cross-wires the boards).
+  // When a live refresh swaps in new standings and someone has climbed, their
+  // row — and podium slot — wears a brief gold wash. The server's `movement`
+  // field can't drive this (buildStandings always emits 0), so the comparison
+  // lives client-side: ranks in a ref (comparing never re-renders by itself),
+  // and the climbers in state so the overlay *mounts* — the one-shot
+  // `overtake-flash` CSS animation runs on mount — then unmounts once faded.
+  // First sight of a tab only records, so page load never flashes.
+  const prevRanks = useRef(new Map<string, Map<string, number>>());
+  const [climbed, setClimbed] = useState<ReadonlySet<string>>(() => new Set());
+  useEffect(() => {
+    const ranks = new Map(rows.map((r, i) => [r.userId, i]));
+    const prev = prevRanks.current.get(tab);
+    prevRanks.current.set(tab, ranks);
+    if (!prev) return;
+    const up = new Set<string>();
+    for (const [id, rank] of ranks) {
+      const before = prev.get(id);
+      if (before !== undefined && rank < before) up.add(id);
+    }
+    if (up.size === 0) return;
+    setClimbed(up);
+    const t = setTimeout(() => setClimbed(new Set()), 1600);
+    return () => clearTimeout(t);
+  }, [rows, tab]);
 
   return (
     <div className="rounded-3xl glass p-5">
@@ -138,6 +165,13 @@ export function Leaderboard({
                   className={`absolute inset-0 rounded-t-xl bg-gradient-to-b ${PODIUM_BG[idx]}`}
                 />
                 <div className="absolute inset-0 rounded-t-xl glass" />
+                {/* Gold flash when a riser just took (or rose within) this slot. */}
+                {climbed.has(r.userId) && (
+                  <span
+                    aria-hidden
+                    className="overtake-flash pointer-events-none absolute inset-0 rounded-t-xl"
+                  />
+                )}
                 <div className="relative flex h-full items-start justify-center pt-1 font-display text-stone-800 dark:text-stone-50">
                   {r.points}
                 </div>
@@ -152,8 +186,17 @@ export function Leaderboard({
         {shownRest.map((r, i) => (
           <li
             key={r.userId}
-            className="flex items-center gap-3 rounded-2xl glass px-4 py-3 text-stone-700 dark:text-stone-100"
+            className="relative flex items-center gap-3 rounded-2xl glass px-4 py-3 text-stone-700 transition-transform dark:text-stone-100"
           >
+            {/* Gold flash overlay (rather than animating the row's own
+                background, which would fight the .glass layers) when this
+                player climbed in the latest refresh. */}
+            {climbed.has(r.userId) && (
+              <span
+                aria-hidden
+                className="overtake-flash pointer-events-none absolute inset-0 rounded-2xl"
+              />
+            )}
             <span className="w-6 text-center font-black text-stone-400">
               {i + 4}
             </span>
