@@ -111,6 +111,23 @@ body {
   .goal-flash { animation: none; }
 }
 
+/* Gentle nag for an open match card with no pick yet: a soft pitch-green ring
+   breathing in and out on a ~2s loop. A hint, not an alarm — the ring never
+   goes fully opaque. Applied to the card's wrapper (which carries the matching
+   border-radius), so the card's own glass layers are untouched. Reduced motion
+   swaps the loop for a static ring. */
+@keyframes nag-pulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(11, 138, 62, 0.12); }
+  50% { box-shadow: 0 0 0 3px rgba(11, 138, 62, 0.45); }
+}
+.nag-pulse { animation: nag-pulse 2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .nag-pulse {
+    animation: none;
+    box-shadow: 0 0 0 2px rgba(11, 138, 62, 0.3);
+  }
+}
+
 /* Gradient headline with a solid-colour fallback. Only the text *fill* is made
    transparent (not `color`), so if an extension like Dark Reader strips the
    clipped background, the text stays visible in the fallback colour instead of

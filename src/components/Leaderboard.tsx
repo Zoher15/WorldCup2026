@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Avatar } from "./Avatar";
 import { PlayerLink } from "./PlayerLink";
 import { ShareLeaderboard } from "./ShareLeaderboard";
 import { FOCUS_RING } from "./theme";
@@ -43,6 +44,7 @@ export function Leaderboard({
   code,
   groupName,
   live = false,
+  viewerId,
 }: {
   data: Standings;
   code?: string;
@@ -50,12 +52,30 @@ export function Leaderboard({
   /** A match is in play — points are provisional; tick the board on a timer and
    *  flag it so people know the totals can still move. */
   live?: boolean;
+  /** The signed-in viewer, so their own row can carry the "you vs them" delta.
+   *  Omitted where there's no viewer (the home-page demo board). */
+  viewerId?: string;
 }) {
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("overall");
   const [expanded, setExpanded] = useState(false);
   const rows = data[tab];
   const top3 = rows.slice(0, 3);
   const rest = rows.slice(3);
+
+  // "You vs them": one small motivating line for the viewer — crown on top,
+  // otherwise the points gap to the player directly above them on this tab.
+  const viewerIdx = viewerId ? rows.findIndex((r) => r.userId === viewerId) : -1;
+  let viewerDelta: string | null = null;
+  if (viewerIdx === 0) {
+    viewerDelta = "👑 Top of the group";
+  } else if (viewerIdx > 0) {
+    const ahead = rows[viewerIdx - 1];
+    const gap = ahead.points - rows[viewerIdx].points;
+    viewerDelta =
+      gap === 0
+        ? `Tied with ${ahead.displayName}`
+        : `${gap} pt${gap === 1 ? "" : "s"} behind ${ahead.displayName}`;
+  }
   // Show the top 10 (podium + 7) by default so the share button stays in reach;
   // the rest is revealed on demand via the expander above the share button.
   const COLLAPSED_TOTAL = 10;
@@ -148,6 +168,12 @@ export function Leaderboard({
               className="flex w-20 flex-col items-center max-sm:max-w-24 max-sm:flex-1 max-sm:w-auto"
             >
               <div className="text-2xl">{MEDALS[idx]}</div>
+              <Avatar
+                userId={r.userId}
+                displayName={r.displayName}
+                size="md"
+                className="mb-1"
+              />
               {/* No profile to link to without a group (BoringBot has a synthetic one). */}
               <PlayerLink
                 userId={r.userId}
@@ -181,6 +207,14 @@ export function Leaderboard({
         })}
       </div>
 
+      {/* A podium-placed viewer gets their delta line under the podium (their
+          slot is too tight to carry an extra line without breaking alignment). */}
+      {viewerIdx >= 0 && viewerIdx < 3 && viewerDelta && (
+        <p className="-mt-3 mb-5 text-center text-xs font-medium text-stone-400">
+          {viewerDelta}
+        </p>
+      )}
+
       {/* The rest */}
       <ol className="space-y-2">
         {shownRest.map((r, i) => (
@@ -200,14 +234,34 @@ export function Leaderboard({
             <span className="w-6 text-center font-black text-stone-400">
               {i + 4}
             </span>
-            <PlayerLink
-              userId={r.userId}
-              code={code}
-              title={r.displayName}
-              className="flex-1 truncate font-bold"
-            >
-              {r.displayName}
-            </PlayerLink>
+            <Avatar userId={r.userId} displayName={r.displayName} size="sm" />
+            {viewerId === r.userId && viewerDelta ? (
+              // The viewer's row: their name plus the small "you vs them" delta
+              // tucked under it, inside the same flex slot so the rank, avatar
+              // and points columns stay aligned with every other row.
+              <span className="flex min-w-0 flex-1 flex-col">
+                <PlayerLink
+                  userId={r.userId}
+                  code={code}
+                  title={r.displayName}
+                  className="truncate font-bold"
+                >
+                  {r.displayName}
+                </PlayerLink>
+                <span className="truncate text-xs font-medium text-stone-400">
+                  {viewerDelta}
+                </span>
+              </span>
+            ) : (
+              <PlayerLink
+                userId={r.userId}
+                code={code}
+                title={r.displayName}
+                className="flex-1 truncate font-bold"
+              >
+                {r.displayName}
+              </PlayerLink>
+            )}
             <Movement value={r.movement} />
             <span className="w-10 text-right font-display text-lg tabular-nums">
               {r.points}
