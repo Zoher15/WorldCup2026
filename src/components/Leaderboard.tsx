@@ -79,9 +79,16 @@ export function Leaderboard({
   live?: boolean;
 }) {
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("overall");
+  const [expanded, setExpanded] = useState(false);
   const rows = data[tab];
   const top3 = rows.slice(0, 3);
   const rest = rows.slice(3);
+  // Show the top 10 (podium + 7) by default so the share button stays in reach;
+  // the rest is revealed on demand via the expander above the share button.
+  const COLLAPSED_TOTAL = 10;
+  const collapsedRest = rest.slice(0, COLLAPSED_TOTAL - top3.length);
+  const shownRest = expanded ? rest : collapsedRest;
+  const canExpand = rest.length > collapsedRest.length;
 
   // Refresh the board while a match is live so provisional points keep up.
   useLiveRefresh(live);
@@ -152,7 +159,7 @@ export function Leaderboard({
 
       {/* The rest */}
       <ol className="space-y-2">
-        {rest.map((r, i) => (
+        {shownRest.map((r, i) => (
           <li
             key={r.userId}
             className="flex items-center gap-3 rounded-2xl glass px-4 py-2.5 text-stone-700 dark:text-stone-100"
@@ -169,9 +176,18 @@ export function Leaderboard({
         ))}
       </ol>
 
-      {code && (
-        <div className="mt-5 flex justify-center">
-          <ShareLeaderboard code={code} groupName={groupName} />
+      {(canExpand || code) && (
+        <div className="mt-5 flex flex-col items-center gap-3">
+          {canExpand && (
+            <button
+              onClick={() => setExpanded((v) => !v)}
+              aria-expanded={expanded}
+              className="rounded-full glass px-4 py-2 text-sm font-bold text-grape transition active:scale-95 dark:text-violet-300"
+            >
+              {expanded ? "Show less" : `Show all ${rows.length} →`}
+            </button>
+          )}
+          {code && <ShareLeaderboard code={code} groupName={groupName} />}
         </div>
       )}
     </div>
