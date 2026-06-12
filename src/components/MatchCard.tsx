@@ -108,6 +108,10 @@ export interface MatchCardProps {
   onExpire?: () => void;
   /** Brighten the flags on hover (as if unlocked) — used in the homepage preview. */
   revealOnHover?: boolean;
+  /** The single most urgent match (first live, else next kickoff): vivid flag
+   *  treatment, a touch taller, bigger score digits, and a 2px brand-gradient
+   *  ring. The parent supplies any grid spanning (e.g. `sm:col-span-2`). */
+  hero?: boolean;
 }
 
 /** Frosted liquid-glass surface for every text panel floating over the flags.
@@ -175,21 +179,26 @@ function TeamName({ code, label }: { code: string | null; label?: string | null 
   );
 }
 
-/** The single focal tile: a solid block holding the score (or kickoff time). */
+/** The single focal tile: a solid block holding the score (or kickoff time).
+ *  Digits wear the display face (`font-display`, Archivo Black) — the face is
+ *  inherently black, so no `font-black` (which would synthesise a faux bold). */
 function Score({
   home,
   away,
   tone,
   label,
+  large,
 }: {
   home: number;
   away: number;
   tone: string;
   label?: string;
+  /** Hero card: one step larger digits. */
+  large?: boolean;
 }) {
   return (
     <div className={`rounded-xl px-4 py-1.5 text-center ${GLASS}`}>
-      <div className={`flex items-center justify-center gap-2 text-3xl font-black tabular-nums ${tone}`}>
+      <div className={`flex items-center justify-center gap-2 font-display tabular-nums ${large ? "text-4xl" : "text-3xl"} ${tone}`}>
         <span>{home}</span>
         <span className="text-stone-300 dark:text-stone-600">:</span>
         <span>{away}</span>
@@ -207,18 +216,21 @@ function MiniScore({
   home,
   away,
   tone,
+  large,
 }: {
   label: React.ReactNode;
   home: number;
   away: number;
   tone: string;
+  /** Hero card: one step larger digits. */
+  large?: boolean;
 }) {
   return (
     <div className="text-center">
       <div className="text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
         {label}
       </div>
-      <div className={`flex items-center justify-center gap-1.5 text-2xl font-black tabular-nums ${tone}`}>
+      <div className={`flex items-center justify-center gap-1.5 font-display tabular-nums ${large ? "text-3xl" : "text-2xl"} ${tone}`}>
         <span>{home}</span>
         <span className="text-stone-300 dark:text-stone-600">:</span>
         <span>{away}</span>
@@ -239,10 +251,13 @@ function DualScore({
   pick,
   data,
   live,
+  large,
 }: {
   pick: { home: number; away: number; advancePick?: string | null };
   data: MatchCardData;
   live: boolean;
+  /** Hero card: one step larger digits. */
+  large?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const result = {
@@ -272,6 +287,7 @@ function DualScore({
             home={pick.home}
             away={pick.away}
             tone={PREDICTION_TEXT}
+            large={large}
           />
           <span className="h-7 w-px bg-stone-300/70 dark:bg-stone-600/70" />
           <MiniScore
@@ -279,6 +295,7 @@ function DualScore({
             home={result.home}
             away={result.away}
             tone={live ? LIVE_TEXT : "text-stone-800 dark:text-stone-50"}
+            large={large}
           />
         </div>
         <div className="mt-0.5 flex items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
@@ -342,7 +359,7 @@ function FlagHalf({ code, side }: { code: string | null; side: "left" | "right" 
   );
 }
 
-export function MatchCard({ data, opensAt, entry, pick, status, footer, onExpire, revealOnHover }: MatchCardProps) {
+export function MatchCard({ data, opensAt, entry, pick, status, footer, onExpire, revealOnHover, hero }: MatchCardProps) {
   const editing = data.state === "open" && entry != null;
   const hasResult =
     (data.state === "live" || data.state === "final") &&
@@ -361,7 +378,7 @@ export function MatchCard({ data, opensAt, entry, pick, status, footer, onExpire
   if (hasResult && myPick) {
     // Kicked off and we know the player's call: show both scores side by side in
     // the same tile, tappable for the points math (provisional while live).
-    focal = <DualScore pick={myPick} data={data} live={data.state === "live"} />;
+    focal = <DualScore pick={myPick} data={data} live={data.state === "live"} large={hero} />;
   } else if (hasResult) {
     // A score but no known pick (e.g. they didn't predict): just the scoreline.
     focal = (
@@ -369,16 +386,17 @@ export function MatchCard({ data, opensAt, entry, pick, status, footer, onExpire
         home={data.homeGoals!}
         away={data.awayGoals!}
         tone={data.state === "live" ? LIVE_TEXT : "text-stone-800 dark:text-stone-50"}
+        large={hero}
       />
     );
   } else if (entry && editing) {
-    // Open for editing: active steppers are the control.
+    // Open for editing: active steppers are the control (thumb-size on the hero).
     focal = (
       <div className={`rounded-xl px-3 py-1.5 ${GLASS}`}>
         <div className="flex items-center justify-center gap-3">
-          <Stepper size="sm" value={entry.home} onChange={(n) => entry.onChange("home", n)} />
+          <Stepper size={hero ? "md" : "sm"} value={entry.home} onChange={(n) => entry.onChange("home", n)} />
           <span className="text-xl font-black text-stone-300 dark:text-stone-600">:</span>
-          <Stepper size="sm" value={entry.away} onChange={(n) => entry.onChange("away", n)} />
+          <Stepper size={hero ? "md" : "sm"} value={entry.away} onChange={(n) => entry.onChange("away", n)} />
         </div>
         <div className="text-center text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
           your call
@@ -413,7 +431,7 @@ export function MatchCard({ data, opensAt, entry, pick, status, footer, onExpire
       </div>
     );
   } else if (pick) {
-    focal = <Score home={pick.home} away={pick.away} tone={PREDICTION_TEXT} label="your pick" />;
+    focal = <Score home={pick.home} away={pick.away} tone={PREDICTION_TEXT} label="your pick" large={hero} />;
   } else {
     focal = (
       <div className={`rounded-xl px-4 py-2 text-center ${GLASS}`}>
@@ -433,7 +451,7 @@ export function MatchCard({ data, opensAt, entry, pick, status, footer, onExpire
     ? "🎯 Practice"
     : formatStageLabel(data.groupLabel, data.stage);
 
-  return (
+  const card = (
     <div className={`relative animate-pop-in overflow-hidden rounded-2xl bg-stone-200 shadow-lg ring-1 ring-white/30 dark:bg-stone-800 dark:ring-white/15${revealOnHover ? " glass-reveal" : ""}`}>
       {/* The two flags fill the card and butt together at a hard centre split.
           A 1px bleed past the edges keeps the rounded clip from leaving a hairline. */}
@@ -443,21 +461,24 @@ export function MatchCard({ data, opensAt, entry, pick, status, footer, onExpire
       </div>
       {/* Frost the flags into a glass surface: the colours bloom through the
           blur so the whole card reads as one liquid-glass panel (and the
-          pointer sheen rides across it). An open (playable) match wears the
-          vivid variant — thinner frost, brighter flags — so it stands out
-          from the still-frosted upcoming cards. */}
+          pointer sheen rides across it). A live match carries the flame-cast
+          frost; an open (playable) match — and the hero card — wear the vivid
+          variant (thinner frost, brighter flags, a green cast) so they stand
+          out from the still-frosted upcoming cards. */}
       <div
         aria-hidden
         className={`glass glass-flag absolute inset-0 rounded-2xl ${
-          data.state === "open"
-            ? "glass-vivid"
-            : data.state === "locked"
-              ? "glass-muted"
-              : ""
+          data.state === "live"
+            ? "glass-live"
+            : data.state === "open" || hero
+              ? "glass-vivid"
+              : data.state === "locked"
+                ? "glass-muted"
+                : ""
         }`}
       />
 
-      <div className="relative flex min-h-[9rem] flex-col justify-between gap-2 p-3 text-xs font-bold">
+      <div className={`relative flex ${hero ? "min-h-[10.5rem]" : "min-h-[9rem]"} flex-col justify-between gap-2 p-3 text-xs font-bold`}>
         <div className="relative flex items-center justify-between gap-2">
           <span
             title={stageLabel}
@@ -494,4 +515,12 @@ export function MatchCard({ data, opensAt, entry, pick, status, footer, onExpire
       </div>
     </div>
   );
+
+  // The hero ring: a 2px brand-gradient band hugging the card. Built as a
+  // padded gradient wrapper because `border-image` can't follow rounded
+  // corners. Outer radius = card's 16px + the 2px pad so the curves nest.
+  if (hero) {
+    return <div className="gradient-accent rounded-[18px] p-[2px]">{card}</div>;
+  }
+  return card;
 }

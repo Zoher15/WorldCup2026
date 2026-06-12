@@ -13,7 +13,7 @@ export default async function GroupsPage() {
 
   return (
     <main className="mx-auto max-w-md px-4 py-8">
-      <h1 className="mb-4 gradient-text pb-1 text-3xl font-black leading-tight">
+      <h1 className="mb-4 gradient-text font-display pb-1 text-3xl leading-tight">
         Your groups
       </h1>
 

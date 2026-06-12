@@ -90,6 +90,14 @@ export function PredictionList({
   // editing a pick (which re-renders) doesn't rebuild the grouping.
   const groups = useMemo(() => groupByDate(matches), [matches]);
 
+  // The single most urgent match gets the hero treatment: the first live match
+  // if one's in play, else the first open match of the first date group.
+  const heroId = useMemo(() => {
+    const live = matches.find(isLiveMatch);
+    if (live) return live.id;
+    return groups[0]?.items.find((m) => m.state === "open")?.id ?? null;
+  }, [matches, groups]);
+
   return (
     <div className="pb-28">
       {groups.map((g) => (
@@ -105,9 +113,10 @@ export function PredictionList({
               const open = m.state === "open";
               const live = isLiveMatch(m);
               const isSaved = !dirtyIdSet.has(m.id) && savedSnapshot[m.id];
-              return (
+              const hero = m.id === heroId;
+              const card = (
                 <MatchCard
-                  key={m.id}
+                  hero={hero}
                   data={{
                     homeCode: m.homeCode,
                     awayCode: m.awayCode,
@@ -147,6 +156,14 @@ export function PredictionList({
                   }
                 />
               );
+              // The hero spans both columns so the most urgent match leads.
+              return hero ? (
+                <div key={m.id} className="sm:col-span-2">
+                  {card}
+                </div>
+              ) : (
+                <div key={m.id}>{card}</div>
+              );
             })}
           </div>
         </section>
@@ -165,7 +182,7 @@ export function PredictionList({
           <button
             onClick={save}
             disabled={pending || dirtyIds.length === 0}
-            className={`rounded-full glass px-6 py-3 font-bold text-pitch dark:text-emerald-400 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${FOCUS_RING}`}
+            className={`rounded-full chrome px-6 py-3 font-bold text-pitch dark:text-emerald-400 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${FOCUS_RING}`}
           >
             {pending ? "Saving…" : "Save predictions"}
           </button>

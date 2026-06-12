@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Archivo_Black } from "next/font/google";
 import Link from "next/link";
 import "flag-icons/css/flag-icons.min.css";
 import "./globals.css";
@@ -7,6 +8,17 @@ import { getProfile, initials } from "@/lib/profile";
 import { appBaseUrl } from "@/lib/app-url";
 import { AccountMenu } from "@/components/AccountMenu";
 import { GlassGlow } from "@/components/GlassGlow";
+
+/* Punchy display face for headlines and big score digits. Exposed as a CSS
+   variable on <html>; globals.css maps it onto the `--font-display` theme token
+   so the Tailwind `font-display` utility picks it up. Body text stays on the
+   system stack. */
+const archivoBlack = Archivo_Black({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-archivo",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   // Absolute base for OG/Twitter image URLs — without this Next emits a
@@ -34,7 +46,7 @@ export default async function RootLayout({
   const name = profile?.name ?? null;
 
   return (
-    <html lang="en">
+    <html lang="en" className={archivoBlack.variable}>
       <body className="text-stone-800 antialiased dark:text-stone-100">
         <GlassGlow />
         <header className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">

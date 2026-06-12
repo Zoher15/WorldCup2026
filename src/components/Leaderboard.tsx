@@ -83,19 +83,26 @@ export function Leaderboard({
         </p>
       )}
 
-      {/* Tabs */}
+      {/* Tabs: the active tab is a solid chrome pill with a 2px brand-gradient
+          underline (the hero headline's flame→grape→ocean, echoed small). */}
       <div className="mb-5 flex justify-center gap-1 rounded-full glass p-1">
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex-1 rounded-full px-3 py-1.5 text-sm font-bold transition ${FOCUS_RING} ${
+            className={`relative flex-1 rounded-full px-3 py-1.5 text-sm font-bold transition ${FOCUS_RING} ${
               tab === t.key
-                ? "glass text-grape dark:text-violet-300"
+                ? "chrome text-grape dark:text-violet-300"
                 : "text-stone-500 hover:text-stone-700 dark:text-stone-300 dark:hover:text-white"
             }`}
           >
             {t.label}
+            {tab === t.key && (
+              <span
+                aria-hidden
+                className="gradient-accent absolute inset-x-4 bottom-[3px] h-0.5 rounded-full"
+              />
+            )}
           </button>
         ))}
       </div>
@@ -131,7 +138,7 @@ export function Leaderboard({
                   className={`absolute inset-0 rounded-t-xl bg-gradient-to-b ${PODIUM_BG[idx]}`}
                 />
                 <div className="absolute inset-0 rounded-t-xl glass" />
-                <div className="relative flex h-full items-start justify-center pt-1 font-black text-stone-800 dark:text-stone-50">
+                <div className="relative flex h-full items-start justify-center pt-1 font-display text-stone-800 dark:text-stone-50">
                   {r.points}
                 </div>
               </div>
@@ -159,7 +166,7 @@ export function Leaderboard({
               {r.displayName}
             </PlayerLink>
             <Movement value={r.movement} />
-            <span className="w-10 text-right text-lg font-extrabold tabular-nums">
+            <span className="w-10 text-right font-display text-lg tabular-nums">
               {r.points}
             </span>
           </li>
@@ -172,7 +179,7 @@ export function Leaderboard({
             <button
               onClick={() => setExpanded((v) => !v)}
               aria-expanded={expanded}
-              className={`rounded-full glass px-4 py-2 text-sm font-bold text-grape transition active:scale-95 dark:text-violet-300 ${FOCUS_RING}`}
+              className={`rounded-full chrome px-4 py-2 text-sm font-bold text-grape transition active:scale-95 dark:text-violet-300 ${FOCUS_RING}`}
             >
               {expanded ? "Show less" : `Show all ${rows.length} →`}
             </button>
