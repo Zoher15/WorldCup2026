@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useActionState } from "react";
+import { use, useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { sendMagicLinkAction, verifyEmailOtpAction } from "./actions";
 import { INITIAL_LOGIN_STATE, INITIAL_VERIFY_STATE } from "./login-state";
@@ -26,6 +26,20 @@ export default function LoginPage({
     verifyEmailOtpAction,
     INITIAL_VERIFY_STATE,
   );
+
+  // Resend cooldown (matches the server's 2-minute throttle). A fresh send opens
+  // a full window; a throttled resend comes back with the server's remaining time.
+  const [cooldown, setCooldown] = useState(0);
+  useEffect(() => {
+    if (state.status !== "sent") return;
+    setCooldown(state.retryAfter ?? 120);
+  }, [state]);
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+  const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
   return (
     <main className="mx-auto max-w-md px-4 py-12">
@@ -90,11 +104,18 @@ export default function LoginPage({
             <input type="hidden" name="next" value={next ?? "/"} />
             <button
               type="submit"
-              disabled={pending}
+              disabled={pending || cooldown > 0}
               className="text-sm font-bold text-grape underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-50 dark:text-violet-300"
             >
-              {pending ? "Sending a new code…" : "Didn't get it? Resend code"}
+              {cooldown > 0
+                ? `Resend code in ${mmss(cooldown)}`
+                : pending
+                  ? "Sending a new code…"
+                  : "Didn't get it? Resend code"}
             </button>
+            {state.error && (
+              <p className="mt-2 text-xs font-medium text-stone-400">{state.error}</p>
+            )}
           </form>
         </div>
       ) : (
