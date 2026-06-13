@@ -154,8 +154,12 @@ export function PredictionList({
               clamped to the container: a bare grid's implicit auto column grows
               to the widest card's min-content (the hero's steppers + Next-up /
               countdown header), pushing the card past the right gutter on narrow
-              phones. minmax(0,1fr) pins it; over-wide content clips in-card. */}
-          <div className={`grid grid-cols-1 gap-6${embedded ? "" : " sm:grid-cols-2"}`}>
+              phones. minmax(0,1fr) pins it; over-wide content clips in-card.
+              Two-up only from md: the score-entry steppers are a fixed ~292px
+              row, so a half-width card needs ~340px+ to hold them. At sm (640px)
+              the standalone page's two columns are ~290px each and the steppers
+              squash — md keeps it single-column until the cards have the room. */}
+          <div className={`grid grid-cols-1 gap-6${embedded ? "" : " md:grid-cols-2"}`}>
             {g.items.map((m) => {
               const pick = picks[m.id];
               const open = m.state === "open";
@@ -216,7 +220,7 @@ export function PredictionList({
               // nag ring and "Next up" flag are owned by MatchCard now, so the
               // wrapper just handles grid spanning.
               return hero ? (
-                <div key={m.id} className="sm:col-span-2">
+                <div key={m.id} className="md:col-span-2">
                   {card}
                 </div>
               ) : (
