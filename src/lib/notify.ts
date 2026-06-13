@@ -45,7 +45,7 @@ export interface NotifyResult {
 }
 
 /** How long before a match-day's first kickoff the "you're missing picks" nudge fires. */
-const NUDGE_LEAD_MS = 2 * 60 * 60 * 1000;
+const NUDGE_LEAD_MS = 1 * 60 * 60 * 1000;
 
 export async function notifyOpenWindows(
   now: Date = new Date(),
@@ -125,7 +125,7 @@ export async function notifyOpenWindows(
 /**
  * The per-user "you still have predictions missing" nudge.
  *
- * Fires once per match-day, ~NUDGE_LEAD_MS before that day's FIRST kickoff, to
+ * Fires once per match-day, ~1h (NUDGE_LEAD_MS) before that day's FIRST kickoff, to
  * each member who hasn't predicted one or more of the day's matches — listing
  * only the ones they're missing. Like notifyOpenWindows it's meant to run on the
  * cron and self-throttles: it claims the day in nudged_match_days before sending,

@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
  * self-throttling, exactly-once-per-match-day emails:
  *   - the broadcast "predictions are open" announcement (when a day's window
  *     opens), and
- *   - the per-user "you've still got predictions missing" nudge (~2h before a
+ *   - the per-user "you've still got predictions missing" nudge (~1h before a
  *     day's first kickoff, only to members with gaps).
  * Each claims its match-day in its own log before sending, so a coarse interval
  * is fine. Guarded by CRON_SECRET (same secret as /api/poll).
