@@ -16,15 +16,16 @@ type Picks = Record<string, { home: number; away: number }>;
 export function PredictionList({
   matches,
   initial,
-  singleColumn = false,
+  embedded = false,
 }: {
   matches: MatchForPrediction[];
   initial: Record<string, SavedPrediction>;
-  /** Stack cards one-per-row instead of the two-column grid. Used where the list
-   *  is embedded in a narrow column (the home page) — there a two-up grid would
-   *  squeeze each card narrower than the full predict page, which is the
-   *  reference width. */
-  singleColumn?: boolean;
+  /** Rendered inside another page (the home surface) rather than standalone.
+   *  Stacks cards one-per-row (a two-up grid in a narrow column would squeeze
+   *  them below the predict page's reference width) and drops the bottom padding
+   *  that clears the fixed save bar — the host page owns that spacing, since the
+   *  list isn't the last thing on it. */
+  embedded?: boolean;
 }) {
   const router = useRouter();
   const [picks, setPicks] = useState<Picks>(() => {
@@ -121,7 +122,9 @@ export function PredictionList({
   }, [matches, groups]);
 
   return (
-    <div className="pb-28">
+    // pb-28 clears the fixed save bar on the standalone page; when embedded the
+    // host page reserves that space below its own last section instead.
+    <div className={embedded ? undefined : "pb-28"}>
       {/* Urgency hero: the next lock moment, ticking down. Refreshing on expiry
           re-derives match states so the banner (and the locked cards) update. */}
       {nextLock && (
@@ -152,7 +155,7 @@ export function PredictionList({
               to the widest card's min-content (the hero's steppers + Next-up /
               countdown header), pushing the card past the right gutter on narrow
               phones. minmax(0,1fr) pins it; over-wide content clips in-card. */}
-          <div className={`grid grid-cols-1 gap-6${singleColumn ? "" : " sm:grid-cols-2"}`}>
+          <div className={`grid grid-cols-1 gap-6${embedded ? "" : " sm:grid-cols-2"}`}>
             {g.items.map((m) => {
               const pick = picks[m.id];
               const open = m.state === "open";
