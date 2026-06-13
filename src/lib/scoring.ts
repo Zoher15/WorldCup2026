@@ -22,7 +22,7 @@
  *
  * Because the two parts are independent and additive, they also power three
  * leaderboards for free:
- *   - "Win predictor"      = sum of outcome points
+ *   - "Outcome predictor"  = sum of outcome points
  *   - "Scoreline predictor"= sum of closeness points
  *   - "Overall champion"   = sum of totals
  */

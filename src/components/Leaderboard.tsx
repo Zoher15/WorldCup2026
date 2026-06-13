@@ -10,10 +10,13 @@ import { competitionRanks, type Standings } from "@/lib/standings";
 
 const TABS = [
   { key: "overall", label: "Overall" },
-  { key: "win", label: "Win predictor" },
+  { key: "win", label: "Outcome predictor" },
   { key: "scoreline", label: "Scoreline" },
 ] as const;
 
+// Medal, colour and height are all indexed by rank (0 = 1st), never by podium
+// position — so tied places match: two co-leaders both stand on equal-height
+// gold steps, two tied for 2nd on matching silver, and so on.
 const MEDALS = ["🥇", "🥈", "🥉"];
 const PODIUM_BG = [
   "from-sunburst to-flame",
@@ -22,7 +25,7 @@ const PODIUM_BG = [
 ];
 // Render order places #1 in the middle, #2 left, #3 right.
 const PODIUM_ORDER = [1, 0, 2];
-// Indexed by rank (0 = 1st): the winner's bar is tallest, descending from there.
+// The winner's bar is tallest, descending from there (by rank, so ties match).
 const PODIUM_HEIGHT = ["h-28", "h-20", "h-16"];
 
 function Movement({ value }: { value: number }) {
@@ -174,26 +177,20 @@ export function Leaderboard({
         </p>
       )}
 
-      {/* Tabs: the active tab is a solid chrome pill with a 2px brand-gradient
-          underline (the hero headline's flame→grape→ocean, echoed small). */}
+      {/* Tabs: the active tab is a solid chrome pill; inactive tabs are muted
+          text that brightens on hover. */}
       <div className="mb-5 flex justify-center gap-1 rounded-full glass p-1">
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`relative flex-1 rounded-full px-3 py-1.5 text-sm font-bold transition ${FOCUS_RING} ${
+            className={`flex-1 rounded-full px-3 py-1.5 text-sm font-bold transition ${FOCUS_RING} ${
               tab === t.key
                 ? "chrome text-grape dark:text-violet-300"
                 : "text-stone-500 hover:text-stone-700 dark:text-stone-300 dark:hover:text-white"
             }`}
           >
             {t.label}
-            {tab === t.key && (
-              <span
-                aria-hidden
-                className="gradient-accent absolute inset-x-4 bottom-[3px] h-0.5 rounded-full"
-              />
-            )}
           </button>
         ))}
       </div>
@@ -206,8 +203,9 @@ export function Leaderboard({
             return (
               <div key={slot} className="w-20 max-sm:max-w-24 max-sm:flex-1 max-sm:w-auto" />
             );
-          // Tied podium places share the medal their rank earned — two players
-          // level at the top are both 🥇, and the next is 🥉.
+          // Rank (not podium position) drives the medal, colour and height, so
+          // tied places match — two level at the top are both 🥇 on equal-height
+          // gold steps, and the player below them takes 🥉.
           return (
             <div
               key={slot}
@@ -227,9 +225,9 @@ export function Leaderboard({
               {/* Glass sheet floating over the vibrant medal gradient — the
                   gold/silver/bronze glows through the frost, matching the
                   "glass over flags" treatment on the match cards. */}
-              <div className={`relative w-full ${PODIUM_HEIGHT[idx]}`}>
+              <div className={`relative w-full ${PODIUM_HEIGHT[ranks[idx] - 1]}`}>
                 <div
-                  className={`absolute inset-0 rounded-t-xl bg-gradient-to-b ${PODIUM_BG[idx]}`}
+                  className={`absolute inset-0 rounded-t-xl bg-gradient-to-b ${PODIUM_BG[ranks[idx] - 1]}`}
                 />
                 <div className="absolute inset-0 rounded-t-xl glass" />
                 {/* Gold flash when a riser just took (or rose within) this slot. */}

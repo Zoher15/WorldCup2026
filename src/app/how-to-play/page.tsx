@@ -185,7 +185,7 @@ export default function HowToPlayPage() {
           <div className="rounded-2xl glass p-4 text-center">
             <div className="text-2xl">🎯</div>
             <div className="font-black text-stone-700 dark:text-stone-100">
-              Win predictor
+              Outcome predictor
             </div>
             <p className="text-xs font-medium text-stone-500 dark:text-stone-300">
               Best at calling the right result.
