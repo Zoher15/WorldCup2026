@@ -9,7 +9,7 @@ export default function Loading() {
         <div className="mt-4 h-9 w-56 rounded-xl glass" />
         <div className="mt-3 h-4 w-full max-w-md rounded-full glass" />
         <div className="mt-8 h-4 w-32 rounded-full glass" />
-        <div className="mt-3 grid gap-6 sm:grid-cols-2">
+        <div className="mt-3 grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div className="h-36 rounded-2xl glass" />
           <div className="h-36 rounded-2xl glass" />
           <div className="h-36 rounded-2xl glass" />
