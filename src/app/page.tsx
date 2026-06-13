@@ -53,9 +53,14 @@ export default async function Home() {
   }
   const boardMatches = board?.matches.slice(0, 6) ?? [];
   const upcoming = board ? [] : upcomingFixtures();
+  // The embedded predictor renders a fixed save bar; pad the page bottom so it
+  // clears the last section (the groups) instead of covering it.
+  const showsSaveBar = board != null && boardMatches.length > 0;
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-8">
+    <main
+      className={`mx-auto max-w-5xl px-4 pt-8 ${showsSaveBar ? "pb-28" : "pb-8"}`}
+    >
       <header className="mb-8 text-center">
         {/* Display face (Archivo Black) is inherently black-weight, so no
             font-black — that would only synthesise a faux bold on top. */}
@@ -112,12 +117,14 @@ export default async function Home() {
               </div>
             ) : (
               // The real steppers, saving the same predictions as /predict.
-              // Single-column here so the cards match the predict page's width
-              // instead of being squeezed by the groups panel beside them.
+              // Embedded: single-column (cards keep the predict page's width
+              // instead of being squeezed by the groups panel) and no bottom
+              // padding of its own — the page reserves save-bar clearance below
+              // the groups section instead.
               <PredictionList
                 matches={boardMatches}
                 initial={board.predictions}
-                singleColumn
+                embedded
               />
             )
           ) : (
