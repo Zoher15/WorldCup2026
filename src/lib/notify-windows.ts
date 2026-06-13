@@ -51,3 +51,22 @@ export function openMatchDays<T extends { kickoff_at: string }>(
     return d.opensAt <= nowMs && nowMs < earliestKickoff;
   });
 }
+
+/**
+ * Matches whose kickoff is within `leadMs` ahead of `now` — i.e. about to start
+ * (kickoff − lead ≤ now < kickoff). Drives the per-match "you still haven't
+ * predicted this game" nudge, fired ~an hour out for each individual match (so
+ * simultaneous kickoffs come back together; games further apart come back on
+ * separate ticks). A match already kicked off is excluded.
+ */
+export function dueForNudge<T extends { kickoff_at: string }>(
+  matches: T[],
+  now: Date,
+  leadMs: number,
+): T[] {
+  const nowMs = now.getTime();
+  return matches.filter((m) => {
+    const kickoff = Date.parse(m.kickoff_at);
+    return kickoff - leadMs <= nowMs && nowMs < kickoff;
+  });
+}
