@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { InfoBadge } from "./InfoBadge";
 import { PlayerLink } from "./PlayerLink";
 import { ShareLeaderboard } from "./ShareLeaderboard";
 import { FOCUS_RING } from "./theme";
@@ -35,6 +36,35 @@ function Movement({ value }: { value: number }) {
     >
       {up ? "▲" : "▼"} {Math.abs(value)}
     </span>
+  );
+}
+
+/** The 🔥 scoring-streak flame, on the podium steps and the ranked rows alike.
+ *  The glyph alone is cryptic, so it's tappable for a plain-language gloss (a
+ *  hover `title` covers the desktop). `font-sans` resets the podium's display
+ *  font for the count; harmless on the rows, which are sans already. `align`
+ *  keeps the popover inside its column — the side podium steps open inward. */
+function StreakBadge({
+  streak,
+  align,
+}: {
+  streak: number;
+  align?: "left" | "center" | "right";
+}) {
+  return (
+    <InfoBadge
+      label={`${streak} correct results in a row`}
+      align={align}
+      triggerClassName="font-sans text-[10px] font-bold text-flame"
+      explainer={
+        <>
+          🔥 <strong className="text-flame">On a streak</strong> — called the
+          right result in {streak} matches in a row.
+        </>
+      }
+    >
+      🔥{streak}
+    </InfoBadge>
   );
 }
 
@@ -217,12 +247,10 @@ export function Leaderboard({
                     {r.points}
                   </span>
                   {(r.streak ?? 0) >= 2 && (
-                    <span
-                      className="font-sans text-[10px] font-bold text-flame"
-                      title={`${r.streak} correct results in a row`}
-                    >
-                      🔥{r.streak}
-                    </span>
+                    <StreakBadge
+                      streak={r.streak ?? 0}
+                      align={slot === 0 ? "left" : slot === 2 ? "right" : "center"}
+                    />
                   )}
                 </div>
               </div>
@@ -245,12 +273,7 @@ export function Leaderboard({
           const rowIdx = i + top3.length;
           const tied = isTied(rowIdx);
           const streak = (r.streak ?? 0) >= 2 && (
-            <span
-              className="shrink-0 text-[10px] font-bold text-flame"
-              title={`${r.streak} correct results in a row`}
-            >
-              🔥{r.streak}
-            </span>
+            <StreakBadge streak={r.streak ?? 0} />
           );
           return (
           <li

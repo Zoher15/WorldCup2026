@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { BreakdownRow } from "./BreakdownRow";
 import { CountUp } from "./CountUp";
+import { InfoBadge } from "./InfoBadge";
 import { MatchCard, toMatchCardData } from "./MatchCard";
 import { PlayerLink } from "./PlayerLink";
 import { FOCUS_RING, LIVE_TEXT, PREDICTION_TEXT, RESULT_TEXT } from "./theme";
@@ -113,46 +114,24 @@ function PlayerName({ row, code }: { row: MatchBoardRow; code: string }) {
 
 /** "Called it against the group" flag, parked on the right next to the score so
  *  a long name never collides with it. The label is hidden on narrow screens
- *  (it would crowd the row), so the badge is tappable: a tap reveals a popover
- *  explaining it — the same context hover gives on wider screens. */
+ *  (it would crowd the row), so the badge is tappable: a tap reveals an explainer
+ *  popover — the same context hover gives on wider screens. Right-aligned so the
+ *  popover opens inward from the row's right edge. */
 function UpsetBadge() {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  // Dismiss on a tap/click anywhere outside the badge (or Escape), so the
-  // popover doesn't linger once the reader has moved on.
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (e: PointerEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
   return (
-    <div ref={ref} className="relative shrink-0">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        title="Called it against the group's consensus"
-        className={`rounded-full glass px-2 py-0.5 text-[10px] font-bold text-sunburst transition active:scale-95 ${FOCUS_RING}`}
-      >
-        🔮<span className="hidden sm:inline"> Against the crowd</span>
-      </button>
-      {open && (
-        <div className="absolute right-0 top-full z-20 mt-1 w-48 rounded-xl glass px-3 py-2 text-left text-[11px] font-medium leading-snug text-stone-700 dark:text-stone-100">
+    <InfoBadge
+      label="Called it against the group's consensus"
+      align="right"
+      triggerClassName="rounded-full glass px-2 py-0.5 text-[10px] font-bold text-sunburst"
+      explainer={
+        <>
           🔮 <strong className="text-sunburst">Against the crowd</strong> — called
           it right while most of the group got it wrong.
-        </div>
-      )}
-    </div>
+        </>
+      }
+    >
+      🔮<span className="hidden sm:inline"> Against the crowd</span>
+    </InfoBadge>
   );
 }
 
