@@ -88,7 +88,7 @@ export default async function Home() {
         </a>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.2fr_1fr]">
         <section>
           <div className="mb-3 flex items-baseline justify-between px-1">
             <h2 className="text-lg font-black text-stone-700 dark:text-stone-100">
@@ -132,7 +132,7 @@ export default async function Home() {
               {/* Below lg this section spans the full container, so tablets fit a
                   third card per row; at lg+ it shares the row with the leaderboard
                   column (~half width), where two columns is the readable maximum. */}
-              <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-2">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-2">
                 {/* The next kickoff is the hero: full-width, vivid, gradient ring. */}
                 {upcoming.map((m, i) =>
                   i === 0 ? (

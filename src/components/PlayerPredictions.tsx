@@ -109,7 +109,7 @@ function Section({
           {empty}
         </p>
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           {rows.map((r) => (
             <PlayerCard key={r.matchId} row={r} isBot={isBot} pickLabel={pickLabel} />
           ))}
