@@ -1,21 +1,23 @@
 /**
- * The daily "predictions are open" email.
+ * The prediction reminder emails.
  *
- * A whole match-day's games open for prediction at the same instant
- * (windowOpensAt), so each match-day gets ONE announcement email. notifyOpenWindows
- * is meant to be called by the cron every few minutes; it self-throttles:
- *   - it only acts on a match-day whose window is open but whose first kickoff is
- *     still ahead (so it never back-blasts days that already started), and
- *   - it claims the day in notified_match_days before sending, so overlapping
- *     cron ticks (and repeat runs) email each match-day exactly once.
+ * Two self-throttling, cron-driven sends, both meant to be hit every few minutes:
+ *   - notifyOpenWindows: the broadcast "predictions are open" announcement, ONE
+ *     per match-day at its window-open instant. It only acts on a match-day whose
+ *     window is open but whose first kickoff is still ahead, and claims the day in
+ *     notified_match_days before sending, so overlapping ticks email each day once.
+ *   - nudgeMissingPredictions: the per-user "you still haven't predicted this
+ *     game" nudge, fired ~1h before EACH match's kickoff to the members missing
+ *     that specific match. It claims each match in nudged_matches before sending,
+ *     so overlapping ticks nudge each match exactly once.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "./supabase/admin";
-import { groupMatchDays, openMatchDays } from "./notify-windows";
+import { openMatchDays, dueForNudge } from "./notify-windows";
 import { teamLabel } from "./fifa";
 import { formatStageLabel } from "./format";
-import { isEmailConfigured, sendEmail } from "./email";
+import { isEmailConfigured, sendEmailBatch, type EmailMessage } from "./email";
 import { appBaseUrl } from "./app-url";
 import type { Stage } from "./types";
 
@@ -44,8 +46,11 @@ export interface NotifyResult {
   skipped?: string;
 }
 
-/** How long before a match-day's first kickoff the "you're missing picks" nudge fires. */
+/** How long before a match's kickoff the "you're missing this pick" nudge fires. */
 const NUDGE_LEAD_MS = 1 * 60 * 60 * 1000;
+
+const MATCH_COLUMNS =
+  "id, kickoff_at, stage, group_label, home_code, away_code, home_team, away_team";
 
 export async function notifyOpenWindows(
   now: Date = new Date(),
@@ -58,9 +63,7 @@ export async function notifyOpenWindows(
 
   const { data: matchData } = await db
     .from("matches")
-    .select(
-      "id, kickoff_at, stage, group_label, home_code, away_code, home_team, away_team",
-    )
+    .select(MATCH_COLUMNS)
     .eq("is_trial", false);
   const matches = (matchData ?? []) as MatchRow[];
 
@@ -91,7 +94,6 @@ export async function notifyOpenWindows(
     return { ok: true, matchDay: null, recipients: 0, sent: 0, skipped: "all open match-days already notified" };
   }
 
-  const recipients = await loadRecipients(db);
   const subject = `⚽ Predictions are open — ${dueMatches.length} match${
     dueMatches.length === 1 ? "" : "es"
   }`;
@@ -100,36 +102,40 @@ export async function notifyOpenWindows(
     (a, b) => Date.parse(a.kickoff_at) - Date.parse(b.kickoff_at),
   );
 
+  // We've claimed the day; if the send setup throws before any mail goes out,
+  // release the claim so a later tick retries rather than leaving the
+  // announcement permanently unsent. (sendEmailBatch itself never throws.)
+  let recipientCount = 0;
   let sent = 0;
-  const CHUNK = 20; // gentle on the provider's rate limit
-  for (let i = 0; i < recipients.length; i += CHUNK) {
-    const slice = recipients.slice(i, i + CHUNK);
-    const results = await Promise.allSettled(
-      slice.map((r) =>
-        sendEmail({
-          to: r.email,
-          subject,
-          html: renderEmail(ordered, base, r.token),
-          headers: { "List-Unsubscribe": `<${base}/unsubscribe?token=${r.token}>` },
-        }),
-      ),
-    );
-    sent += results.filter((x) => x.status === "fulfilled").length;
+  try {
+    const recipients = await loadRecipients(db);
+    recipientCount = recipients.length;
+    const messages: EmailMessage[] = recipients.map((r) => ({
+      to: r.email,
+      subject,
+      html: renderEmail(ordered, base, r.token),
+      headers: { "List-Unsubscribe": `<${base}/unsubscribe?token=${r.token}>` },
+    }));
+    sent = await sendEmailBatch(messages);
+  } catch (e) {
+    await db.from("notified_match_days").delete().eq("match_day", matchDay);
+    throw e;
   }
 
   await db.from("notified_match_days").update({ recipients: sent }).eq("match_day", matchDay);
 
-  return { ok: true, matchDay, recipients: recipients.length, sent };
+  return { ok: true, matchDay, recipients: recipientCount, sent };
 }
 
 /**
- * The per-user "you still have predictions missing" nudge.
+ * The per-user "you still have a prediction missing" nudge.
  *
- * Fires once per match-day, ~1h (NUDGE_LEAD_MS) before that day's FIRST kickoff, to
- * each member who hasn't predicted one or more of the day's matches — listing
- * only the ones they're missing. Like notifyOpenWindows it's meant to run on the
- * cron and self-throttles: it claims the day in nudged_match_days before sending,
- * so overlapping ticks (and repeat runs) nudge each match-day exactly once.
+ * Fires ~NUDGE_LEAD_MS before EACH match's kickoff, to every member who hasn't
+ * predicted that specific match. Each match is claimed in nudged_matches before
+ * sending, so overlapping ticks (and repeat runs) nudge each match exactly once.
+ * Matches that fall due in the same tick (e.g. simultaneous kickoffs) are batched
+ * into one email per user; matches further apart come back on their own tick, so
+ * a forgotten late game still gets its own hour-out reminder.
  */
 export async function nudgeMissingPredictions(
   now: Date = new Date(),
@@ -139,114 +145,173 @@ export async function nudgeMissingPredictions(
   }
 
   const db = createAdminClient();
-  const nowMs = now.getTime();
 
   const { data: matchData } = await db
     .from("matches")
-    .select(
-      "id, kickoff_at, stage, group_label, home_code, away_code, home_team, away_team",
-    )
+    .select(MATCH_COLUMNS)
     .eq("is_trial", false);
   const matches = (matchData ?? []) as MatchRow[];
 
-  // The match-day to nudge: its first kickoff is within the lead window ahead
-  // (kickoff − lead ≤ now < kickoff). Earliest such day, one per call. (Match-day
-  // first-kickoffs are ~a day apart, so at most one is ever in the lead window.)
-  const due = groupMatchDays(matches).find((d) => {
-    const earliestKickoff = Math.min(
-      ...d.matches.map((m) => Date.parse(m.kickoff_at)),
+  // Every match about to kick off (kickoff − lead ≤ now < kickoff).
+  const due = dueForNudge(matches, now, NUDGE_LEAD_MS);
+  if (due.length === 0) {
+    return { ok: true, matchDay: null, recipients: 0, sent: 0, skipped: "no match kicking off soon" };
+  }
+
+  // Claim each due match (PK insert) so overlapping ticks nudge each exactly
+  // once; keep only the ones we won this tick.
+  const claimed: MatchRow[] = [];
+  for (const match of due) {
+    const { error: claimErr } = await db
+      .from("nudged_matches")
+      .insert({ match_id: match.id });
+    if (!claimErr) claimed.push(match);
+  }
+  if (claimed.length === 0) {
+    return { ok: true, matchDay: null, recipients: 0, sent: 0, skipped: "all due matches already nudged" };
+  }
+  const claimedIds = claimed.map((m) => m.id);
+
+  try {
+    // Who has already predicted each claimed match. A failed read here must NOT
+    // be treated as "nobody predicted" — that would nudge people who already
+    // have picks in — so on error we release this tick's claims and bail to retry.
+    const predicted = await loadPredictedByUser(db, claimedIds);
+    if (!predicted) {
+      await db.from("nudged_matches").delete().in("match_id", claimedIds);
+      return { ok: true, matchDay: null, recipients: 0, sent: 0, skipped: "prediction read failed" };
+    }
+
+    const recipients = await loadRecipients(db);
+    const base = appBaseUrl();
+    const ordered = [...claimed].sort(
+      (a, b) => Date.parse(a.kickoff_at) - Date.parse(b.kickoff_at),
     );
-    return earliestKickoff - NUDGE_LEAD_MS <= nowMs && nowMs < earliestKickoff;
-  });
-  if (!due) {
-    return { ok: true, matchDay: null, recipients: 0, sent: 0, skipped: "no match-day going live soon" };
+
+    // One email per member listing the claimed matches they're still missing.
+    const nudgedPerMatch = new Map<string, number>();
+    const messages: EmailMessage[] = [];
+    for (const r of recipients) {
+      const done = predicted.get(r.userId) ?? new Set<string>();
+      const missing = ordered.filter((m) => !done.has(m.id));
+      if (missing.length === 0) continue;
+      for (const m of missing) {
+        nudgedPerMatch.set(m.id, (nudgedPerMatch.get(m.id) ?? 0) + 1);
+      }
+      messages.push({
+        to: r.email,
+        subject: `⏳ ${missing.length} prediction${
+          missing.length === 1 ? "" : "s"
+        } left before kickoff`,
+        html: renderNudgeEmail(missing, base, r.token),
+        headers: { "List-Unsubscribe": `<${base}/unsubscribe?token=${r.token}>` },
+      });
+    }
+
+    const sent = await sendEmailBatch(messages);
+
+    // Record, per claimed match, how many members we nudged about it.
+    for (const m of claimed) {
+      await db
+        .from("nudged_matches")
+        .update({ recipients: nudgedPerMatch.get(m.id) ?? 0 })
+        .eq("match_id", m.id);
+    }
+
+    return { ok: true, matchDay: null, recipients: messages.length, sent };
+  } catch (e) {
+    // Couldn't finish after claiming: release so a later tick retries cleanly.
+    await db.from("nudged_matches").delete().in("match_id", claimedIds);
+    throw e;
   }
+}
 
-  const matchDay = due.matchDay;
-  const dueMatches = due.matches;
-
-  // Claim the day first (PK insert) so concurrent ticks nudge it exactly once.
-  const { error: claimErr } = await db
-    .from("nudged_match_days")
-    .insert({ match_day: matchDay });
-  if (claimErr) {
-    return { ok: true, matchDay, recipients: 0, sent: 0, skipped: "already nudged" };
+/**
+ * user_id -> set of predicted match_ids, for the given matches. Returns null if
+ * the read errors (so callers don't mistake a failure for "nobody predicted").
+ * Paged so a busy slate can't be silently truncated by a row cap.
+ */
+async function loadPredictedByUser(
+  db: SupabaseClient,
+  matchIds: string[],
+): Promise<Map<string, Set<string>> | null> {
+  const byUser = new Map<string, Set<string>>();
+  const PAGE = 1000;
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await db
+      .from("predictions")
+      .select("user_id, match_id")
+      .in("match_id", matchIds)
+      .range(from, from + PAGE - 1);
+    if (error) return null;
+    for (const p of data ?? []) {
+      const uid = p.user_id as string;
+      const set = byUser.get(uid) ?? new Set<string>();
+      set.add(p.match_id as string);
+      byUser.set(uid, set);
+    }
+    if (!data || data.length < PAGE) break;
   }
-
-  // Who has predicted which of this day's matches.
-  const dayMatchIds = dueMatches.map((m) => m.id);
-  const { data: predRows } = await db
-    .from("predictions")
-    .select("user_id, match_id")
-    .in("match_id", dayMatchIds);
-  const predictedByUser = new Map<string, Set<string>>();
-  for (const p of predRows ?? []) {
-    const set = predictedByUser.get(p.user_id as string) ?? new Set<string>();
-    set.add(p.match_id as string);
-    predictedByUser.set(p.user_id as string, set);
-  }
-
-  const recipients = await loadRecipients(db);
-  const base = appBaseUrl();
-  const ordered = [...dueMatches].sort(
-    (a, b) => Date.parse(a.kickoff_at) - Date.parse(b.kickoff_at),
-  );
-
-  // For each recipient, the day's matches they haven't predicted. Only people
-  // with at least one gap get the nudge.
-  const targets: { recipient: Recipient; missing: MatchRow[] }[] = [];
-  for (const r of recipients) {
-    const done = predictedByUser.get(r.userId) ?? new Set<string>();
-    const missing = ordered.filter((m) => !done.has(m.id));
-    if (missing.length > 0) targets.push({ recipient: r, missing });
-  }
-
-  let sent = 0;
-  const CHUNK = 20; // gentle on the provider's rate limit
-  for (let i = 0; i < targets.length; i += CHUNK) {
-    const slice = targets.slice(i, i + CHUNK);
-    const results = await Promise.allSettled(
-      slice.map(({ recipient, missing }) =>
-        sendEmail({
-          to: recipient.email,
-          subject: `⏳ ${missing.length} prediction${
-            missing.length === 1 ? "" : "s"
-          } left before kickoff`,
-          html: renderNudgeEmail(missing, base, recipient.token),
-          headers: { "List-Unsubscribe": `<${base}/unsubscribe?token=${recipient.token}>` },
-        }),
-      ),
-    );
-    sent += results.filter((x) => x.status === "fulfilled").length;
-  }
-
-  await db.from("nudged_match_days").update({ recipients: sent }).eq("match_day", matchDay);
-
-  return { ok: true, matchDay, recipients: targets.length, sent };
+  return byUser;
 }
 
 /** Everyone in at least one group, with an email, who hasn't opted out. */
 async function loadRecipients(db: SupabaseClient): Promise<Recipient[]> {
-  const { data: members } = await db.from("memberships").select("user_id");
-  const memberIds = [...new Set((members ?? []).map((m) => m.user_id as string))];
+  const memberIds = await loadMemberIds(db);
   if (memberIds.length === 0) return [];
 
-  const { data: prefs } = await db
-    .from("users")
-    .select("id, email_opt_out, unsubscribe_token")
-    .in("id", memberIds);
-  const prefById = new Map((prefs ?? []).map((p) => [p.id as string, p]));
-
+  const prefById = await loadPrefs(db, memberIds);
   const emailById = await loadEmails(db);
 
   const out: Recipient[] = [];
   for (const id of memberIds) {
     const pref = prefById.get(id);
     const email = emailById.get(id);
-    if (!pref || pref.email_opt_out || !email) continue;
-    out.push({ userId: id, email, token: pref.unsubscribe_token as string });
+    if (!pref || pref.optOut || !email) continue;
+    out.push({ userId: id, email, token: pref.token });
   }
   return out;
+}
+
+/** Distinct user ids across all memberships, paged past any row cap. */
+async function loadMemberIds(db: SupabaseClient): Promise<string[]> {
+  const ids = new Set<string>();
+  const PAGE = 1000;
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await db
+      .from("memberships")
+      .select("user_id")
+      .range(from, from + PAGE - 1);
+    if (error || !data) break;
+    for (const m of data) ids.add(m.user_id as string);
+    if (data.length < PAGE) break;
+  }
+  return [...ids];
+}
+
+interface Pref {
+  optOut: boolean;
+  token: string;
+}
+
+/** Email opt-out + unsubscribe token per user, fetched in chunks of ids. */
+async function loadPrefs(db: SupabaseClient, memberIds: string[]): Promise<Map<string, Pref>> {
+  const map = new Map<string, Pref>();
+  const CHUNK = 1000; // keep the IN list (and URL) bounded
+  for (let i = 0; i < memberIds.length; i += CHUNK) {
+    const slice = memberIds.slice(i, i + CHUNK);
+    const { data } = await db
+      .from("users")
+      .select("id, email_opt_out, unsubscribe_token")
+      .in("id", slice);
+    for (const p of data ?? []) {
+      map.set(p.id as string, {
+        optOut: Boolean(p.email_opt_out),
+        token: p.unsubscribe_token as string,
+      });
+    }
+  }
+  return map;
 }
 
 /** Map of auth user id -> email, paged through Supabase Auth. */
@@ -321,7 +386,7 @@ function renderNudgeEmail(missing: MatchRow[], base: string, token: string): str
     <div style="max-width:480px;margin:0 auto;padding:24px;">
       <h1 style="margin:0 0 4px;font-size:22px;">⏳ Kickoff's coming up</h1>
       <p style="margin:0 0 20px;color:#57534e;font-size:15px;">
-        Today's match-day goes live soon and you've still got <strong>${count}</strong> without a prediction. Lock them in before kickoff — each match closes when it starts.
+        Kickoff is about an hour away and you've still got <strong>${count}</strong> without a prediction. Lock them in before kickoff — each match closes when it starts.
       </p>
       <div style="background:#ffffff;border-radius:16px;padding:16px 20px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
         <table style="width:100%;border-collapse:collapse;font-size:15px;">${rows}</table>
