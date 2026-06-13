@@ -147,10 +147,12 @@ export function PredictionList({
           <h3 className="mb-2 px-1 text-sm font-black uppercase tracking-wide text-stone-400">
             {g.date}
           </h3>
-          {/* Two columns once there's room (the page caps at max-w-3xl, where a
-              third column would squeeze the cards below a readable width).
-              Embedded in a narrow column, stay single so cards keep that width. */}
-          <div className={`grid gap-6${singleColumn ? "" : " sm:grid-cols-2"}`}>
+          {/* grid-cols-1 (not a bare grid) so the single-column track stays
+              clamped to the container: a bare grid's implicit auto column grows
+              to the widest card's min-content (the hero's steppers + Next-up /
+              countdown header), pushing the card past the right gutter on narrow
+              phones. minmax(0,1fr) pins it; over-wide content clips in-card. */}
+          <div className={`grid grid-cols-1 gap-6${singleColumn ? "" : " sm:grid-cols-2"}`}>
             {g.items.map((m) => {
               const pick = picks[m.id];
               const open = m.state === "open";

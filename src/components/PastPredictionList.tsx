@@ -106,9 +106,10 @@ export function PastPredictionList({ matches }: { matches: PastPrediction[] }) {
           <h3 className="mb-2 px-1 text-sm font-black uppercase tracking-wide text-stone-400">
             {g.date}
           </h3>
-          {/* Two columns once there's room (the page caps at max-w-3xl, where a
-              third column would squeeze the cards below a readable width). */}
-          <div className="grid gap-6 sm:grid-cols-2">
+          {/* grid-cols-1 base clamps the single-column track to the container
+              (a bare grid's auto column would grow to a wide card's min-content
+              and overflow the right gutter on narrow phones). */}
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             {g.items.map((m) => (
               <MatchCard
                 key={m.id}
