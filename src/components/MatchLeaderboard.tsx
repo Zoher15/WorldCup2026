@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BreakdownRow } from "./BreakdownRow";
 import { CountUp } from "./CountUp";
 import { MatchCard, toMatchCardData } from "./MatchCard";
@@ -117,8 +117,26 @@ function PlayerName({ row, code }: { row: MatchBoardRow; code: string }) {
  *  explaining it — the same context hover gives on wider screens. */
 function UpsetBadge() {
   const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  // Dismiss on a tap/click anywhere outside the badge (or Escape), so the
+  // popover doesn't linger once the reader has moved on.
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
   return (
-    <div className="relative shrink-0">
+    <div ref={ref} className="relative shrink-0">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
