@@ -21,7 +21,8 @@ const MEDALS = ["🥇", "🥈", "🥉"];
 const PODIUM_BG = [
   "from-sunburst to-flame",
   "from-stone-200 to-stone-400",
-  "from-orange-300 to-orange-500",
+  // Deep copper, not bright orange, so bronze never reads as a second gold.
+  "from-amber-700 to-amber-900",
 ];
 // Render order places #1 in the middle, #2 left, #3 right.
 const PODIUM_ORDER = [1, 0, 2];

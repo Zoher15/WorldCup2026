@@ -24,7 +24,7 @@ const OG_MIN_HEIGHT = 630;
 // Bump when the layout changes. The /s/<code>/og endpoint compares this to each
 // stored image's render_version (migration 0006) and re-renders anything older,
 // so a design change reaches already-cached groups on their next view.
-export const OG_RENDER_VERSION = 6;
+export const OG_RENDER_VERSION = 7;
 
 /**
  * A fingerprint of everything the image draws: the layout version, the group
@@ -135,14 +135,18 @@ const FLAME_ICON = `data:image/svg+xml;base64,${Buffer.from(FLAME_SVG).toString(
 
 // Podium (top three). Render order places #2 left, #1 center, #3 right.
 const PODIUM_ORDER = [1, 0, 2];
-const PODIUM_HEIGHT = [116, 88, 74]; // indexed by rank (0 = 1st)
+// Height, gradient, medal colour and rank ink are all indexed by rank (0 = 1st),
+// never by podium slot — so tied places match the on-page board: two co-leaders
+// both stand on equal-height gold steps, and the next takes bronze. Bronze is a
+// deep copper (not orange) so it never reads as a second gold.
+const PODIUM_HEIGHT = [116, 88, 74];
 const PODIUM_GRADIENT = [
-  "linear-gradient(180deg, #d4a017 0%, #8a3d1a 100%)",
-  "linear-gradient(180deg, #d1d5db 0%, #6b7280 100%)",
-  "linear-gradient(180deg, #c98a3a 0%, #7c4a1e 100%)",
+  "linear-gradient(180deg, #d4a017 0%, #8a3d1a 100%)", // gold
+  "linear-gradient(180deg, #d1d5db 0%, #6b7280 100%)", // silver
+  "linear-gradient(180deg, #b9722e 0%, #4f2c12 100%)", // bronze (deep copper)
 ];
-const MEDAL_COLOR = ["#f59e0b", "#cbd5e1", "#d97706"];
-const RANK_INK = ["#fbbf24", "#cbd5e1", "#d6914a"];
+const MEDAL_COLOR = ["#f59e0b", "#cbd5e1", "#b56a2b"]; // gold / silver / bronze
+const RANK_INK = ["#fbbf24", "#cbd5e1", "#c07a3a"];
 
 // A numbered medal with a little blue ribbon, like the on-page podium. The
 // number is the competition rank, so tied players share it (two level at the
@@ -175,16 +179,15 @@ function Medal({ rank }: { rank: number }) {
 
 function PodiumColumn({
   entry,
-  idx,
 }: {
   entry: { row: StandingsRow; rank: number; tied: boolean } | undefined;
-  idx: number;
 }) {
   if (!entry) return <div style={{ display: "flex", width: 210 }} />;
   const { row, rank, tied } = entry;
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 210 }}>
-      {/* Medal shows the shared rank; the bar's colour/height stay by slot. */}
+      {/* Medal, bar colour and bar height all follow the shared rank, so tied
+          places match — two co-leaders both stand on equal-height gold steps. */}
       <Medal rank={rank} />
       <div style={{ fontSize: 27, fontWeight: 700, color: INK, maxWidth: 200, marginTop: 0, marginBottom: 6, ...clip }}>
         {row.displayName}
@@ -194,10 +197,10 @@ function PodiumColumn({
           display: "flex",
           flexDirection: "column",
           width: 174,
-          height: PODIUM_HEIGHT[idx],
+          height: PODIUM_HEIGHT[rank - 1] ?? PODIUM_HEIGHT[2],
           borderTopLeftRadius: 18,
           borderTopRightRadius: 18,
-          background: PODIUM_GRADIENT[idx],
+          background: PODIUM_GRADIENT[rank - 1] ?? PODIUM_GRADIENT[2],
           alignItems: "center",
           justifyContent: "flex-start",
           paddingTop: 5,
@@ -368,7 +371,7 @@ export async function renderLeaderboardPng(
           {top3.length > 0 && (
             <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 26, marginTop: 8 }}>
               {PODIUM_ORDER.map((idx, slot) => (
-                <PodiumColumn key={slot} entry={top3[idx]} idx={idx} />
+                <PodiumColumn key={slot} entry={top3[idx]} />
               ))}
             </div>
           )}
