@@ -67,7 +67,9 @@ export const ADVANCE_BONUS: Record<Stage, number> = {
   final: 24,
 };
 
-const OUTCOME_FOR_CORRECT_DIRECTION = 5;
+/** Outcome points for backing the right winner (or the right draw) — i.e. a
+ *  "correct direction" call. One step off scores less; the opposite, nothing. */
+export const OUTCOME_FOR_CORRECT_DIRECTION = 5;
 const OUTCOME_PENALTY_PER_STEP = 3;
 const MAX_CLOSENESS_POINTS = 5;
 

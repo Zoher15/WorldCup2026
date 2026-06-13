@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { ImageResponse } from "next/og";
-import { type StandingsRow } from "./standings";
+import { competitionRanks, type StandingsRow } from "./standings";
 import { NOTO_SANS_BASE64 } from "./noto-sans-font";
 
 // Renders the leaderboard share image (1200x630) on the Node runtime — during
@@ -24,7 +24,7 @@ const OG_MIN_HEIGHT = 630;
 // Bump when the layout changes. The /s/<code>/og endpoint compares this to each
 // stored image's render_version (migration 0006) and re-renders anything older,
 // so a design change reaches already-cached groups on their next view.
-export const OG_RENDER_VERSION = 3;
+export const OG_RENDER_VERSION = 4;
 
 /**
  * A fingerprint of everything the image draws: the layout version, the group
@@ -129,8 +129,10 @@ const PODIUM_GRADIENT = [
 const MEDAL_COLOR = ["#f59e0b", "#cbd5e1", "#d97706"];
 const RANK_INK = ["#fbbf24", "#cbd5e1", "#d6914a"];
 
-// A numbered medal with a little blue ribbon, like the on-page podium.
-function Medal({ idx }: { idx: number }) {
+// A numbered medal with a little blue ribbon, like the on-page podium. The
+// number is the competition rank, so tied players share it (two level at the
+// top are both medal "1"); colour follows the rank too.
+function Medal({ rank }: { rank: number }) {
   return (
     <div style={{ display: "flex", position: "relative", width: 60, height: 60, alignItems: "flex-start", justifyContent: "center" }}>
       <div style={{ position: "absolute", top: 0, left: 16, width: 12, height: 30, background: "linear-gradient(180deg,#3b82f6,#1d4ed8)", borderRadius: 3, transform: "rotate(18deg)" }} />
@@ -143,24 +145,32 @@ function Medal({ idx }: { idx: number }) {
           width: 42,
           height: 42,
           borderRadius: 21,
-          background: MEDAL_COLOR[idx],
+          background: MEDAL_COLOR[rank - 1] ?? MEDAL_COLOR[2],
           alignItems: "center",
           justifyContent: "center",
           border: "2px solid rgba(255,255,255,0.55)",
           boxShadow: "0 2px 6px rgba(0,0,0,0.35)",
         }}
       >
-        <div style={{ display: "flex", fontSize: 21, fontWeight: 700, color: "#1c1917" }}>{idx + 1}</div>
+        <div style={{ display: "flex", fontSize: 21, fontWeight: 700, color: "#1c1917" }}>{rank}</div>
       </div>
     </div>
   );
 }
 
-function PodiumColumn({ row, idx }: { row: StandingsRow | undefined; idx: number }) {
-  if (!row) return <div style={{ display: "flex", width: 210 }} />;
+function PodiumColumn({
+  entry,
+  idx,
+}: {
+  entry: { row: StandingsRow; rank: number; tied: boolean } | undefined;
+  idx: number;
+}) {
+  if (!entry) return <div style={{ display: "flex", width: 210 }} />;
+  const { row, rank, tied } = entry;
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 210 }}>
-      <Medal idx={idx} />
+      {/* Medal shows the shared rank; the bar's colour/height stay by slot. */}
+      <Medal rank={rank} />
       <div style={{ fontSize: 27, fontWeight: 700, color: INK, maxWidth: 200, marginTop: 0, marginBottom: 6, ...clip }}>
         {row.displayName}
       </div>
@@ -178,7 +188,9 @@ function PodiumColumn({ row, idx }: { row: StandingsRow | undefined; idx: number
           boxShadow: "inset 0 2px 0 rgba(255,255,255,0.35)",
         }}
       >
-        <div style={{ display: "flex", fontSize: 42, fontWeight: 700, color: "#fafaf9" }}>{row.points}</div>
+        <div style={{ display: "flex", fontSize: 42, fontWeight: 700, color: "#fafaf9" }}>
+          {tied ? `=${row.points}` : row.points}
+        </div>
       </div>
     </div>
   );
@@ -193,7 +205,9 @@ const COL_GAP = 22;
 const ONE_COL_W = CARD_CONTENT_W;
 const TWO_COL_W = Math.floor((CARD_CONTENT_W - COL_GAP) / 2);
 
-function ListRow({ row, rank, colW }: { row: StandingsRow; rank: number; colW: number }) {
+type ListEntry = { row: StandingsRow; rank: number; tied: boolean };
+
+function ListRow({ row, rank, tied, colW }: ListEntry & { colW: number }) {
   return (
     <div
       style={{
@@ -209,8 +223,9 @@ function ListRow({ row, rank, colW }: { row: StandingsRow; rank: number; colW: n
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 12, maxWidth: colW - 110, overflow: "hidden" }}>
-        <div style={{ display: "flex", width: 30, justifyContent: "center", fontSize: 25, fontWeight: 700, color: RANK_INK[rank - 1] ?? MUTED }}>
-          {rank}
+        {/* Tied players share a rank ("=4"), competition style — as on the page. */}
+        <div style={{ display: "flex", width: 38, justifyContent: "center", fontSize: 25, fontWeight: 700, color: RANK_INK[rank - 1] ?? MUTED }}>
+          {tied ? `=${rank}` : rank}
         </div>
         <div style={{ fontSize: 25, fontWeight: 700, color: INK, ...clip }}>{row.displayName}</div>
       </div>
@@ -219,11 +234,11 @@ function ListRow({ row, rank, colW }: { row: StandingsRow; rank: number; colW: n
   );
 }
 
-function ListColumn({ rows, colW }: { rows: { row: StandingsRow; rank: number }[]; colW: number }) {
+function ListColumn({ rows, colW }: { rows: ListEntry[]; colW: number }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", width: colW, gap: ROW_GAP }}>
-      {rows.map(({ row, rank }) => (
-        <ListRow key={row.userId} row={row} rank={rank} colW={colW} />
+      {rows.map((entry) => (
+        <ListRow key={entry.row.userId} {...entry} colW={colW} />
       ))}
     </div>
   );
@@ -239,11 +254,19 @@ export async function renderLeaderboardPng(
   groupName: string | null,
   overall: StandingsRow[],
 ): Promise<Uint8Array> {
-  const top3 = overall.slice(0, 3);
+  // Standard competition ranking (1, 1, 3) with a shared "=" mark on ties, so
+  // the share image reads the same as the on-page leaderboard.
+  const ranks = competitionRanks(overall);
+  const tiedAt = (i: number) =>
+    (i > 0 && overall[i - 1].points === overall[i].points) ||
+    (i < overall.length - 1 && overall[i + 1].points === overall[i].points);
+  const top3 = overall
+    .slice(0, 3)
+    .map((row, i) => ({ row, rank: ranks[i], tied: tiedAt(i) }));
   const { listCount, twoCol, rowsPerCol } = listLayout(overall.length);
   const restRows = overall
     .slice(3, 3 + listCount)
-    .map((row, i) => ({ row, rank: i + 4 }));
+    .map((row, i) => ({ row, rank: ranks[i + 3], tied: tiedAt(i + 3) }));
   const overflow = Math.max(0, overall.length - 3 - restRows.length);
   const col1 = restRows.slice(0, rowsPerCol);
   const col2 = restRows.slice(rowsPerCol);
@@ -292,7 +315,7 @@ export async function renderLeaderboardPng(
           {top3.length > 0 && (
             <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 26, marginTop: 8 }}>
               {PODIUM_ORDER.map((idx, slot) => (
-                <PodiumColumn key={slot} row={top3[idx]} idx={idx} />
+                <PodiumColumn key={slot} entry={top3[idx]} idx={idx} />
               ))}
             </div>
           )}

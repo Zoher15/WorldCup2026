@@ -112,9 +112,12 @@ export default async function Home() {
               </div>
             ) : (
               // The real steppers, saving the same predictions as /predict.
+              // Single-column here so the cards match the predict page's width
+              // instead of being squeezed by the groups panel beside them.
               <PredictionList
                 matches={boardMatches}
                 initial={board.predictions}
+                singleColumn
               />
             )
           ) : (

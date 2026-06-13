@@ -305,6 +305,32 @@ test("a zero-point settled match breaks the streak", () => {
   assert.equal(s.overall.find((r) => r.userId === "u2")?.streak, 0);
 });
 
+test("a close but wrong-direction call breaks the streak", () => {
+  // Latest settled match is a 1-0 home win; the player called 1-1 (a draw):
+  // four closeness points, but the WRONG direction. Even with a perfect earlier
+  // match, the streak counts correct directions only, so it's 0.
+  const latest: StandingMatch = {
+    ...matches[0],
+    id: "m5",
+    kickoffAt: "2026-07-01T19:00:00Z",
+    homeGoals: 1,
+    awayGoals: 0,
+  };
+  const s = buildStandings({
+    members: [members[0]],
+    matches: [matches[1], latest], // m2 (2-2) earlier, m5 latest
+    predictions: [
+      { userId: "u1", matchId: "m2", predHome: 2, predAway: 2, advancePick: null },
+      { userId: "u1", matchId: "m5", predHome: 1, predAway: 1, advancePick: null },
+    ],
+    lateJoinPolicy: "carry_over",
+    groupCreatedAt: "2026-06-01T00:00:00Z",
+  });
+  const alice = s.overall.find((r) => r.userId === "u1");
+  assert.ok((alice?.points ?? 0) > 0); // the close call still earned points
+  assert.equal(alice?.streak, 0); // but it didn't extend the streak
+});
+
 test("live provisional scores never move a streak", () => {
   const s = buildStandings({
     members: [members[0]],

@@ -6,7 +6,8 @@ import {
   isTrialActive,
   type PredictionState,
 } from "./prediction-rules";
-import { scorePrediction } from "./recompute";
+import { scorePrediction, actualWinnerDirection } from "./recompute";
+import { direction } from "./scoring";
 import { BORINGBOT_ID, BORINGBOT_NAME, BORINGBOT_PICK } from "./standings";
 import type { Stage } from "./types";
 
@@ -62,7 +63,8 @@ type StoredPrediction = {
 };
 
 export interface PlayerBadges {
-  /** Consecutive most-recent finished matches scoring > 0 points. */
+  /** Consecutive most-recent finished matches where the pick called the
+   *  direction right (winner or draw). A wrong/one-step-off call breaks it. */
   streak: number;
   /** Finished matches where the pick equals the result exactly. */
   exact: number;
@@ -72,20 +74,37 @@ export interface PlayerBadges {
   exactMatchIds: string[];
 }
 
+/** Whether a finished row's pick called the direction right — the same
+ *  "correct direction" the leaderboard streak counts, graded with the canonical
+ *  scoring helpers (so a knockout settled on penalties credits the team that
+ *  actually advanced). A missing pick or result is not a call. */
+function calledDirection(r: PlayerPredictionRow): boolean {
+  if (!r.pick || !r.result) return false;
+  const winner = actualWinnerDirection({
+    resultConfirmed: true,
+    homeGoals: r.result.home,
+    awayGoals: r.result.away,
+    stage: r.stage,
+    advancedCode: r.result.advancedCode,
+    homeCode: r.homeCode,
+    awayCode: r.awayCode,
+  });
+  return direction({ homeGoals: r.pick.home, awayGoals: r.pick.away }) === winner;
+}
+
 /**
  * Derive the profile's badge chips from rows already in hand — pure, no extra
  * queries. Rows arrive kickoff-ascending (see getPlayerProfile's match query),
  * so "most recent" walks backwards from the end; a finished match is one with
  * a result, and its pick is always revealed, so this works for any player.
- * A finished match with no points (no pick, scored 0, or outside the group's
- * window) breaks the streak. The retired practice match never counts.
+ * A finished match whose pick missed the direction (or had no pick) breaks the
+ * streak. The retired practice match never counts.
  */
 export function derivePlayerBadges(rows: PlayerPredictionRow[]): PlayerBadges {
   const finished = rows.filter((r) => r.result != null && !r.isTrial);
   const streakMatchIds: string[] = [];
   for (let i = finished.length - 1; i >= 0; i--) {
-    const p = finished[i].points;
-    if (p == null || p <= 0) break;
+    if (!calledDirection(finished[i])) break;
     streakMatchIds.push(finished[i].matchId);
   }
   const exactMatchIds: string[] = [];

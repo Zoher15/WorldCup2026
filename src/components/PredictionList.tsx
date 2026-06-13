@@ -16,9 +16,15 @@ type Picks = Record<string, { home: number; away: number }>;
 export function PredictionList({
   matches,
   initial,
+  singleColumn = false,
 }: {
   matches: MatchForPrediction[];
   initial: Record<string, SavedPrediction>;
+  /** Stack cards one-per-row instead of the two-column grid. Used where the list
+   *  is embedded in a narrow column (the home page) — there a two-up grid would
+   *  squeeze each card narrower than the full predict page, which is the
+   *  reference width. */
+  singleColumn?: boolean;
 }) {
   const router = useRouter();
   const [picks, setPicks] = useState<Picks>(() => {
@@ -142,8 +148,9 @@ export function PredictionList({
             {g.date}
           </h3>
           {/* Two columns once there's room (the page caps at max-w-3xl, where a
-              third column would squeeze the cards below a readable width). */}
-          <div className="grid gap-6 sm:grid-cols-2">
+              third column would squeeze the cards below a readable width).
+              Embedded in a narrow column, stay single so cards keep that width. */}
+          <div className={`grid gap-6${singleColumn ? "" : " sm:grid-cols-2"}`}>
             {g.items.map((m) => {
               const pick = picks[m.id];
               const open = m.state === "open";
