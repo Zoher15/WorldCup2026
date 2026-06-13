@@ -24,21 +24,22 @@ const OG_MIN_HEIGHT = 630;
 // Bump when the layout changes. The /s/<code>/og endpoint compares this to each
 // stored image's render_version (migration 0006) and re-renders anything older,
 // so a design change reaches already-cached groups on their next view.
-export const OG_RENDER_VERSION = 4;
+export const OG_RENDER_VERSION = 5;
 
 /**
  * A fingerprint of everything the image draws: the layout version, the group
- * name, and the ordered rows (rank, name, points, movement). Stored alongside
- * the PNG so we re-render exactly when the leaderboard changes — a join, a
- * rename, a result — without having to enumerate every such event by hand.
- * Includes more rows than the card lists (MAX_LIST) on purpose: a change beyond
- * the visible cap still alters the "+N more" footer, so it should invalidate.
+ * name, and the ordered rows (rank, name, points, movement, streak). Stored
+ * alongside the PNG so we re-render exactly when the leaderboard changes — a
+ * join, a rename, a result, a streak extending or breaking — without having to
+ * enumerate every such event by hand. Includes more rows than the card lists
+ * (MAX_LIST) on purpose: a change beyond the visible cap still alters the
+ * "+N more" footer, so it should invalidate.
  */
 export function ogContentHash(groupName: string, overall: StandingsRow[]): string {
   const h = createHash("sha256");
   h.update(`v${OG_RENDER_VERSION}\n${groupName}\n`);
   for (const r of overall) {
-    h.update(`${r.userId}\t${r.displayName}\t${r.points}\t${r.movement}\n`);
+    h.update(`${r.userId}\t${r.displayName}\t${r.points}\t${r.movement}\t${r.streak ?? 0}\n`);
   }
   return h.digest("hex").slice(0, 32);
 }
@@ -117,6 +118,7 @@ const GLASS = "rgba(255,255,255,0.06)";
 const GLASS_BORDER = "1px solid rgba(255,255,255,0.12)";
 const INK = "#f5f5f4"; // names / primary text
 const MUTED = "#a8a29e"; // ranks / secondary
+const FLAME = "#ff5a36"; // scoring-streak flame (matches --color-flame)
 
 // Podium (top three). Render order places #2 left, #1 center, #3 right.
 const PODIUM_ORDER = [1, 0, 2];
@@ -177,20 +179,27 @@ function PodiumColumn({
       <div
         style={{
           display: "flex",
+          flexDirection: "column",
           width: 174,
           height: PODIUM_HEIGHT[idx],
           borderTopLeftRadius: 18,
           borderTopRightRadius: 18,
           background: PODIUM_GRADIENT[idx],
-          alignItems: "flex-start",
-          justifyContent: "center",
-          paddingTop: 10,
+          alignItems: "center",
+          justifyContent: "flex-start",
+          paddingTop: 8,
           boxShadow: "inset 0 2px 0 rgba(255,255,255,0.35)",
         }}
       >
-        <div style={{ display: "flex", fontSize: 42, fontWeight: 700, color: "#fafaf9" }}>
+        <div style={{ display: "flex", fontSize: 42, lineHeight: 1, fontWeight: 700, color: "#fafaf9" }}>
           {tied ? `=${row.points}` : row.points}
         </div>
+        {/* A live scoring streak rides under the points, like the on-page bar. */}
+        {(row.streak ?? 0) >= 2 && (
+          <div style={{ display: "flex", marginTop: 3, fontSize: 16, lineHeight: 1, fontWeight: 700, color: FLAME }}>
+            🔥{row.streak}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -222,14 +231,22 @@ function ListRow({ row, rank, tied, colW }: ListEntry & { colW: number }) {
         border: GLASS_BORDER,
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 12, maxWidth: colW - 110, overflow: "hidden" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, maxWidth: colW - 160, overflow: "hidden" }}>
         {/* Tied players share a rank ("=4"), competition style — as on the page. */}
         <div style={{ display: "flex", width: 38, justifyContent: "center", fontSize: 25, fontWeight: 700, color: RANK_INK[rank - 1] ?? MUTED }}>
           {tied ? `=${rank}` : rank}
         </div>
         <div style={{ fontSize: 25, fontWeight: 700, color: INK, ...clip }}>{row.displayName}</div>
       </div>
-      <div style={{ display: "flex", fontSize: 25, fontWeight: 700, color: "#fafaf9" }}>{row.points}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        {/* Scoring-streak flame, mirroring the on-page leaderboard row. */}
+        {(row.streak ?? 0) >= 2 && (
+          <div style={{ display: "flex", fontSize: 20, fontWeight: 700, color: FLAME }}>
+            🔥{row.streak}
+          </div>
+        )}
+        <div style={{ display: "flex", fontSize: 25, fontWeight: 700, color: "#fafaf9" }}>{row.points}</div>
+      </div>
     </div>
   );
 }
@@ -247,8 +264,9 @@ function ListColumn({ rows, colW }: { rows: ListEntry[]; colW: number }) {
 /**
  * Render a group's overall leaderboard to PNG bytes, mirroring the on-page dark
  * glass design: a medal podium for the top three, then ranked glass rows (name +
- * points) for everyone else, in two columns when there are many. A null name /
- * empty list still produces a valid branded frame (the generic default).
+ * points) for everyone else, in two columns when there are many — with shared
+ * "=" ranks on ties and a 🔥 flame on anyone riding a scoring streak, just like
+ * the page. A null name / empty list still produces a valid branded frame.
  */
 export async function renderLeaderboardPng(
   groupName: string | null,
