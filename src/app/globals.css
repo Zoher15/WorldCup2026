@@ -31,6 +31,14 @@
   color-scheme: dark;
 }
 
+/* Clip stray horizontal overflow at the viewport too, not just <body>: on iOS
+   Safari body overflow can propagate up to the scroll container, letting the
+   page drift sideways so the centered content sits with unequal left/right
+   gutters. Clipping here pins it. */
+html {
+  overflow-x: clip;
+}
+
 body {
   background:
     radial-gradient(1200px 600px at 10% -10%, rgba(255, 210, 63, 0.18), transparent 60%),

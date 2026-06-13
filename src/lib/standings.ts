@@ -12,7 +12,7 @@
  */
 
 import { scorePrediction, actualWinnerDirection } from "./recompute.ts";
-import { scoreMatch } from "./scoring.ts";
+import { scoreMatch, OUTCOME_FOR_CORRECT_DIRECTION } from "./scoring.ts";
 import type { LateJoinPolicy, Stage } from "./types.ts";
 
 /** The always-0-0 baseline competitor injected into every group's boards. */
@@ -63,9 +63,10 @@ export interface StandingsRow {
   displayName: string;
   points: number;
   movement: number;
-  /** Consecutive most-recent settled matches scoring > 0 points (trial and
-   *  out-of-window matches excluded). Optional so synthetic boards (the
-   *  home-page demo) can omit it. */
+  /** Consecutive most-recent settled matches where the player called the
+   *  direction (right winner or right draw); a wrong/one-step-off call breaks
+   *  it, however close the scoreline (trial and out-of-window matches excluded).
+   *  Optional so synthetic boards (the home-page demo) can omit it. */
   streak?: number;
 }
 
@@ -154,14 +155,15 @@ export function buildStandings(input: {
     return true;
   };
 
-  // Per-user points on SETTLED (confirmed) matches, kept aside for the streak
-  // walk below — provisional live scores don't move a streak, so it can't
-  // flip-flop mid-match.
-  const settledPoints = new Map<string, Map<string, number>>();
-  const recordSettled = (userId: string, matchId: string, pts: number) => {
-    let byMatch = settledPoints.get(userId);
-    if (!byMatch) settledPoints.set(userId, (byMatch = new Map()));
-    byMatch.set(matchId, pts);
+  // Per-user OUTCOME points on SETTLED (confirmed) matches, kept aside for the
+  // streak walk below — the streak tracks correct *directions*, so it keys off
+  // outcome points (5 = right winner/draw), not the total. Provisional live
+  // scores don't move a streak, so it can't flip-flop mid-match.
+  const settledOutcome = new Map<string, Map<string, number>>();
+  const recordSettled = (userId: string, matchId: string, outcome: number) => {
+    let byMatch = settledOutcome.get(userId);
+    if (!byMatch) settledOutcome.set(userId, (byMatch = new Map()));
+    byMatch.set(matchId, outcome);
   };
 
   for (const p of predictions) {
@@ -189,7 +191,7 @@ export function buildStandings(input: {
     agg.total += score.totalPoints;
     agg.outcome += score.outcomePoints + score.advancePoints;
     agg.closeness += score.closenessPoints;
-    if (match.resultConfirmed) recordSettled(p.userId, match.id, score.totalPoints);
+    if (match.resultConfirmed) recordSettled(p.userId, match.id, score.outcomePoints);
   }
 
   const list = [...totals.values()];
@@ -224,15 +226,17 @@ export function buildStandings(input: {
       bot.closeness += closeness;
       bot.total += outcome + closeness;
       if (match.resultConfirmed) {
-        recordSettled(BORINGBOT_ID, match.id, outcome + closeness);
+        recordSettled(BORINGBOT_ID, match.id, outcome);
       }
     }
     list.push(bot);
   }
 
-  // Streaks: walk the settled, counted matches newest-first; a match with no
-  // points (no pick, scored 0, or outside the window) breaks the run. The trial
-  // never counts here (counts() excludes it once retired).
+  // Streaks: walk the settled, counted matches newest-first; counting how many
+  // in a row the player called the direction on (outcome === 5). A miss, a
+  // one-step-off call, or no pick breaks the run — a close-but-wrong scoreline
+  // doesn't keep it alive. The trial never counts here (counts() excludes it
+  // once retired).
   const settledDesc = [...matchById.values()]
     .filter(
       ({ match, kickoffMs }) =>
@@ -243,10 +247,10 @@ export function buildStandings(input: {
     )
     .sort((a, b) => b.kickoffMs - a.kickoffMs);
   for (const t of list) {
-    const byMatch = settledPoints.get(t.userId);
+    const byMatch = settledOutcome.get(t.userId);
     for (const { match } of settledDesc) {
-      const pts = byMatch?.get(match.id);
-      if (pts == null || pts <= 0) break;
+      const outcome = byMatch?.get(match.id);
+      if (outcome == null || outcome < OUTCOME_FOR_CORRECT_DIRECTION) break;
       t.streak++;
     }
   }

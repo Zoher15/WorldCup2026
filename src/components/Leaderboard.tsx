@@ -219,7 +219,7 @@ export function Leaderboard({
                   {(r.streak ?? 0) >= 2 && (
                     <span
                       className="font-sans text-[10px] font-bold text-flame"
-                      title={`${r.streak} scoring matches in a row`}
+                      title={`${r.streak} correct results in a row`}
                     >
                       🔥{r.streak}
                     </span>
@@ -247,7 +247,7 @@ export function Leaderboard({
           const streak = (r.streak ?? 0) >= 2 && (
             <span
               className="shrink-0 text-[10px] font-bold text-flame"
-              title={`${r.streak} scoring matches in a row`}
+              title={`${r.streak} correct results in a row`}
             >
               🔥{r.streak}
             </span>
