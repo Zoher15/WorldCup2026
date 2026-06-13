@@ -111,6 +111,33 @@ function PlayerName({ row, code }: { row: MatchBoardRow; code: string }) {
   );
 }
 
+/** "Called it against the group" flag, parked on the right next to the score so
+ *  a long name never collides with it. The label is hidden on narrow screens
+ *  (it would crowd the row), so the badge is tappable: a tap reveals a popover
+ *  explaining it — the same context hover gives on wider screens. */
+function UpsetBadge() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        title="Called it against the group's consensus"
+        className={`rounded-full glass px-2 py-0.5 text-[10px] font-bold text-sunburst transition active:scale-95 ${FOCUS_RING}`}
+      >
+        🔮<span className="hidden sm:inline"> Against the crowd</span>
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full z-20 mt-1 w-48 rounded-xl glass px-3 py-2 text-left text-[11px] font-medium leading-snug text-stone-700 dark:text-stone-100">
+          🔮 <strong className="text-sunburst">Against the crowd</strong> — called
+          it right while most of the group got it wrong.
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function MatchLeaderboard({ board }: { board: MatchBoard }) {
   // Tick live points forward while the match is in play.
   useLiveRefresh(board.match.live != null);
@@ -160,29 +187,23 @@ export function MatchLeaderboard({ board }: { board: MatchBoard }) {
                 )}
                 <span className="flex min-w-0 flex-1 items-center gap-2">
                   <PlayerName row={r} code={group.code} />
-                  {/* Called it right while most of the group got it wrong. The
-                      label collapses to just the crystal ball on narrow screens
-                      so it never squeezes the player's name off the row. */}
-                  {r.upset && (
-                    <span
-                      className="shrink-0 rounded-full glass px-2 py-0.5 text-[10px] font-bold text-sunburst"
-                      title="Called it against the group's consensus"
-                    >
-                      🔮<span className="hidden sm:inline"> Against the crowd</span>
+                </span>
+                {/* Right side: the upset flag sits beside the score, so the name
+                    keeps the whole left side and truncates clear of both. */}
+                <div className="flex shrink-0 items-center gap-2">
+                  {r.upset && <UpsetBadge />}
+                  {revealed ? (
+                    <RevealedScore row={r} />
+                  ) : r.hasPrediction ? (
+                    <span className="text-xs font-bold text-pitch dark:text-emerald-400">
+                      ✓ Entered
+                    </span>
+                  ) : (
+                    <span className="text-xs font-bold text-stone-400">
+                      Not entered
                     </span>
                   )}
-                </span>
-                {revealed ? (
-                  <RevealedScore row={r} />
-                ) : r.hasPrediction ? (
-                  <span className="text-xs font-bold text-pitch dark:text-emerald-400">
-                    ✓ Entered
-                  </span>
-                ) : (
-                  <span className="text-xs font-bold text-stone-400">
-                    Not entered
-                  </span>
-                )}
+                </div>
               </li>
             );
           })}
