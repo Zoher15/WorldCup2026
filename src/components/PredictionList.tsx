@@ -216,15 +216,17 @@ export function PredictionList({
                   }
                 />
               );
-              // The hero spans both columns so the most urgent match leads. The
-              // nag ring and "Next up" flag are owned by MatchCard now, so the
-              // wrapper just handles grid spanning.
-              return hero ? (
-                <div key={m.id} className="md:col-span-2">
-                  {card}
-                </div>
-              ) : (
-                <div key={m.id}>
+              // On the standalone two-up grid the hero spans both columns so the
+              // most urgent match leads. Embedded the grid is single-column, so
+              // spanning two would conjure an implicit second (auto-sized) column
+              // that the sibling cards then flow into — squashed two-up. Skip the
+              // span there. The nag ring and "Next up" flag are owned by MatchCard
+              // now, so the wrapper just handles grid spanning.
+              return (
+                <div
+                  key={m.id}
+                  className={hero && !embedded ? "md:col-span-2" : undefined}
+                >
                   {card}
                 </div>
               );
