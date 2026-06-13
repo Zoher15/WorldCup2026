@@ -172,6 +172,7 @@ export function PredictionList({
               const card = (
                 <MatchCard
                   hero={hero}
+                  nag={nag}
                   data={{
                     homeCode: m.homeCode,
                     awayCode: m.awayCode,
@@ -211,19 +212,15 @@ export function PredictionList({
                   }
                 />
               );
-              // The hero spans both columns so the most urgent match leads.
-              // The nag ring lives on this wrapper, whose radius must match
-              // what it wraps: the hero's gradient band is rounded-[19px], a
-              // plain card rounded-2xl.
+              // The hero spans both columns so the most urgent match leads. The
+              // nag ring and "Next up" flag are owned by MatchCard now, so the
+              // wrapper just handles grid spanning.
               return hero ? (
-                <div
-                  key={m.id}
-                  className={`sm:col-span-2${nag ? " nag-pulse rounded-[19px]" : ""}`}
-                >
+                <div key={m.id} className="sm:col-span-2">
                   {card}
                 </div>
               ) : (
-                <div key={m.id} className={nag ? "nag-pulse rounded-2xl" : undefined}>
+                <div key={m.id}>
                   {card}
                 </div>
               );

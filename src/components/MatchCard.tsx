@@ -117,6 +117,10 @@ export interface MatchCardProps {
    *  treatment, a touch taller, bigger score digits, and a 2px brand-gradient
    *  ring. The parent supplies any grid spanning (e.g. `sm:col-span-2`). */
   hero?: boolean;
+  /** Open match the viewer hasn't picked yet: a soft pulsing green ring nudges
+   *  them. Owned here so the ring hugs the card and never wraps the "Next up"
+   *  flag that sits above it. */
+  nag?: boolean;
 }
 
 /** Frosted liquid-glass surface for every text panel floating over the flags.
@@ -410,7 +414,7 @@ function FlagHalf({ code, side }: { code: string | null; side: "left" | "right" 
   );
 }
 
-export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, footer, onExpire, revealOnHover, hero }: MatchCardProps) {
+export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, footer, onExpire, revealOnHover, hero, nag }: MatchCardProps) {
   const editing = data.state === "open" && entry != null;
   const hasResult =
     (data.state === "live" || data.state === "final") &&
@@ -531,6 +535,11 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
     ? "🎯 Practice"
     : formatStageLabel(data.groupLabel, data.stage);
 
+  // The hero is the next match to act on. Flag it with a chip *above* the card
+  // (not in the header) so it never crowds the centred save status. Live heroes
+  // already shout via the flame ring, so the flag is for open/upcoming only.
+  const showNextUp = hero && (data.state === "open" || data.state === "upcoming");
+
   const card = (
     <div className={`relative animate-pop-in overflow-hidden rounded-2xl bg-stone-200 shadow-lg ring-1 ring-white/30 dark:bg-stone-800 dark:ring-white/15${revealOnHover ? " glass-reveal" : ""}`}>
       {/* The two flags fill the card and butt together at a hard centre split.
@@ -559,31 +568,20 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
       />
 
       <div className={`relative flex ${hero ? "min-h-[10.5rem]" : "min-h-[9rem]"} flex-col justify-between gap-2 p-3 text-xs font-bold`}>
-        {/* Header chips share one flex row: stage (+ hero "Next up") on the
-            left, the save status in the middle, the status pill on the right.
-            All three sit in normal flow (no absolute centering) so the middle
-            status can never overlap the "Next up" chip; the stage label
-            truncates first when the row gets tight. */}
-        <div className="flex items-center justify-between gap-2">
-          <span className="flex min-w-0 items-center gap-1.5">
-            <span
-              title={stageLabel}
-              className={`min-w-0 truncate rounded-full px-2.5 py-0.5 ${GLASS} text-stone-600 dark:text-stone-200`}
-            >
-              {stageLabel}
-            </span>
-            {/* The hero is the next thing to act on — say so. */}
-            {hero && (data.state === "open" || data.state === "upcoming") && (
-              <span
-                className={`shrink-0 rounded-full px-2.5 py-0.5 ${GLASS} font-black text-ocean dark:text-sky-400`}
-              >
-                ⚡ Next up
-              </span>
-            )}
+        {/* Header: stage on the left, the status pill on the right, and the save
+            status absolutely centered so it sits dead-centre of the card —
+            matching "Locked". The hero's "Next up" flag lives above the card
+            (outside it), so nothing competes with the centred status. */}
+        <div className="relative flex items-center justify-between gap-2">
+          <span
+            title={stageLabel}
+            className={`min-w-0 truncate rounded-full px-2.5 py-0.5 ${GLASS} text-stone-600 dark:text-stone-200`}
+          >
+            {stageLabel}
           </span>
           {status && (
             <span
-              className={`shrink-0 rounded-full px-2.5 py-0.5 ${GLASS}`}
+              className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full px-2.5 py-0.5 ${GLASS}`}
             >
               {status}
             </span>
@@ -623,17 +621,44 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
     </div>
   );
 
-  // A live match wears the animated flame ring: a band of light sweeping
-  // around the card (see .live-ring in globals.css). Takes precedence over the
-  // hero's static gradient ring — the moving light IS the urgency cue.
+  // Card chrome. A live match wears the animated flame ring (a band of light
+  // sweeping the rim, see .live-ring); the hero wears a static 3px brand-gradient
+  // ring (a padded wrapper, since `border-image` can't follow rounded corners —
+  // outer radius = card's 16px + 3px pad). Live takes precedence: the moving
+  // light IS the urgency cue.
+  let framed: React.ReactNode;
   if (data.state === "live") {
-    return <div className="live-ring rounded-[18px] p-[2px]">{card}</div>;
+    framed = <div className="live-ring rounded-[18px] p-[2px]">{card}</div>;
+  } else if (hero) {
+    framed = <div className="gradient-accent rounded-[19px] p-[3px]">{card}</div>;
+  } else {
+    framed = card;
   }
-  // The hero ring: a 3px brand-gradient band hugging the card. Built as a
-  // padded gradient wrapper because `border-image` can't follow rounded
-  // corners. Outer radius = card's 16px + the 3px pad so the curves nest.
-  if (hero) {
-    return <div className="gradient-accent rounded-[19px] p-[3px]">{card}</div>;
+
+  // The "no pick yet" nag ring hugs whatever frame the card has, matching its
+  // radius so it stays concentric with the live/hero ring.
+  if (nag) {
+    const radius = hero
+      ? "rounded-[19px]"
+      : data.state === "live"
+        ? "rounded-[18px]"
+        : "rounded-2xl";
+    framed = <div className={`nag-pulse ${radius}`}>{framed}</div>;
   }
-  return card;
+
+  // The hero's "Next up" flag rides above the card — outside it — so it never
+  // crowds the centred save status in the header.
+  if (showNextUp) {
+    return (
+      <div className="flex flex-col">
+        <div className="mb-1.5 flex justify-center">
+          <span className="rounded-full glass px-3 py-0.5 text-xs font-black text-ocean dark:text-sky-400">
+            ⚡ Next up
+          </span>
+        </div>
+        {framed}
+      </div>
+    );
+  }
+  return framed;
 }
