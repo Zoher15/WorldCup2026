@@ -22,10 +22,11 @@ async function handle(req: Request): Promise<Response> {
     return new Response("Unauthorized", { status: 401 });
   }
   try {
-    const [opened, nudged] = await Promise.all([
-      notifyOpenWindows(),
-      nudgeMissingPredictions(),
-    ]);
+    // Sequential, not parallel: both sends share Resend's per-second budget, so
+    // running them one after the other keeps the staggering in sendEmailBatch
+    // authoritative instead of letting their requests overlap.
+    const opened = await notifyOpenWindows();
+    const nudged = await nudgeMissingPredictions();
     return Response.json({ opened, nudged });
   } catch (e) {
     return Response.json(
