@@ -559,7 +559,12 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
       />
 
       <div className={`relative flex ${hero ? "min-h-[10.5rem]" : "min-h-[9rem]"} flex-col justify-between gap-2 p-3 text-xs font-bold`}>
-        <div className="relative flex items-center justify-between gap-2">
+        {/* Header chips share one flex row: stage (+ hero "Next up") on the
+            left, the save status in the middle, the status pill on the right.
+            All three sit in normal flow (no absolute centering) so the middle
+            status can never overlap the "Next up" chip; the stage label
+            truncates first when the row gets tight. */}
+        <div className="flex items-center justify-between gap-2">
           <span className="flex min-w-0 items-center gap-1.5">
             <span
               title={stageLabel}
@@ -578,7 +583,7 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
           </span>
           {status && (
             <span
-              className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full px-2.5 py-0.5 ${GLASS}`}
+              className={`shrink-0 rounded-full px-2.5 py-0.5 ${GLASS}`}
             >
               {status}
             </span>
