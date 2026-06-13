@@ -24,7 +24,7 @@ const OG_MIN_HEIGHT = 630;
 // Bump when the layout changes. The /s/<code>/og endpoint compares this to each
 // stored image's render_version (migration 0006) and re-renders anything older,
 // so a design change reaches already-cached groups on their next view.
-export const OG_RENDER_VERSION = 5;
+export const OG_RENDER_VERSION = 6;
 
 /**
  * A fingerprint of everything the image draws: the layout version, the group
@@ -120,6 +120,19 @@ const INK = "#f5f5f4"; // names / primary text
 const MUTED = "#a8a29e"; // ranks / secondary
 const FLAME = "#ff5a36"; // scoring-streak flame (matches --color-flame)
 
+// Emoji don't render in this Satori/Noto setup (no emoji font, no network to a
+// CDN), so the streak flame is a self-contained inline SVG drawn as an <img> —
+// the same reason the medals are hand-drawn rather than 🥇/🥈/🥉.
+const FLAME_SVG =
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">` +
+  `<defs><linearGradient id="f" x1="0" y1="0" x2="0" y2="1">` +
+  `<stop offset="0" stop-color="#ffd23f"/>` +
+  `<stop offset="0.55" stop-color="#ff7a3c"/>` +
+  `<stop offset="1" stop-color="#ff3b2f"/></linearGradient></defs>` +
+  `<path fill="url(#f)" fill-rule="evenodd" clip-rule="evenodd" ` +
+  `d="M12.963 2.286a.75.75 0 0 0-1.071-.136 9.742 9.742 0 0 0-3.539 6.177A7.547 7.547 0 0 1 5.648 6.61a.75.75 0 0 0-1.152.082A9 9 0 1 0 15.68 4.534a7.46 7.46 0 0 1-2.717-2.248ZM15.75 14.25a3.75 3.75 0 1 1-7.313-1.172c.628.465 1.35.81 2.133 1.005a5.99 5.99 0 0 1 1.925-3.546 3.75 3.75 0 0 1 3.255 3.713Z"/></svg>`;
+const FLAME_ICON = `data:image/svg+xml;base64,${Buffer.from(FLAME_SVG).toString("base64")}`;
+
 // Podium (top three). Render order places #2 left, #1 center, #3 right.
 const PODIUM_ORDER = [1, 0, 2];
 const PODIUM_HEIGHT = [116, 88, 74]; // indexed by rank (0 = 1st)
@@ -187,17 +200,38 @@ function PodiumColumn({
           background: PODIUM_GRADIENT[idx],
           alignItems: "center",
           justifyContent: "flex-start",
-          paddingTop: 8,
+          paddingTop: 5,
           boxShadow: "inset 0 2px 0 rgba(255,255,255,0.35)",
         }}
       >
         <div style={{ display: "flex", fontSize: 42, lineHeight: 1, fontWeight: 700, color: "#fafaf9" }}>
           {tied ? `=${row.points}` : row.points}
         </div>
-        {/* A live scoring streak rides under the points, like the on-page bar. */}
+        {/* A live scoring streak rides under the points, like the on-page bar —
+            on a dark pill so the flame reads against the gold/silver/bronze
+            gradient (the PNG has no frosted glass to sit it on). */}
         {(row.streak ?? 0) >= 2 && (
-          <div style={{ display: "flex", marginTop: 3, fontSize: 16, lineHeight: 1, fontWeight: 700, color: FLAME }}>
-            🔥{row.streak}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 3,
+              marginTop: 3,
+              paddingTop: 1,
+              paddingBottom: 1,
+              paddingLeft: 7,
+              paddingRight: 8,
+              borderRadius: 999,
+              background: "rgba(20,18,16,0.66)",
+              border: "1px solid rgba(255,255,255,0.18)",
+              fontSize: 14,
+              lineHeight: 1,
+              fontWeight: 700,
+              color: "#ffd9a8",
+            }}
+          >
+            <img src={FLAME_ICON} width={13} height={15} alt="" />
+            {row.streak}
           </div>
         )}
       </div>
@@ -241,8 +275,9 @@ function ListRow({ row, rank, tied, colW }: ListEntry & { colW: number }) {
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         {/* Scoring-streak flame, mirroring the on-page leaderboard row. */}
         {(row.streak ?? 0) >= 2 && (
-          <div style={{ display: "flex", fontSize: 20, fontWeight: 700, color: FLAME }}>
-            🔥{row.streak}
+          <div style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 22, fontWeight: 700, color: FLAME }}>
+            <img src={FLAME_ICON} width={17} height={20} alt="" />
+            {row.streak}
           </div>
         )}
         <div style={{ display: "flex", fontSize: 25, fontWeight: 700, color: "#fafaf9" }}>{row.points}</div>
