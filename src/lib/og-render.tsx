@@ -1,7 +1,10 @@
 import { createHash } from "node:crypto";
 import { ImageResponse } from "next/og";
 import { competitionRanks, type StandingsRow } from "./standings";
+import { teamLabel } from "./fifa";
+import { formatStageLabel } from "./format";
 import { NOTO_SANS_BASE64 } from "./noto-sans-font";
+import type { MatchBoard } from "./match-leaderboard";
 
 // Renders the leaderboard share image (1200x630) on the Node runtime — during
 // the poll / on group creation / lazily on first view, never on a crawler's
@@ -388,6 +391,240 @@ export async function renderLeaderboardPng(
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
             <div style={{ display: "flex", fontSize: 20, fontWeight: 400, color: MUTED }}>
               {overflow > 0 ? `+${overflow} more` : `${overall.length} on the board`}
+            </div>
+            <div style={{ display: "flex", fontSize: 20, fontWeight: 400, color: "#78716c" }}>
+              worldcup.kachwalas.com
+            </div>
+          </div>
+        </div>
+      </div>
+    ),
+    {
+      ...size,
+      ...(font
+        ? { fonts: [{ name: "Noto Sans", data: font, weight: 400 as const, style: "normal" as const }] }
+        : {}),
+    },
+  );
+  return new Uint8Array(await res.arrayBuffer());
+}
+
+// ── Per-match share image ────────────────────────────────────────────────────
+// The leaderboard image is pre-rendered and stored (it changes on every join /
+// result, and crawlers must never trigger a render). A match board changes far
+// less — picks are frozen at kickoff and the score only moves while it's live —
+// so its /og endpoint renders on demand behind the same short CDN cache, with no
+// stored-bytes table to migrate. Same dark "glass" look as the leaderboard.
+
+// Section heights for sizing the match canvas to its content (biased high so it
+// always fits; the card is centred, so any slack lands as balanced padding).
+const MATCH_GROUP_H = 50; // group name header
+const MATCH_SUB_H = 28; // "World Cup 2026 · <stage>"
+const MATCH_BAR_H = 116; // teams + score tile
+const MATCH_CAPTION_H = 28; // "<n> of <m> predicted"
+
+const PICK_INK = "#c4b5fd"; // a player's predicted scoreline (violet, like the app)
+const PITCH = "#34d399"; // "locked in" / full-time accent (emerald)
+
+/** How a match board's rows split into columns, shared by the renderer and the
+ *  height calc so both agree on row counts. */
+function matchListLayout(total: number) {
+  const listCount = Math.min(total, MAX_LIST);
+  const twoCol = listCount > 8;
+  const rowsPerCol = twoCol ? Math.ceil(listCount / 2) : listCount;
+  return { listCount, twoCol, rowsPerCol };
+}
+
+/** The PNG dimensions for a match board of `total` rows. Height grows with the
+ *  number of listed players and never dips below OG_MIN_HEIGHT. */
+export function matchOgImageSize(total: number): { width: number; height: number } {
+  const { rowsPerCol } = matchListLayout(total);
+  const listH =
+    rowsPerCol > 0
+      ? LIST_MARGIN_TOP + rowsPerCol * ROW_H + (rowsPerCol - 1) * ROW_GAP
+      : 0;
+  const content =
+    2 * CANVAS_PAD +
+    2 * CARD_VPAD +
+    MATCH_GROUP_H +
+    MATCH_SUB_H +
+    MATCH_BAR_H +
+    MATCH_CAPTION_H +
+    listH +
+    FOOTER_H +
+    HEIGHT_SLACK;
+  return { width: OG_WIDTH, height: Math.max(OG_MIN_HEIGHT, content) };
+}
+
+// Match-bar widths: a fixed score tile in the centre with a team name on each
+// side. Fixed pixel widths (not flex:1) for the same Satori reason as the
+// leaderboard columns — a flex-grow child can collapse to zero on Vercel.
+const MATCH_CENTER_W = 200;
+const MATCH_SIDE_W = Math.floor((CARD_CONTENT_W - MATCH_CENTER_W - 2 * COL_GAP) / 2);
+
+type MatchRow = MatchBoard["rows"][number];
+
+/** The right-hand status for one player's row: their revealed call + points, or,
+ *  before kickoff, just whether they've locked a pick in (picks stay hidden). */
+function MatchRowStatus({ row, revealed }: { row: MatchRow; revealed: boolean }) {
+  if (!revealed) {
+    return (
+      <div style={{ display: "flex", fontSize: 20, fontWeight: 700, color: row.hasPrediction ? PITCH : MUTED }}>
+        {row.hasPrediction ? "Locked in" : "—"}
+      </div>
+    );
+  }
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <div style={{ display: "flex", fontSize: 23, fontWeight: 700, color: row.pick ? PICK_INK : MUTED }}>
+        {row.pick ? `${row.pick.home}–${row.pick.away}` : "No pick"}
+      </div>
+      {row.points != null && (
+        <div style={{ display: "flex", fontSize: 24, fontWeight: 700, color: INK }}>
+          {row.points} pt{row.points === 1 ? "" : "s"}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MatchRowCard({ row, revealed, colW }: { row: MatchRow; revealed: boolean; colW: number }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        width: colW,
+        height: ROW_H,
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "0 18px",
+        borderRadius: 16,
+        background: GLASS,
+        border: row.isViewer ? "1px solid rgba(196,181,253,0.55)" : GLASS_BORDER,
+      }}
+    >
+      <div style={{ fontSize: 24, fontWeight: 700, color: INK, maxWidth: colW - 220, ...clip }}>
+        {row.displayName}
+        {row.isViewer ? " (you)" : ""}
+      </div>
+      <MatchRowStatus row={row} revealed={revealed} />
+    </div>
+  );
+}
+
+function MatchColumn({ rows, revealed, colW }: { rows: MatchRow[]; revealed: boolean; colW: number }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", width: colW, gap: ROW_GAP }}>
+      {rows.map((row) => (
+        <MatchRowCard key={row.userId} row={row} revealed={revealed} colW={colW} />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Render a group's per-match board to PNG bytes: the group name, the fixture
+ * (both teams + the live/final score, or "v" before kickoff), and every member's
+ * prediction. Picks stay hidden until the match locks — exactly the privacy rule
+ * the on-page board uses — so a pre-kickoff share shows who's locked in, not what
+ * they picked, and a post-kickoff share shows the calls and points.
+ */
+export async function renderMatchPng(board: MatchBoard): Promise<Uint8Array> {
+  const { match, revealed, rows, summary, group } = board;
+  const homeName = teamLabel(match.homeCode, match.homeLabel);
+  const awayName = teamLabel(match.awayCode, match.awayLabel);
+  const stageLabel = match.trial ? "Practice" : formatStageLabel(match.groupLabel, match.stage);
+
+  const score = match.result ?? match.live ?? null;
+  const centerScore = score ? `${score.home}–${score.away}` : "v";
+  const stateLabel = match.result
+    ? "FULL TIME"
+    : match.live
+      ? `LIVE${match.live.minute ? ` ${match.live.minute}'` : ""}`
+      : "Upcoming";
+  const stateColor = match.result ? PITCH : match.live ? FLAME : MUTED;
+  const caption = revealed
+    ? `${summary.entered} of ${summary.total} predicted`
+    : `${summary.entered} of ${summary.total} locked in · picks reveal at kickoff`;
+
+  const { listCount, twoCol, rowsPerCol } = matchListLayout(rows.length);
+  const shown = rows.slice(0, listCount);
+  const overflow = rows.length - shown.length;
+  const colW = twoCol ? TWO_COL_W : ONE_COL_W;
+  const col1 = shown.slice(0, rowsPerCol);
+  const col2 = shown.slice(rowsPerCol);
+  const size = matchOgImageSize(rows.length);
+  const font = loadFont();
+
+  const res = new ImageResponse(
+    (
+      <div
+        style={{
+          width: size.width,
+          height: size.height,
+          display: "flex",
+          padding: 28,
+          fontFamily: "Noto Sans",
+          background:
+            "radial-gradient(1100px 520px at 50% -12%, rgba(124,58,237,0.28), rgba(124,58,237,0) 60%), linear-gradient(160deg, #1c1917 0%, #0c0a09 100%)",
+        }}
+      >
+        {/* Glass card */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            width: "100%",
+            height: "100%",
+            padding: "18px 34px",
+            borderRadius: 32,
+            background: "rgba(255,255,255,0.04)",
+            border: "1px solid rgba(255,255,255,0.10)",
+          }}
+        >
+          {/* Header: group name + subtitle */}
+          <div style={{ justifyContent: "center", fontSize: 40, fontWeight: 700, color: "#c4b5fd", maxWidth: 1000, ...clip }}>
+            {group.name}
+          </div>
+          <div style={{ display: "flex", justifyContent: "center", fontSize: 20, fontWeight: 400, color: MUTED, marginTop: 2 }}>
+            World Cup 2026 · {stageLabel}
+          </div>
+
+          {/* Fixture bar: home name · score tile · away name */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: COL_GAP, marginTop: 14 }}>
+            <div style={{ display: "flex", width: MATCH_SIDE_W, justifyContent: "flex-end" }}>
+              <div style={{ fontSize: 34, fontWeight: 700, color: INK, maxWidth: MATCH_SIDE_W, ...clip }}>
+                {homeName}
+              </div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: MATCH_CENTER_W }}>
+              <div style={{ display: "flex", fontSize: 46, fontWeight: 700, color: INK, lineHeight: 1 }}>{centerScore}</div>
+              <div style={{ display: "flex", fontSize: 18, fontWeight: 700, color: stateColor, marginTop: 6 }}>{stateLabel}</div>
+            </div>
+            <div style={{ display: "flex", width: MATCH_SIDE_W, justifyContent: "flex-start" }}>
+              <div style={{ fontSize: 34, fontWeight: 700, color: INK, maxWidth: MATCH_SIDE_W, ...clip }}>
+                {awayName}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "center", fontSize: 18, fontWeight: 400, color: MUTED, marginTop: 8 }}>
+            {caption}
+          </div>
+
+          {/* Per-player predictions */}
+          {shown.length > 0 && (
+            <div style={{ display: "flex", gap: COL_GAP, marginTop: LIST_MARGIN_TOP, alignItems: "flex-start", justifyContent: "center" }}>
+              <MatchColumn rows={col1} revealed={revealed} colW={colW} />
+              {col2.length > 0 && <MatchColumn rows={col2} revealed={revealed} colW={colW} />}
+            </div>
+          )}
+
+          {/* Footer */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10 }}>
+            <div style={{ display: "flex", fontSize: 20, fontWeight: 400, color: MUTED }}>
+              {overflow > 0 ? `+${overflow} more` : `${summary.total} in the group`}
             </div>
             <div style={{ display: "flex", fontSize: 20, fontWeight: 400, color: "#78716c" }}>
               worldcup.kachwalas.com

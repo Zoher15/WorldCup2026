@@ -3,7 +3,9 @@ import { notFound, redirect } from "next/navigation";
 import { getUserId } from "@/lib/identity";
 import { getViewerMembership } from "@/lib/groups";
 import { getMatchLeaderboard } from "@/lib/match-leaderboard";
+import { teamLabel } from "@/lib/fifa";
 import { MatchLeaderboard } from "@/components/MatchLeaderboard";
+import { ShareMatch } from "@/components/ShareMatch";
 import { LoadError } from "@/components/LoadError";
 import { FOCUS_RING } from "@/components/theme";
 
@@ -46,9 +48,19 @@ export default async function MatchBoardPage({
         ← {board.group.name}
       </Link>
 
-      <h1 className="mt-3 mb-6 gradient-text font-display pb-1 text-3xl leading-tight">
-        Match predictions
-      </h1>
+      <div className="mt-3 mb-6 flex items-start justify-between gap-3">
+        <h1 className="gradient-text font-display pb-1 text-3xl leading-tight">
+          Match predictions
+        </h1>
+        <div className="shrink-0 pt-1">
+          <ShareMatch
+            code={board.group.code}
+            matchId={matchId}
+            fixture={`${teamLabel(board.match.homeCode, board.match.homeLabel)} v ${teamLabel(board.match.awayCode, board.match.awayLabel)}`}
+            groupName={board.group.name}
+          />
+        </div>
+      </div>
 
       <MatchLeaderboard board={board} />
 
