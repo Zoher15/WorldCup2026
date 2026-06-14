@@ -3,7 +3,7 @@
 -- Why Supabase and not Vercel: Vercel's free (Hobby) plan caps cron at ONCE
 -- PER DAY, so it can't drive live polling. Supabase pg_cron runs every minute
 -- for free. Our /api/poll endpoint is budget-aware (pollIfDue): it only spends
--- an API-Football request when a match is actually live and the planner's
+-- a football-data request when a match is actually live and the planner's
 -- interval has elapsed, so an every-minute cron stays within the free quota.
 --
 -- Prerequisites:

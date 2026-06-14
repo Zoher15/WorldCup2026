@@ -13,7 +13,7 @@ worldcup.kachwalas.com  → Vercel (this app)  ──>  Supabase (Postgres)
 
 1. Create a free project at https://supabase.com.
 2. In the SQL editor, run every file in `supabase/migrations/` in order
-   (`0001_init.sql` … `0005_og_images.sql`). On an existing database, apply just
+   (`0001_init.sql` … `0010_login_code_throttle.sql`). On an existing database, apply just
    the ones you haven't run yet — each is written to be safe to re-run.
 3. From **Settings → API**, copy the **Project URL**, the **anon** key, and the
    **service_role** key (keep this one secret).
@@ -23,7 +23,7 @@ worldcup.kachwalas.com  → Vercel (this app)  ──>  Supabase (Postgres)
 1. Sign in at https://vercel.com with GitHub and **import this repository**.
    Vercel auto-detects Next.js — no build config needed.
 2. Under **Settings → Environment Variables**, add the values from
-   `.env.example` (Supabase URL/keys, `FOOTBALL_API_KEY`, `CRON_SECRET`,
+   `.env.example` (Supabase URL/keys, `FOOTBALL_DATA_TOKEN`, `CRON_SECRET`,
    `ADMIN_PASSCODE`, `NEXT_PUBLIC_APP_URL`). `ADMIN_PASSCODE` gates the
    `/admin` results page — until it's set, admin access is disabled.
 3. Deploy. You'll get a temporary `*.vercel.app` URL to test.

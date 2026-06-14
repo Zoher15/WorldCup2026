@@ -63,7 +63,7 @@ Because the two parts are independent and additive:
 
 ## Live scores
 
-A single server-side poller fetches live scores (API-Football free tier) and
+A single server-side poller fetches live scores (football-data.org free tier) and
 writes them to `matches`; every browser updates via Supabase Realtime, so one
 request feeds the whole family. Final results are gated by `result_confirmed`
 (admin override) before points are awarded.
