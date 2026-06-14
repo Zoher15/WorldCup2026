@@ -20,7 +20,7 @@ create extension if not exists "pgcrypto"; -- for gen_random_uuid()
 -- ---------------------------------------------------------------------------
 -- People (thin persistent identity)
 -- ---------------------------------------------------------------------------
-create table users (
+create table if not exists users (
   id            uuid primary key default gen_random_uuid(),
   -- the person's real name: entered once, stays consistent across all groups
   real_name     text not null,
@@ -32,7 +32,7 @@ create table users (
 -- ---------------------------------------------------------------------------
 -- Groups (a competition / leaderboard over shared predictions)
 -- ---------------------------------------------------------------------------
-create table groups (
+create table if not exists groups (
   id               uuid primary key default gen_random_uuid(),
   code             text unique not null,        -- short join code (e.g. "FAM7X2")
   name             text not null,
@@ -46,7 +46,7 @@ create table groups (
 -- ---------------------------------------------------------------------------
 -- Memberships (person <-> group, with a per-group display name)
 -- ---------------------------------------------------------------------------
-create table memberships (
+create table if not exists memberships (
   id           uuid primary key default gen_random_uuid(),
   user_id      uuid not null references users(id) on delete cascade,
   group_id     uuid not null references groups(id) on delete cascade,
@@ -58,13 +58,13 @@ create table memberships (
   unique (user_id, group_id)
 );
 
-create index memberships_group_idx on memberships(group_id);
-create index memberships_user_idx  on memberships(user_id);
+create index if not exists memberships_group_idx on memberships(group_id);
+create index if not exists memberships_user_idx  on memberships(user_id);
 
 -- ---------------------------------------------------------------------------
 -- Matches (the global WC2026 schedule + live state + result)
 -- ---------------------------------------------------------------------------
-create table matches (
+create table if not exists matches (
   id               uuid primary key default gen_random_uuid(),
   external_ref     text unique,                 -- id from the data source, for syncing
   match_number     int unique,                  -- official 1..104
@@ -90,13 +90,13 @@ create table matches (
   last_synced_at   timestamptz
 );
 
-create index matches_kickoff_idx on matches(kickoff_at);
-create index matches_status_idx  on matches(status);
+create index if not exists matches_kickoff_idx on matches(kickoff_at);
+create index if not exists matches_status_idx  on matches(status);
 
 -- ---------------------------------------------------------------------------
 -- Predictions (GLOBAL: one per person per match, shared across all groups)
 -- ---------------------------------------------------------------------------
-create table predictions (
+create table if not exists predictions (
   id           uuid primary key default gen_random_uuid(),
   user_id      uuid not null references users(id) on delete cascade,
   match_id     uuid not null references matches(id) on delete cascade,
@@ -108,12 +108,12 @@ create table predictions (
   unique (user_id, match_id)
 );
 
-create index predictions_match_idx on predictions(match_id);
+create index if not exists predictions_match_idx on predictions(match_id);
 
 -- ---------------------------------------------------------------------------
 -- Cached scores (output of the scoring engine, per prediction)
 -- ---------------------------------------------------------------------------
-create table match_scores (
+create table if not exists match_scores (
   prediction_id    uuid primary key references predictions(id) on delete cascade,
   outcome_points   int not null,                -- 0 / 2 / 5
   closeness_points int not null,                -- 0..5
@@ -142,7 +142,7 @@ begin
 end;
 $$;
 
-create trigger predictions_lock
+create or replace trigger predictions_lock
   before insert or update on predictions
   for each row execute function enforce_prediction_lock();
 

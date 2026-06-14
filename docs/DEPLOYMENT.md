@@ -13,7 +13,7 @@ worldcup.kachwalas.com  → Vercel (this app)  ──>  Supabase (Postgres)
 
 1. Create a free project at https://supabase.com.
 2. In the SQL editor, run every file in `supabase/migrations/` in order
-   (`0001_init.sql` … `0010_login_code_throttle.sql`). On an existing database, apply just
+   (`0001_init.sql` … `0014_match_day_nudge.sql`). On an existing database, apply just
    the ones you haven't run yet — each is written to be safe to re-run.
 3. From **Settings → API**, copy the **Project URL**, the **anon** key, and the
    **service_role** key (keep this one secret).
