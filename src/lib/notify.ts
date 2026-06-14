@@ -326,8 +326,9 @@ async function loadEmails(db: SupabaseClient): Promise<Map<string, string>> {
   return map;
 }
 
-function renderEmail(matches: MatchRow[], base: string, token: string): string {
-  const rows = matches
+/** The match list as table rows, shared by both reminder emails. */
+function renderMatchRows(matches: MatchRow[]): string {
+  return matches
     .map((m) => {
       const home = teamLabel(m.home_code, m.home_team);
       const away = teamLabel(m.away_code, m.away_team);
@@ -338,6 +339,10 @@ function renderEmail(matches: MatchRow[], base: string, token: string): string {
       </tr>`;
     })
     .join("");
+}
+
+function renderEmail(matches: MatchRow[], base: string, token: string): string {
+  const rows = renderMatchRows(matches);
 
   return `<!doctype html>
 <html>
@@ -366,17 +371,7 @@ function renderEmail(matches: MatchRow[], base: string, token: string): string {
 
 /** The gentle "you've still got gaps before kickoff" nudge for one recipient. */
 function renderNudgeEmail(missing: MatchRow[], base: string, token: string): string {
-  const rows = missing
-    .map((m) => {
-      const home = teamLabel(m.home_code, m.home_team);
-      const away = teamLabel(m.away_code, m.away_team);
-      const stage = formatStageLabel(m.group_label, m.stage);
-      return `<tr>
-        <td style="padding:8px 0;font-weight:600;color:#1c1917;">${home} <span style="color:#a8a29e;font-weight:400;">vs</span> ${away}</td>
-        <td style="padding:8px 0;text-align:right;color:#78716c;font-size:13px;">${stage}</td>
-      </tr>`;
-    })
-    .join("");
+  const rows = renderMatchRows(missing);
   const n = missing.length;
   const count = n === 1 ? "1 match" : `${n} matches`;
 

@@ -35,15 +35,8 @@ export async function createGroupWithOwner(opts: {
       });
       if (mErr) throw new Error(`Could not add you to the group: ${mErr.message}`);
       // Render the group's share image up front so its link unfurls immediately.
-      // Best-effort and dynamically imported (avoids an import cycle and keeps
-      // the next/og renderer off this module's load path); the share endpoint
-      // falls back to the default until this lands.
-      try {
-        const { ensureGroupOgImage } = await import("./og-images");
-        await ensureGroupOgImage(code);
-      } catch {
-        // ignore — the /s/<code>/og endpoint serves the default meanwhile
-      }
+      // The share endpoint falls back to the default until this lands.
+      await warmGroupOgImage(code);
       return { code };
     }
     if (error && error.code !== UNIQUE_VIOLATION) {
@@ -80,16 +73,26 @@ export async function joinGroupByCode(opts: {
 
   // A new member (or a rename via the upsert) changes the board, so warm the
   // share image now — it unfurls fresh on the first share rather than rendering
-  // lazily. Cheap and best-effort: ensureGroupOgImage no-ops when the hash is
-  // unchanged (e.g. an idempotent re-join), and any failure self-heals on next view.
+  // lazily. warmGroupOgImage no-ops when the hash is unchanged (e.g. an
+  // idempotent re-join), and any failure self-heals on the next view.
+  await warmGroupOgImage(group.code);
+
+  return { code: group.code };
+}
+
+/**
+ * Best-effort, fire-on-write refresh of a group's share image. Dynamically
+ * imported (avoids an import cycle and keeps the next/og renderer off this
+ * module's load path) and swallows failures — the /s/<code>/og endpoint serves
+ * the default and self-heals on the next view.
+ */
+async function warmGroupOgImage(code: string): Promise<void> {
   try {
     const { ensureGroupOgImage } = await import("./og-images");
-    await ensureGroupOgImage(group.code);
+    await ensureGroupOgImage(code);
   } catch {
     // ignore — the /s/<code>/og endpoint refreshes it on the next view
   }
-
-  return { code: group.code };
 }
 
 export interface UserGroup {
