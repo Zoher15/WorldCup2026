@@ -17,12 +17,21 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "./supabase/admin";
 import { openMatchDays } from "./notify-windows";
+import {
+  buildStandings,
+  competitionRanks,
+  BORINGBOT_ID,
+  type StandingMember,
+  type StandingMatch,
+  type StandingPrediction,
+} from "./standings";
+import { isTrialActive } from "./prediction-rules";
 import { teamLabel } from "./fifa";
 import { formatStageLabel } from "./format";
 import { isEmailConfigured, type EmailMessage } from "./email";
 import { enqueueDigestEmails } from "./email-queue";
 import { appBaseUrl } from "./app-url";
-import type { Stage } from "./types";
+import type { LateJoinPolicy, Stage } from "./types";
 
 interface MatchRow {
   id: string;
@@ -124,22 +133,48 @@ export async function sendMatchDayDigest(
       (a, b) => Date.parse(a.kickoff_at) - Date.parse(b.kickoff_at),
     );
 
+    // Per-group leaderboard movement since the last digest, for the "you've
+    // climbed N spots" encouragement. Best-effort: if the standings computation
+    // fails, the digest still goes out without the climb section.
+    let currentRanks = new Map<string, Map<string, number>>();
+    let previousRanks = new Map<string, Map<string, number>>();
+    try {
+      currentRanks = await loadGroupRanks(db);
+      previousRanks = await loadRankSnapshots(db);
+    } catch {
+      currentRanks = new Map();
+      previousRanks = new Map();
+    }
+
     // One digest per member: the full slate (with their picks marked), what's
-    // still missing, and how many group-mates are already in.
+    // still missing, how far they've climbed in each group, and how many
+    // group-mates are already in.
     const messages: EmailMessage[] = recipients.map((r) => {
       const done = predicted.get(r.userId) ?? new Set<string>();
       const missing = ordered.filter((m) => !done.has(m.id));
       const stats = groupStatsFor(r.userId, groups, participants);
+      const climbs = computeClimbs(r.userId, groups, currentRanks, previousRanks);
       return {
         to: r.email,
         subject: digestSubject(ordered.length, missing.length),
-        html: renderDigestEmail(ordered, done, stats, base, r.token),
+        html: renderDigestEmail(ordered, done, climbs, stats, base, r.token),
         headers: { "List-Unsubscribe": `<${base}/unsubscribe?token=${r.token}>` },
       };
     });
 
     const queued = await enqueueDigestEmails(messages);
     await db.from("notified_match_days").update({ recipients: queued }).eq("match_day", matchDay);
+
+    // Advance the rank baseline so the NEXT digest measures movement from here.
+    if (currentRanks.size > 0) {
+      try {
+        await saveRankSnapshots(db, currentRanks, matchDay);
+      } catch {
+        // Best-effort — a failed snapshot just means the next digest diffs
+        // against the older baseline (slightly larger climb numbers), never wrong
+        // direction.
+      }
+    }
 
     return { ok: true, matchDay, recipients: messages.length, queued };
   } catch (e) {
@@ -352,6 +387,239 @@ async function loadGroupStructure(db: SupabaseClient): Promise<GroupStructure> {
   return { membersByGroup, groupsByUser, groupName };
 }
 
+/** One group the recipient has climbed in since the last digest. */
+interface Climb {
+  name: string;
+  /** Positions gained (always ≥ 1 — flat or dropping groups aren't shown). */
+  spots: number;
+}
+
+/**
+ * The recipient's positive rank movements since the last digest, biggest climb
+ * first. Only groups where we have BOTH a prior snapshot and a current rank, and
+ * where they moved UP, are included — this is encouragement, so a drop or no
+ * change is simply omitted. Ranks are the overall-board position (ties shared).
+ */
+function computeClimbs(
+  userId: string,
+  groups: GroupStructure,
+  current: Map<string, Map<string, number>>,
+  previous: Map<string, Map<string, number>>,
+): Climb[] {
+  const climbs: Climb[] = [];
+  for (const gid of groups.groupsByUser.get(userId) ?? []) {
+    const curr = current.get(gid)?.get(userId);
+    const prev = previous.get(gid)?.get(userId);
+    if (curr == null || prev == null) continue;
+    const spots = prev - curr; // smaller rank number = higher position
+    if (spots > 0) {
+      climbs.push({ name: groups.groupName.get(gid) ?? "your group", spots });
+    }
+  }
+  climbs.sort((a, b) => b.spots - a.spots);
+  return climbs;
+}
+
+const SCORABLE_MATCH_COLUMNS =
+  "id, kickoff_at, stage, home_code, away_code, home_goals, away_goals, advanced_code, result_confirmed, status, is_trial";
+
+interface ScorableMatchRow {
+  id: string;
+  kickoff_at: string;
+  stage: Stage;
+  home_code: string | null;
+  away_code: string | null;
+  home_goals: number | null;
+  away_goals: number | null;
+  advanced_code: string | null;
+  result_confirmed: boolean;
+  status: string;
+  is_trial: boolean;
+}
+
+/**
+ * Every member's CURRENT overall-board rank in each group, as group id -> (user
+ * id -> rank). Computed with the same engine and inputs the app's leaderboards
+ * use (BoringBot baseline included, trial matches honored), so the numbers match
+ * what members see. All loads are paged so a large league isn't truncated.
+ */
+async function loadGroupRanks(
+  db: SupabaseClient,
+): Promise<Map<string, Map<string, number>>> {
+  // Group scoring metadata.
+  const groupsMeta = new Map<string, { lateJoinPolicy: LateJoinPolicy; createdAt: string }>();
+  const PAGE = 1000;
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await db
+      .from("groups")
+      .select("id, late_join_policy, created_at")
+      .range(from, from + PAGE - 1);
+    if (error || !data) break;
+    for (const g of data) {
+      groupsMeta.set(g.id as string, {
+        lateJoinPolicy: g.late_join_policy as LateJoinPolicy,
+        createdAt: g.created_at as string,
+      });
+    }
+    if (data.length < PAGE) break;
+  }
+
+  // Members per group (with the details buildStandings needs).
+  const membersByGroup = new Map<string, StandingMember[]>();
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await db
+      .from("memberships")
+      .select("user_id, group_id, display_name, joined_at")
+      .range(from, from + PAGE - 1);
+    if (error || !data) break;
+    for (const m of data) {
+      const gid = m.group_id as string;
+      const member: StandingMember = {
+        userId: m.user_id as string,
+        displayName: m.display_name as string,
+        joinedAt: m.joined_at as string,
+      };
+      const arr = membersByGroup.get(gid);
+      if (arr) arr.push(member);
+      else membersByGroup.set(gid, [member]);
+    }
+    if (data.length < PAGE) break;
+  }
+
+  // The scorable matches (confirmed, or in-play/just-finished with a score so
+  // live results count provisionally) — mirrors getGroupStandings.
+  const { data: matchData } = await db
+    .from("matches")
+    .select(SCORABLE_MATCH_COLUMNS)
+    .or("result_confirmed.eq.true,status.eq.live,status.eq.finished");
+  const matchRows = (matchData ?? []) as ScorableMatchRow[];
+  const isProvisional = (m: ScorableMatchRow): boolean =>
+    !m.result_confirmed &&
+    (m.status === "live" || m.status === "finished") &&
+    m.home_goals != null &&
+    m.away_goals != null;
+  const matches: StandingMatch[] = matchRows.map((m) => ({
+    id: m.id,
+    kickoffAt: m.kickoff_at,
+    stage: m.stage,
+    resultConfirmed: m.result_confirmed,
+    homeGoals: m.home_goals,
+    awayGoals: m.away_goals,
+    advancedCode: m.advanced_code,
+    homeCode: m.home_code,
+    awayCode: m.away_code,
+    isTrial: m.is_trial,
+    live: isProvisional(m),
+  }));
+
+  // Predictions for those matches, grouped by user. Paged past the row cap.
+  const predsByUser = new Map<string, StandingPrediction[]>();
+  const matchIds = matches.map((m) => m.id);
+  if (matchIds.length > 0) {
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await db
+        .from("predictions")
+        .select("user_id, match_id, pred_home, pred_away, advance_pick")
+        .in("match_id", matchIds)
+        .range(from, from + PAGE - 1);
+      if (error || !data) break;
+      for (const p of data) {
+        const uid = p.user_id as string;
+        const pred: StandingPrediction = {
+          userId: uid,
+          matchId: p.match_id as string,
+          predHome: p.pred_home as number,
+          predAway: p.pred_away as number,
+          advancePick: (p.advance_pick as string | null) ?? null,
+        };
+        const arr = predsByUser.get(uid);
+        if (arr) arr.push(pred);
+        else predsByUser.set(uid, [pred]);
+      }
+      if (data.length < PAGE) break;
+    }
+  }
+
+  const countTrialMatches = isTrialActive();
+  const byGroup = new Map<string, Map<string, number>>();
+  for (const [gid, members] of membersByGroup) {
+    const meta = groupsMeta.get(gid);
+    if (!meta) continue;
+    const predictions: StandingPrediction[] = [];
+    for (const member of members) {
+      const up = predsByUser.get(member.userId);
+      if (up) predictions.push(...up);
+    }
+    const standings = buildStandings({
+      members,
+      matches,
+      predictions,
+      lateJoinPolicy: meta.lateJoinPolicy,
+      groupCreatedAt: meta.createdAt,
+      includeBaseline: true,
+      countTrialMatches,
+    });
+    const ranks = competitionRanks(standings.overall);
+    const userRank = new Map<string, number>();
+    standings.overall.forEach((row, i) => {
+      if (row.userId !== BORINGBOT_ID) userRank.set(row.userId, ranks[i]);
+    });
+    byGroup.set(gid, userRank);
+  }
+  return byGroup;
+}
+
+/** The previously-stored ranks, as group id -> (user id -> rank). Paged. */
+async function loadRankSnapshots(
+  db: SupabaseClient,
+): Promise<Map<string, Map<string, number>>> {
+  const byGroup = new Map<string, Map<string, number>>();
+  const PAGE = 1000;
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await db
+      .from("group_rank_snapshots")
+      .select("group_id, user_id, rank")
+      .range(from, from + PAGE - 1);
+    if (error || !data) break;
+    for (const row of data) {
+      const gid = row.group_id as string;
+      let map = byGroup.get(gid);
+      if (!map) byGroup.set(gid, (map = new Map()));
+      map.set(row.user_id as string, row.rank as number);
+    }
+    if (data.length < PAGE) break;
+  }
+  return byGroup;
+}
+
+/** Overwrite the stored ranks with the current ones, so the next digest measures
+ *  movement from here. Upserted in chunks on the (group_id, user_id) key. */
+async function saveRankSnapshots(
+  db: SupabaseClient,
+  ranks: Map<string, Map<string, number>>,
+  matchDay: string,
+): Promise<void> {
+  const now = new Date().toISOString();
+  const rows: {
+    group_id: string;
+    user_id: string;
+    rank: number;
+    match_day: string;
+    updated_at: string;
+  }[] = [];
+  for (const [gid, userRank] of ranks) {
+    for (const [uid, rank] of userRank) {
+      rows.push({ group_id: gid, user_id: uid, rank, match_day: matchDay, updated_at: now });
+    }
+  }
+  const CHUNK = 500;
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    await db
+      .from("group_rank_snapshots")
+      .upsert(rows.slice(i, i + CHUNK), { onConflict: "group_id,user_id" });
+  }
+}
+
 /** Escape user-supplied text (e.g. group names) for safe inlining into email HTML. */
 function escapeHtml(s: string): string {
   return s.replace(
@@ -410,12 +678,33 @@ function renderGroupFomo(stats: GroupStat[]): string {
 }
 
 /**
- * The consolidated match-day digest: the day's slate with the recipient's picks
- * marked, a one-line summary of what's still missing, and per-group FOMO.
+ * The recipient's climbs as a celebratory block: "↑ 3 spots in Family". Group
+ * names are user-supplied, so they're HTML-escaped. Nothing renders when the
+ * recipient hasn't climbed anywhere (or there's no prior snapshot yet).
+ */
+function renderClimb(climbs: Climb[]): string {
+  if (climbs.length === 0) return "";
+  const items = climbs
+    .map((c) => {
+      const spots = c.spots === 1 ? "1 spot" : `${c.spots} spots`;
+      return `<tr><td style="padding:6px 0;color:#14532d;font-size:14px;">↑ <strong>${spots}</strong> in <strong>${escapeHtml(c.name)}</strong></td></tr>`;
+    })
+    .join("");
+  return `<div style="margin:0 0 16px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:16px;padding:14px 20px;">
+        <p style="margin:0 0 6px;font-weight:700;font-size:14px;color:#047857;">📈 You're climbing the leaderboard</p>
+        <table style="width:100%;border-collapse:collapse;">${items}</table>
+      </div>`;
+}
+
+/**
+ * The consolidated match-day digest: how far the recipient has climbed, the
+ * day's slate with their picks marked, a one-line summary of what's still
+ * missing, and per-group FOMO.
  */
 function renderDigestEmail(
   matches: MatchRow[],
   done: Set<string>,
+  climbs: Climb[],
   stats: GroupStat[],
   base: string,
   token: string,
@@ -438,6 +727,7 @@ function renderDigestEmail(
       <p style="margin:0 0 20px;color:#57534e;font-size:15px;">
         ${summary}
       </p>
+      ${renderClimb(climbs)}
       <div style="background:#ffffff;border-radius:16px;padding:16px 20px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
         <table style="width:100%;border-collapse:collapse;font-size:15px;">${rows}</table>
       </div>
