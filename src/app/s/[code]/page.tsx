@@ -5,8 +5,7 @@ import { getUserId } from "@/lib/identity";
 import { getProfile } from "@/lib/profile";
 import { getGroupInvite, getGroupName, getGroupStandings } from "@/lib/groups";
 import { ogImageSize } from "@/lib/og-render";
-import { acceptInviteAction } from "@/app/i/[code]/actions";
-import { inputClasses as input } from "@/components/form-styles";
+import { InviteJoinForm } from "@/app/_components/InviteJoinForm";
 
 export const dynamic = "force-dynamic";
 
@@ -93,30 +92,6 @@ export default async function SharePage({
 
   // Signed-in non-member → the join form (same as the invite page).
   return (
-    <main className="mx-auto max-w-md px-4 py-12">
-      <h1 className="mb-2 gradient-text pb-1 text-3xl font-black leading-tight">
-        You&apos;re invited!
-      </h1>
-      <p className="mb-6 text-sm font-medium text-stone-500 dark:text-stone-300">
-        Join <strong className="text-grape dark:text-violet-300">{invite.name}</strong> and
-        start predicting.
-      </p>
-
-      <form action={acceptInviteAction} className="space-y-4">
-        <input type="hidden" name="code" value={code} />
-        <div>
-          <label className="mb-1 block text-sm font-bold text-stone-600 dark:text-stone-200">
-            Your nickname in this group (optional)
-          </label>
-          <input name="displayName" className={input} placeholder={profile.name} />
-        </div>
-        <button
-          type="submit"
-          className="w-full rounded-full glass py-3.5 text-lg font-bold text-pitch transition active:scale-95 dark:text-emerald-400"
-        >
-          Join {invite.name} →
-        </button>
-      </form>
-    </main>
+    <InviteJoinForm code={code} groupName={invite.name} profileName={profile.name} />
   );
 }
