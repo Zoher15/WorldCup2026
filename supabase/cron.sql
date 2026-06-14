@@ -32,10 +32,11 @@ select cron.schedule(
 
 -- Prediction emails. Runs every 15 minutes; the endpoint drives two
 -- exactly-once sends: the "predictions are open" announcement (once per
--- match-day at window-open) and the per-user "you've still got a pick missing"
--- nudge (~1h before EACH match's kickoff, only to members missing that game). A
+-- match-day at window-open) and the per-user "you've still got picks missing"
+-- nudge (ONE email ~1h before a match-day's FIRST kickoff, to members who
+-- haven't finished the day, with per-group social proof of who's already in). A
 -- coarse interval is plenty — the nudge just lands within ~15 min of the 1h
--- mark, and each match's 1h lead window spans several ticks. Requires
+-- mark, and the day's 1h lead window spans several ticks. Requires
 -- RESEND_API_KEY + EMAIL_FROM set in Vercel — otherwise the endpoint is a no-op.
 -- Same CRON_SECRET.
 select cron.schedule(

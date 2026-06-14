@@ -8,11 +8,12 @@ export const dynamic = "force-dynamic";
  * self-throttling reminder emails:
  *   - the broadcast "predictions are open" announcement, once per match-day when
  *     its window opens, and
- *   - the per-user "you've still got a prediction missing" nudge, ~1h before
- *     EACH match's kickoff, only to members missing that specific game.
+ *   - the per-user "you've still got predictions missing" nudge, ONE email ~1h
+ *     before a match-day's FIRST kickoff, to members who haven't finished the
+ *     day — carrying per-group social proof of who's already in.
  * The announcement claims its match-day (notified_match_days) and the nudge
- * claims each match (nudged_matches) before sending, so a coarse interval is
- * fine and every send is exactly-once. Guarded by CRON_SECRET (same secret as
+ * claims the match-day (nudged_match_days) before sending, so a coarse interval
+ * is fine and every send is exactly-once. Guarded by CRON_SECRET (same secret as
  * /api/poll).
  *
  *   GET /api/notify?secret=...        or  Authorization: Bearer <CRON_SECRET>

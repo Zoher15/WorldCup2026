@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { openMatchDays, dueForNudge } from "./notify-windows.ts";
+import { openMatchDays, dueMatchDaysForNudge } from "./notify-windows.ts";
 import { windowOpensAt } from "./prediction-rules.ts";
 
 const m = (kickoff_at: string) => ({ kickoff_at });
@@ -50,37 +50,46 @@ test("openMatchDays excludes a day whose window hasn't opened yet", () => {
   assert.equal(openMatchDays([m(kickoff)], now).length, 0);
 });
 
-test("dueForNudge returns a match inside the lead window before its kickoff", () => {
+test("dueMatchDaysForNudge returns a day inside the lead window before its first kickoff", () => {
   const kickoff = "2026-06-11T19:00:00.000Z";
   const now = new Date("2026-06-11T18:30:00.000Z"); // 30 min out
-  assert.equal(dueForNudge([m(kickoff)], now, HOUR).length, 1);
+  assert.equal(dueMatchDaysForNudge([m(kickoff)], now, HOUR).length, 1);
 });
 
-test("dueForNudge includes a match exactly at the lead boundary", () => {
+test("dueMatchDaysForNudge includes a day exactly at the lead boundary", () => {
   const kickoff = "2026-06-11T19:00:00.000Z";
   const now = new Date("2026-06-11T18:00:00.000Z"); // exactly 1h out
-  assert.equal(dueForNudge([m(kickoff)], now, HOUR).length, 1);
+  assert.equal(dueMatchDaysForNudge([m(kickoff)], now, HOUR).length, 1);
 });
 
-test("dueForNudge excludes a match still more than the lead window away", () => {
+test("dueMatchDaysForNudge excludes a day still more than the lead window away", () => {
   const kickoff = "2026-06-11T19:00:00.000Z";
   const now = new Date("2026-06-11T17:30:00.000Z"); // 90 min out
-  assert.equal(dueForNudge([m(kickoff)], now, HOUR).length, 0);
+  assert.equal(dueMatchDaysForNudge([m(kickoff)], now, HOUR).length, 0);
 });
 
-test("dueForNudge excludes a match whose kickoff has already passed", () => {
+test("dueMatchDaysForNudge excludes a day whose first kickoff has already passed", () => {
   const kickoff = "2026-06-11T19:00:00.000Z";
-  const now = new Date("2026-06-11T19:00:00.000Z"); // exactly kickoff: locked
-  assert.equal(dueForNudge([m(kickoff)], now, HOUR).length, 0);
+  const now = new Date("2026-06-11T19:00:00.000Z"); // exactly first kickoff
+  assert.equal(dueMatchDaysForNudge([m(kickoff)], now, HOUR).length, 0);
 });
 
-test("dueForNudge returns each due match, leaving far-off ones out", () => {
-  // Two simultaneous kickoffs come back together; a later game does not yet.
-  const a = "2026-06-11T19:00:00.000Z";
-  const b = "2026-06-11T19:00:00.000Z";
+test("dueMatchDaysForNudge fires once for the whole day, timed off the FIRST kickoff", () => {
+  // The day's first game is at 19:00, a later one at 22:00. An hour before 19:00
+  // the day is due — as ONE group carrying both games (not one per kickoff).
+  const first = "2026-06-11T19:00:00.000Z";
   const later = "2026-06-11T22:00:00.000Z";
   const now = new Date("2026-06-11T18:15:00.000Z");
 
-  const due = dueForNudge([m(a), m(b), m(later)], now, HOUR);
-  assert.equal(due.length, 2);
+  const due = dueMatchDaysForNudge([m(first), m(later)], now, HOUR);
+  assert.equal(due.length, 1);
+  assert.equal(due[0].matches.length, 2);
+});
+
+test("dueMatchDaysForNudge is not yet due an hour before a LATER kickoff only", () => {
+  // The only game is at 22:00; at 21:15 it'd be due, but at 18:15 (an hour
+  // before an earlier day's slot) this day hasn't entered its lead window.
+  const later = "2026-06-11T22:00:00.000Z";
+  const now = new Date("2026-06-11T18:15:00.000Z");
+  assert.equal(dueMatchDaysForNudge([m(later)], now, HOUR).length, 0);
 });
