@@ -34,20 +34,25 @@ export function groupMatchDays<T extends { kickoff_at: string }>(
 }
 
 /**
- * Match-days open for prediction right now: the window has opened and the day's
- * FIRST kickoff is still ahead. Earliest-opening first — and there can be more
- * than one at once (today's games, opened yesterday and not yet kicked off, plus
- * tomorrow's, opened today).
+ * Match-days whose FIRST kickoff is within `leadMs` ahead of `now` — i.e. the
+ * day is about to begin (earliestKickoff − lead ≤ now < earliestKickoff).
+ * Drives the once-per-match-day digest, fired ~an hour before the day's opening
+ * game (by which point members have had the full prediction window to play, so
+ * the "still missing" and FOMO counts are meaningful). A day whose first kickoff
+ * has already passed is excluded (the day is underway, not pending). Earliest
+ * first; the `matchDay` id is still the window-open instant, so it keys the
+ * exactly-once send claim regardless of when the digest actually goes out.
  */
-export function openMatchDays<T extends { kickoff_at: string }>(
+export function dueMatchDaysForDigest<T extends { kickoff_at: string }>(
   matches: T[],
   now: Date,
+  leadMs: number,
 ): MatchDayGroup<T>[] {
   const nowMs = now.getTime();
   return groupMatchDays(matches).filter((d) => {
     const earliestKickoff = Math.min(
       ...d.matches.map((m) => Date.parse(m.kickoff_at)),
     );
-    return d.opensAt <= nowMs && nowMs < earliestKickoff;
+    return earliestKickoff - leadMs <= nowMs && nowMs < earliestKickoff;
   });
 }

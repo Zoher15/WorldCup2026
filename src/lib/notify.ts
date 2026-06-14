@@ -1,22 +1,24 @@
 /**
  * The match-day digest email.
  *
- * ONE cron-driven, self-throttling send: when a match-day's prediction window
- * opens, every opted-in member gets a single consolidated email that folds in
- * everything that used to be two separate sends —
- *   - the day's matches that are now open for prediction,
+ * ONE cron-driven, self-throttling send: about an hour before a match-day's
+ * FIRST kickoff, every opted-in member gets a single consolidated email that
+ * folds in everything that used to be two separate sends —
+ *   - the day's matches, with the recipient's picks marked,
  *   - which of them the recipient still hasn't predicted, and
- *   - per-group social proof ("9 of 9 of your group-mates are already in") for a
- *     nudge of FOMO.
- * The match-day is claimed in notified_match_days (PK insert) before sending, so
- * overlapping cron ticks send each day's digest exactly once. The emails are
- * enqueued into the shared email_queue and delivered by its rate-limited drainer
- * — see email-queue.ts.
+ *   - how far they've climbed in each group, plus per-group social proof
+ *     ("9 of 9 of your group-mates are already in") for a nudge of FOMO.
+ * Firing an hour out (rather than at window-open, ~1.5 days early) means members
+ * have had the whole window to play, so the "still missing", climb and FOMO
+ * numbers are meaningful. The match-day is claimed in notified_match_days (PK
+ * insert) before sending, so overlapping cron ticks send each day's digest
+ * exactly once. The emails are enqueued into the shared email_queue and
+ * delivered by its rate-limited drainer — see email-queue.ts.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "./supabase/admin";
-import { openMatchDays } from "./notify-windows";
+import { dueMatchDaysForDigest } from "./notify-windows";
 import {
   buildStandings,
   competitionRanks,
@@ -61,12 +63,16 @@ export interface NotifyResult {
 const MATCH_COLUMNS =
   "id, kickoff_at, stage, group_label, home_code, away_code, home_team, away_team";
 
+/** How far before a match-day's FIRST kickoff the digest fires. */
+const DIGEST_LEAD_MS = 1 * 60 * 60 * 1000;
+
 /**
- * Send the once-per-match-day digest: when a day's window opens, enqueue ONE
- * consolidated email per opted-in member — the day's open matches, the picks
- * they're still missing, and per-group FOMO. The match-day is claimed in
- * notified_match_days before enqueuing, so a coarse cron interval is fine and
- * every day's digest is enqueued exactly once.
+ * Send the once-per-match-day digest: about an hour before a day's first
+ * kickoff, enqueue ONE consolidated email per opted-in member — the day's
+ * matches with their picks marked, what they're still missing, how far they've
+ * climbed, and per-group FOMO. The match-day is claimed in notified_match_days
+ * before enqueuing, so a coarse cron interval is fine and every day's digest is
+ * enqueued exactly once.
  */
 export async function sendMatchDayDigest(
   now: Date = new Date(),
@@ -83,31 +89,31 @@ export async function sendMatchDayDigest(
     .eq("is_trial", false);
   const matches = (matchData ?? []) as MatchRow[];
 
-  // Every match-day whose window is open and whose first kickoff is still ahead,
-  // earliest-opening first. There can be more than one at once — e.g. today's
-  // games (opened yesterday, not yet kicked off) AND tomorrow's (opened today).
-  const open = openMatchDays(matches, now);
-  if (open.length === 0) {
-    return { ok: true, matchDay: null, recipients: 0, queued: 0, skipped: "no open match-day" };
+  // Match-days whose first kickoff is within the lead window (about to begin),
+  // earliest first. Usually one at a time, but two can overlap (a late day and
+  // the next day's early one), so we claim each in turn.
+  const due = dueMatchDaysForDigest(matches, now, DIGEST_LEAD_MS);
+  if (due.length === 0) {
+    return { ok: true, matchDay: null, recipients: 0, queued: 0, skipped: "no match-day kicking off soon" };
   }
 
-  // Claim the earliest open day we haven't already sent. Claiming each day in
-  // turn — rather than bailing on the earliest — is the fix for the bug where a
-  // newly-opened day was suppressed while an earlier day sat in its (already
-  // announced) pre-kickoff window. The PK insert makes the claim exactly-once.
+  // Claim the earliest due day we haven't already sent. Claiming each in turn —
+  // rather than bailing on the earliest — means a second due day still gets its
+  // digest on a later tick (within its own lead window). The PK insert makes the
+  // claim exactly-once.
   let matchDay: string | null = null;
   let dueMatches: MatchRow[] = [];
-  for (const day of open) {
+  for (const day of due) {
     const { error: claimErr } = await db
       .from("notified_match_days")
       .insert({ match_day: day.matchDay });
-    if (claimErr) continue; // already sent — try the next open day
+    if (claimErr) continue; // already sent — try the next due day
     matchDay = day.matchDay;
     dueMatches = day.matches;
     break;
   }
   if (matchDay == null) {
-    return { ok: true, matchDay: null, recipients: 0, queued: 0, skipped: "all open match-days already sent" };
+    return { ok: true, matchDay: null, recipients: 0, queued: 0, skipped: "all due match-days already sent" };
   }
 
   // We've claimed the day; if the build throws before anything is enqueued,
@@ -183,13 +189,16 @@ export async function sendMatchDayDigest(
   }
 }
 
-/** Subject line: lead with what's open, or what's still missing if the recipient
- *  has already started (at window-open nobody has, so this reads as "N open"). */
+/** Subject line, tuned for the ~1h-before-kickoff send: nudge on what's still
+ *  missing, congratulate those who are done. */
 function digestSubject(total: number, missing: number): string {
-  if (missing > 0 && missing < total) {
-    return `⏳ ${missing} prediction${missing === 1 ? "" : "s"} left this match-day`;
+  if (missing === 0) {
+    return `✅ You're all set for today's ${total} match${total === 1 ? "" : "es"}`;
   }
-  return `⚽ Predictions are open — ${total} match${total === 1 ? "" : "es"}`;
+  if (missing < total) {
+    return `⏳ ${missing} prediction${missing === 1 ? "" : "s"} left before kickoff`;
+  }
+  return `⏳ ${total} match${total === 1 ? "" : "es"} kick off soon — get your predictions in`;
 }
 
 /** One group the recipient is in: how many OTHER members are already in. */
@@ -714,10 +723,10 @@ function renderDigestEmail(
   const missing = matches.filter((m) => !done.has(m.id)).length;
   const summary =
     missing === 0
-      ? `You're all set for this match-day — every pick is in. ✅`
+      ? `The day's first match kicks off in about an hour and every pick is in. You're all set — good luck! ✅`
       : missing === total
-        ? `A new match-day is open with <strong>${total} match${total === 1 ? "" : "es"}</strong>. Lock in your scorelines before kickoff — each match closes when it starts.`
-        : `You've still got <strong>${missing} of ${total}</strong> without a prediction. Lock them in before kickoff — each match closes when it starts.`;
+        ? `The day's first match kicks off in about an hour and you've got <strong>${total} match${total === 1 ? "" : "es"}</strong> to predict. Lock in your scorelines before kickoff — each match closes when it starts.`
+        : `The day's first match kicks off in about an hour and you've still got <strong>${missing} of ${total}</strong> without a prediction. Lock them in before kickoff — each match closes when it starts.`;
 
   return `<!doctype html>
 <html>

@@ -31,12 +31,12 @@ select cron.schedule(
 );
 
 -- Match-day digest email. Runs every 15 minutes; the endpoint enqueues ONE
--- consolidated per-user email when a match-day's prediction window opens — the
--- day's open matches, the picks each member is still missing, and per-group
--- social proof of who's already in — exactly once per match-day (claimed in
--- notified_match_days). A coarse interval is plenty: the digest just needs to
--- land within ~15 min of window-open. Requires RESEND_API_KEY + EMAIL_FROM set
--- in Vercel — otherwise the endpoint is a no-op. Same CRON_SECRET.
+-- consolidated per-user email about an hour before a match-day's first kickoff —
+-- the day's matches with each member's picks marked, what they're still missing,
+-- how far they've climbed, and per-group social proof of who's already in —
+-- exactly once per match-day (claimed in notified_match_days). A coarse interval
+-- is plenty: the 1h lead window spans several ticks. Requires RESEND_API_KEY +
+-- EMAIL_FROM set in Vercel — otherwise the endpoint is a no-op. Same CRON_SECRET.
 select cron.schedule(
   'worldcup-notify',
   '*/15 * * * *',
