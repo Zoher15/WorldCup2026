@@ -1,25 +1,26 @@
 /**
- * The prediction reminder emails.
+ * The match-day digest email.
  *
- * Two self-throttling, cron-driven sends, both meant to be hit every few minutes:
- *   - notifyOpenWindows: the broadcast "predictions are open" announcement, ONE
- *     per match-day at its window-open instant. It only acts on a match-day whose
- *     window is open but whose first kickoff is still ahead, and claims the day in
- *     notified_match_days before sending, so overlapping ticks email each day once.
- *   - nudgeMissingPredictions: the per-user "you still have predictions missing"
- *     nudge, fired ONCE per match-day ~1h before that day's FIRST kickoff, to the
- *     members who haven't predicted every one of the day's games. Each email also
- *     carries per-group social proof — "9 of 9 of your group-mates are already in"
- *     — to nudge the laggards with a bit of FOMO. It claims the match-day in
- *     nudged_match_days before sending, so overlapping ticks nudge each day once.
+ * ONE cron-driven, self-throttling send: when a match-day's prediction window
+ * opens, every opted-in member gets a single consolidated email that folds in
+ * everything that used to be two separate sends —
+ *   - the day's matches that are now open for prediction,
+ *   - which of them the recipient still hasn't predicted, and
+ *   - per-group social proof ("9 of 9 of your group-mates are already in") for a
+ *     nudge of FOMO.
+ * The match-day is claimed in notified_match_days (PK insert) before sending, so
+ * overlapping cron ticks send each day's digest exactly once. The emails are
+ * enqueued into the shared email_queue and delivered by its rate-limited drainer
+ * — see email-queue.ts.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "./supabase/admin";
-import { openMatchDays, dueMatchDaysForNudge } from "./notify-windows";
+import { openMatchDays } from "./notify-windows";
 import { teamLabel } from "./fifa";
 import { formatStageLabel } from "./format";
-import { isEmailConfigured, sendEmailBatch, type EmailMessage } from "./email";
+import { isEmailConfigured, type EmailMessage } from "./email";
+import { enqueueDigestEmails } from "./email-queue";
 import { appBaseUrl } from "./app-url";
 import type { Stage } from "./types";
 
@@ -44,21 +45,25 @@ export interface NotifyResult {
   ok: boolean;
   matchDay: string | null;
   recipients: number;
-  sent: number;
+  queued: number;
   skipped?: string;
 }
-
-/** How long before a match's kickoff the "you're missing this pick" nudge fires. */
-const NUDGE_LEAD_MS = 1 * 60 * 60 * 1000;
 
 const MATCH_COLUMNS =
   "id, kickoff_at, stage, group_label, home_code, away_code, home_team, away_team";
 
-export async function notifyOpenWindows(
+/**
+ * Send the once-per-match-day digest: when a day's window opens, enqueue ONE
+ * consolidated email per opted-in member — the day's open matches, the picks
+ * they're still missing, and per-group FOMO. The match-day is claimed in
+ * notified_match_days before enqueuing, so a coarse cron interval is fine and
+ * every day's digest is enqueued exactly once.
+ */
+export async function sendMatchDayDigest(
   now: Date = new Date(),
 ): Promise<NotifyResult> {
   if (!isEmailConfigured()) {
-    return { ok: true, matchDay: null, recipients: 0, sent: 0, skipped: "email not configured" };
+    return { ok: true, matchDay: null, recipients: 0, queued: 0, skipped: "email not configured" };
   }
 
   const db = createAdminClient();
@@ -74,10 +79,10 @@ export async function notifyOpenWindows(
   // games (opened yesterday, not yet kicked off) AND tomorrow's (opened today).
   const open = openMatchDays(matches, now);
   if (open.length === 0) {
-    return { ok: true, matchDay: null, recipients: 0, sent: 0, skipped: "no open match-day" };
+    return { ok: true, matchDay: null, recipients: 0, queued: 0, skipped: "no open match-day" };
   }
 
-  // Announce the earliest open day we haven't already sent. Claiming each day in
+  // Claim the earliest open day we haven't already sent. Claiming each day in
   // turn — rather than bailing on the earliest — is the fix for the bug where a
   // newly-opened day was suppressed while an earlier day sat in its (already
   // announced) pre-kickoff window. The PK insert makes the claim exactly-once.
@@ -87,106 +92,27 @@ export async function notifyOpenWindows(
     const { error: claimErr } = await db
       .from("notified_match_days")
       .insert({ match_day: day.matchDay });
-    if (claimErr) continue; // already announced — try the next open day
+    if (claimErr) continue; // already sent — try the next open day
     matchDay = day.matchDay;
     dueMatches = day.matches;
     break;
   }
   if (matchDay == null) {
-    return { ok: true, matchDay: null, recipients: 0, sent: 0, skipped: "all open match-days already notified" };
+    return { ok: true, matchDay: null, recipients: 0, queued: 0, skipped: "all open match-days already sent" };
   }
 
-  const subject = `⚽ Predictions are open — ${dueMatches.length} match${
-    dueMatches.length === 1 ? "" : "es"
-  }`;
-  const base = appBaseUrl();
-  const ordered = [...dueMatches].sort(
-    (a, b) => Date.parse(a.kickoff_at) - Date.parse(b.kickoff_at),
-  );
-
-  // We've claimed the day; if the send setup throws before any mail goes out,
-  // release the claim so a later tick retries rather than leaving the
-  // announcement permanently unsent. (sendEmailBatch itself never throws.)
-  let recipientCount = 0;
-  let sent = 0;
-  try {
-    const recipients = await loadRecipients(db);
-    recipientCount = recipients.length;
-    const messages: EmailMessage[] = recipients.map((r) => ({
-      to: r.email,
-      subject,
-      html: renderEmail(ordered, base, r.token),
-      headers: { "List-Unsubscribe": `<${base}/unsubscribe?token=${r.token}>` },
-    }));
-    sent = await sendEmailBatch(messages);
-  } catch (e) {
-    await db.from("notified_match_days").delete().eq("match_day", matchDay);
-    throw e;
-  }
-
-  await db.from("notified_match_days").update({ recipients: sent }).eq("match_day", matchDay);
-
-  return { ok: true, matchDay, recipients: recipientCount, sent };
-}
-
-/**
- * The once-per-match-day "you still have predictions missing" nudge.
- *
- * Fires ~NUDGE_LEAD_MS before a match-day's FIRST kickoff, in ONE email per
- * member who hasn't predicted every one of that day's games. The match-day is
- * claimed in nudged_match_days (PK insert) before sending, so overlapping ticks
- * (and repeat runs) nudge each day exactly once. Each email also carries
- * per-group social proof — how many of the recipient's group-mates have already
- * made a pick for the day — to give the laggards a nudge of FOMO.
- */
-export async function nudgeMissingPredictions(
-  now: Date = new Date(),
-): Promise<NotifyResult> {
-  if (!isEmailConfigured()) {
-    return { ok: true, matchDay: null, recipients: 0, sent: 0, skipped: "email not configured" };
-  }
-
-  const db = createAdminClient();
-
-  const { data: matchData } = await db
-    .from("matches")
-    .select(MATCH_COLUMNS)
-    .eq("is_trial", false);
-  const matches = (matchData ?? []) as MatchRow[];
-
-  // Match-days whose first kickoff is within the lead window (about to begin).
-  const dueDays = dueMatchDaysForNudge(matches, now, NUDGE_LEAD_MS);
-  if (dueDays.length === 0) {
-    return { ok: true, matchDay: null, recipients: 0, sent: 0, skipped: "no match-day kicking off soon" };
-  }
-
-  // Claim the earliest unclaimed due day (PK insert = exactly-once). One per
-  // tick is plenty: the 1h lead window spans several 15-min ticks, so a second
-  // due day (rare) is picked up on a later tick, still before its kickoff.
-  let matchDay: string | null = null;
-  let dueMatches: MatchRow[] = [];
-  for (const day of dueDays) {
-    const { error: claimErr } = await db
-      .from("nudged_match_days")
-      .insert({ match_day: day.matchDay });
-    if (claimErr) continue; // already nudged — try the next due day
-    matchDay = day.matchDay;
-    dueMatches = day.matches;
-    break;
-  }
-  if (matchDay == null) {
-    return { ok: true, matchDay: null, recipients: 0, sent: 0, skipped: "all due match-days already nudged" };
-  }
-
+  // We've claimed the day; if the build throws before anything is enqueued,
+  // release the claim so a later tick retries rather than leaving the digest
+  // permanently unsent.
   try {
     const dayMatchIds = dueMatches.map((m) => m.id);
-    // Who has predicted which of the day's games. A failed read must NOT look
-    // like "nobody predicted" — that would nudge members who're already done
-    // and understate the FOMO counts — so release the claim and bail to retry.
+    // Who has predicted which of the day's games — for each recipient's "still
+    // missing" list and the group FOMO counts. A failed read must NOT look like
+    // "nobody predicted", so release the claim and bail to retry.
     const predicted = await loadPredictedByUser(db, dayMatchIds);
     if (!predicted) {
-      await db.from("nudged_match_days").delete().eq("match_day", matchDay);
-      return { ok: true, matchDay: null, recipients: 0, sent: 0, skipped: "prediction read failed" };
+      await db.from("notified_match_days").delete().eq("match_day", matchDay);
+      return { ok: true, matchDay: null, recipients: 0, queued: 0, skipped: "prediction read failed" };
     }
     // Anyone with ≥1 pick among the day's games counts as "in" for the stats.
     const participants = new Set(predicted.keys());
@@ -198,34 +124,37 @@ export async function nudgeMissingPredictions(
       (a, b) => Date.parse(a.kickoff_at) - Date.parse(b.kickoff_at),
     );
 
-    // One email per member who hasn't finished the day, listing what they're
-    // still missing plus how many of their group-mates are already in.
-    const messages: EmailMessage[] = [];
-    for (const r of recipients) {
+    // One digest per member: the full slate (with their picks marked), what's
+    // still missing, and how many group-mates are already in.
+    const messages: EmailMessage[] = recipients.map((r) => {
       const done = predicted.get(r.userId) ?? new Set<string>();
       const missing = ordered.filter((m) => !done.has(m.id));
-      if (missing.length === 0) continue; // already predicted the whole day
-
       const stats = groupStatsFor(r.userId, groups, participants);
-      messages.push({
+      return {
         to: r.email,
-        subject: `⏳ ${missing.length} prediction${
-          missing.length === 1 ? "" : "s"
-        } left before kickoff`,
-        html: renderNudgeEmail(missing, stats, base, r.token),
+        subject: digestSubject(ordered.length, missing.length),
+        html: renderDigestEmail(ordered, done, stats, base, r.token),
         headers: { "List-Unsubscribe": `<${base}/unsubscribe?token=${r.token}>` },
-      });
-    }
+      };
+    });
 
-    const sent = await sendEmailBatch(messages);
-    await db.from("nudged_match_days").update({ recipients: sent }).eq("match_day", matchDay);
+    const queued = await enqueueDigestEmails(messages);
+    await db.from("notified_match_days").update({ recipients: queued }).eq("match_day", matchDay);
 
-    return { ok: true, matchDay, recipients: messages.length, sent };
+    return { ok: true, matchDay, recipients: messages.length, queued };
   } catch (e) {
-    // Couldn't finish after claiming: release so a later tick retries cleanly.
-    await db.from("nudged_match_days").delete().eq("match_day", matchDay);
+    await db.from("notified_match_days").delete().eq("match_day", matchDay);
     throw e;
   }
+}
+
+/** Subject line: lead with what's open, or what's still missing if the recipient
+ *  has already started (at window-open nobody has, so this reads as "N open"). */
+function digestSubject(total: number, missing: number): string {
+  if (missing > 0 && missing < total) {
+    return `⏳ ${missing} prediction${missing === 1 ? "" : "s"} left this match-day`;
+  }
+  return `⚽ Predictions are open — ${total} match${total === 1 ? "" : "es"}`;
 }
 
 /** One group the recipient is in: how many OTHER members are already in. */
@@ -432,47 +361,27 @@ function escapeHtml(s: string): string {
   );
 }
 
-/** The match list as table rows, shared by both reminder emails. */
-function renderMatchRows(matches: MatchRow[]): string {
+/**
+ * The day's matches as table rows, each tagged with the recipient's status:
+ * a green ✓ for games they've already predicted, an amber "needs a pick" for the
+ * rest. `done` is the set of match ids this recipient has predicted.
+ */
+function renderDigestRows(matches: MatchRow[], done: Set<string>): string {
   return matches
     .map((m) => {
       const home = teamLabel(m.home_code, m.home_team);
       const away = teamLabel(m.away_code, m.away_team);
       const stage = formatStageLabel(m.group_label, m.stage);
+      const picked = done.has(m.id);
+      const tag = picked
+        ? `<span style="color:#0b8a3e;font-weight:600;">✓ predicted</span>`
+        : `<span style="color:#b45309;font-weight:600;">needs a pick</span>`;
       return `<tr>
         <td style="padding:8px 0;font-weight:600;color:#1c1917;">${home} <span style="color:#a8a29e;font-weight:400;">vs</span> ${away}</td>
-        <td style="padding:8px 0;text-align:right;color:#78716c;font-size:13px;">${stage}</td>
+        <td style="padding:8px 0;text-align:right;color:#78716c;font-size:13px;">${stage}<br /><span style="font-size:12px;">${tag}</span></td>
       </tr>`;
     })
     .join("");
-}
-
-function renderEmail(matches: MatchRow[], base: string, token: string): string {
-  const rows = renderMatchRows(matches);
-
-  return `<!doctype html>
-<html>
-  <body style="margin:0;background:#f5f5f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1c1917;">
-    <div style="max-width:480px;margin:0 auto;padding:24px;">
-      <h1 style="margin:0 0 4px;font-size:22px;">⚽ Predictions are open</h1>
-      <p style="margin:0 0 20px;color:#57534e;font-size:15px;">
-        A new match-day is open. Lock in your scorelines before kickoff — each match closes when it starts.
-      </p>
-      <div style="background:#ffffff;border-radius:16px;padding:16px 20px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
-        <table style="width:100%;border-collapse:collapse;font-size:15px;">${rows}</table>
-      </div>
-      <div style="text-align:center;margin:24px 0;">
-        <a href="${base}/predict" style="display:inline-block;background:#0b8a3e;color:#ffffff;text-decoration:none;font-weight:700;padding:14px 28px;border-radius:9999px;font-size:16px;">
-          Make your predictions →
-        </a>
-      </div>
-      <p style="margin:24px 0 0;color:#a8a29e;font-size:12px;text-align:center;">
-        You're getting this because you're in a World Cup 2026 prediction group.<br />
-        <a href="${base}/unsubscribe?token=${token}" style="color:#a8a29e;">Unsubscribe from these emails</a>
-      </p>
-    </div>
-  </body>
-</html>`;
 }
 
 /**
@@ -500,33 +409,42 @@ function renderGroupFomo(stats: GroupStat[]): string {
       </div>`;
 }
 
-/** The "you've still got gaps before kickoff" nudge, with per-group FOMO. */
-function renderNudgeEmail(
-  missing: MatchRow[],
+/**
+ * The consolidated match-day digest: the day's slate with the recipient's picks
+ * marked, a one-line summary of what's still missing, and per-group FOMO.
+ */
+function renderDigestEmail(
+  matches: MatchRow[],
+  done: Set<string>,
   stats: GroupStat[],
   base: string,
   token: string,
 ): string {
-  const rows = renderMatchRows(missing);
-  const n = missing.length;
-  const count = n === 1 ? "1 match" : `${n} matches`;
-  const fomo = renderGroupFomo(stats);
+  const rows = renderDigestRows(matches, done);
+  const total = matches.length;
+  const missing = matches.filter((m) => !done.has(m.id)).length;
+  const summary =
+    missing === 0
+      ? `You're all set for this match-day — every pick is in. ✅`
+      : missing === total
+        ? `A new match-day is open with <strong>${total} match${total === 1 ? "" : "es"}</strong>. Lock in your scorelines before kickoff — each match closes when it starts.`
+        : `You've still got <strong>${missing} of ${total}</strong> without a prediction. Lock them in before kickoff — each match closes when it starts.`;
 
   return `<!doctype html>
 <html>
   <body style="margin:0;background:#f5f5f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1c1917;">
     <div style="max-width:480px;margin:0 auto;padding:24px;">
-      <h1 style="margin:0 0 4px;font-size:22px;">⏳ Kickoff's coming up</h1>
+      <h1 style="margin:0 0 4px;font-size:22px;">⚽ Your match-day predictions</h1>
       <p style="margin:0 0 20px;color:#57534e;font-size:15px;">
-        The day's first match kicks off in about an hour and you've still got <strong>${count}</strong> without a prediction. Lock them in before kickoff — each match closes when it starts.
+        ${summary}
       </p>
       <div style="background:#ffffff;border-radius:16px;padding:16px 20px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
         <table style="width:100%;border-collapse:collapse;font-size:15px;">${rows}</table>
       </div>
-      ${fomo}
+      ${renderGroupFomo(stats)}
       <div style="text-align:center;margin:24px 0;">
         <a href="${base}/predict" style="display:inline-block;background:#0b8a3e;color:#ffffff;text-decoration:none;font-weight:700;padding:14px 28px;border-radius:9999px;font-size:16px;">
-          Finish your predictions →
+          ${missing === 0 ? "Review your predictions →" : "Make your predictions →"}
         </a>
       </div>
       <p style="margin:24px 0 0;color:#a8a29e;font-size:12px;text-align:center;">

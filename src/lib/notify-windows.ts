@@ -51,24 +51,3 @@ export function openMatchDays<T extends { kickoff_at: string }>(
     return d.opensAt <= nowMs && nowMs < earliestKickoff;
   });
 }
-
-/**
- * Match-days whose FIRST kickoff is within `leadMs` ahead of `now` — i.e. the
- * day is about to begin (earliestKickoff − lead ≤ now < earliestKickoff).
- * Drives the once-per-match-day "you still have predictions missing" nudge,
- * fired ~an hour before the day's opening game. A day whose first kickoff has
- * already passed is excluded (the day is underway, not pending).
- */
-export function dueMatchDaysForNudge<T extends { kickoff_at: string }>(
-  matches: T[],
-  now: Date,
-  leadMs: number,
-): MatchDayGroup<T>[] {
-  const nowMs = now.getTime();
-  return groupMatchDays(matches).filter((d) => {
-    const earliestKickoff = Math.min(
-      ...d.matches.map((m) => Date.parse(m.kickoff_at)),
-    );
-    return earliestKickoff - leadMs <= nowMs && nowMs < earliestKickoff;
-  });
-}

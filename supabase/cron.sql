@@ -10,10 +10,10 @@
 --   1. Set CRON_SECRET in Vercel (and redeploy). Use the SAME value below.
 --   2. Run this in the Supabase SQL Editor.
 
--- Note: /api/poll also drains the sign-in code queue (login_email_queue) on each
--- run, sending queued codes at Resend's per-minute limit. The every-minute
--- cadence below is what keeps a backlog moving, so no extra cron job is needed
--- for sign-in emails.
+-- Note: /api/poll also drains the shared email queue (email_queue — sign-in
+-- codes AND match-day digests) on each run, at Resend's rate limit. The
+-- every-minute cadence below is what keeps a backlog moving, so no extra cron
+-- job is needed for email delivery.
 
 -- Enable the scheduler + HTTP client (or enable via Dashboard → Database → Extensions).
 create extension if not exists pg_cron;
@@ -30,15 +30,13 @@ select cron.schedule(
   $$
 );
 
--- Prediction emails. Runs every 15 minutes; the endpoint drives two
--- exactly-once sends: the "predictions are open" announcement (once per
--- match-day at window-open) and the per-user "you've still got picks missing"
--- nudge (ONE email ~1h before a match-day's FIRST kickoff, to members who
--- haven't finished the day, with per-group social proof of who's already in). A
--- coarse interval is plenty — the nudge just lands within ~15 min of the 1h
--- mark, and the day's 1h lead window spans several ticks. Requires
--- RESEND_API_KEY + EMAIL_FROM set in Vercel — otherwise the endpoint is a no-op.
--- Same CRON_SECRET.
+-- Match-day digest email. Runs every 15 minutes; the endpoint enqueues ONE
+-- consolidated per-user email when a match-day's prediction window opens — the
+-- day's open matches, the picks each member is still missing, and per-group
+-- social proof of who's already in — exactly once per match-day (claimed in
+-- notified_match_days). A coarse interval is plenty: the digest just needs to
+-- land within ~15 min of window-open. Requires RESEND_API_KEY + EMAIL_FROM set
+-- in Vercel — otherwise the endpoint is a no-op. Same CRON_SECRET.
 select cron.schedule(
   'worldcup-notify',
   '*/15 * * * *',

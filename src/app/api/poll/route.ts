@@ -1,6 +1,7 @@
 import { pollIfDue, syncDay } from "@/lib/sync";
 import { footballDataDiagnostics } from "@/lib/footballdata";
 import { authorizeCron } from "@/lib/cron-auth";
+import { drainEmailQueue } from "@/lib/email-queue";
 import { drainLoginEmails } from "@/lib/login-queue";
 
 export const dynamic = "force-dynamic";
@@ -34,12 +35,15 @@ async function handle(req: Request): Promise<Response> {
       return Response.json({ ok: true, forced: true, ...summary });
     }
 
-    // Drain queued sign-in codes at the email rate limit. Independent of the
-    // score poll, so a sync failure can't starve the queue (and vice versa).
-    const drained = await drainLoginEmails().catch(() => ({ sent: 0 }));
+    // Drain the shared email queue (sign-in codes + match-day digests) at the
+    // rate limit. Independent of the score poll, so a sync failure can't starve
+    // the queue (and vice versa). Also drain the legacy login-only queue so any
+    // sign-in code queued before this deploy still goes out (transitional).
+    const drained = await drainEmailQueue().catch(() => ({ sent: 0 }));
+    const legacy = await drainLoginEmails().catch(() => ({ sent: 0 }));
 
     const result = await pollIfDue();
-    return Response.json({ ok: true, emailsSent: drained.sent, ...result });
+    return Response.json({ ok: true, emailsSent: drained.sent + legacy.sent, ...result });
   } catch (e) {
     return Response.json(
       { ok: false, error: e instanceof Error ? e.message : "sync failed" },
