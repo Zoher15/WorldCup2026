@@ -10,6 +10,11 @@
 --   1. Set CRON_SECRET in Vercel (and redeploy). Use the SAME value below.
 --   2. Run this in the Supabase SQL Editor.
 
+-- Note: /api/poll also drains the sign-in code queue (login_email_queue) on each
+-- run, sending queued codes at Resend's per-minute limit. The every-minute
+-- cadence below is what keeps a backlog moving, so no extra cron job is needed
+-- for sign-in emails.
+
 -- Enable the scheduler + HTTP client (or enable via Dashboard → Database → Extensions).
 create extension if not exists pg_cron;
 create extension if not exists pg_net;
