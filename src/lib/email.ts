@@ -38,6 +38,24 @@ function fromAddress(): string {
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 /**
+ * Log Resend's rate-limit headers so the real account limit is visible in
+ * production logs. `ratelimit-limit` is the cap and `ratelimit-reset` the seconds
+ * until the window resets — reset≈1 means a per-SECOND limit, reset≈60 a
+ * per-MINUTE one. Always logged on a 429 (the case that matters); log every
+ * response by setting EMAIL_DEBUG_RATELIMIT.
+ */
+function logRateLimit(res: Response): void {
+  if (res.status !== 429 && !process.env.EMAIL_DEBUG_RATELIMIT) return;
+  console.log("[resend rate-limit]", {
+    status: res.status,
+    limit: res.headers.get("ratelimit-limit"),
+    remaining: res.headers.get("ratelimit-remaining"),
+    reset: res.headers.get("ratelimit-reset"),
+    retryAfter: res.headers.get("retry-after"),
+  });
+}
+
+/**
  * POST to Resend with a few retries. 429 (rate limit) and 5xx are retried,
  * honoring the Retry-After header when present (else exponential backoff);
  * anything else throws.
@@ -52,6 +70,7 @@ async function postToResend(url: string, payload: unknown, apiKey: string): Prom
       },
       body: JSON.stringify(payload),
     });
+    logRateLimit(res);
     if (res.ok) return;
 
     const retryable = res.status === 429 || res.status >= 500;

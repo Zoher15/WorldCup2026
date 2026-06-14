@@ -12,6 +12,12 @@ import { FOCUS_RING } from "@/components/theme";
 const codeInput =
   "w-full rounded-xl border border-stone-600 bg-stone-800 px-4 py-3 text-center text-2xl font-black tracking-[0.5em] text-stone-100 outline-none placeholder:text-stone-600 focus:border-pitch focus:ring-2 focus:ring-pitch/50";
 
+/** A human estimate for the queued-code wait, e.g. "1 minute" or "3 minutes". */
+function etaText(seconds: number): string {
+  const mins = Math.max(1, Math.round(seconds / 60));
+  return mins === 1 ? "1 minute" : `${mins} minutes`;
+}
+
 export default function LoginPage({
   searchParams,
 }: {
@@ -64,6 +70,15 @@ export default function LoginPage({
             We sent a code to <strong>{state.email}</strong>. Enter it below to
             sign in.
           </p>
+
+          {state.etaSeconds ? (
+            <p className="mt-3 rounded-2xl glass px-4 py-3 text-center text-sm text-stone-600 dark:text-stone-300">
+              📨 Lots of people are signing in right now, so codes are going out in
+              turn. Yours should arrive in about{" "}
+              <strong>{etaText(state.etaSeconds)}</strong> — keep this tab open and
+              enter it here when it lands.
+            </p>
+          ) : null}
 
           <form action={verifyAction} className="mt-5 space-y-3">
             <input type="hidden" name="email" value={state.email} />
