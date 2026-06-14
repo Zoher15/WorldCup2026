@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useRef, useState, type ReactNode } from "react";
 import { FOCUS_RING } from "./theme";
+import { useDismissOnOutside } from "./useDismissOnOutside";
 
 // Which edge the popover hangs from, so it stays inside its container instead of
 // spilling past a narrow column (the podium steps) or the card's edge. Kept as
@@ -46,21 +47,7 @@ export function InfoBadge({
   const ref = useRef<HTMLSpanElement>(null);
   // Dismiss on a tap/click anywhere outside the badge (or Escape), so the
   // popover doesn't linger once the reader has moved on.
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (e: PointerEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
+  useDismissOnOutside(open, ref, useCallback(() => setOpen(false), []));
   return (
     <span ref={ref} className="relative inline-flex shrink-0">
       <button

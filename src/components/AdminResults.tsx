@@ -14,6 +14,11 @@ import {
 } from "@/app/admin/actions";
 import type { AdminMatch } from "@/lib/results";
 
+// The two score inputs share one styling; kept a complete static string so
+// Tailwind v4's source scan can see the class names.
+const scoreInputClasses =
+  "w-12 rounded-lg border border-stone-200 px-2 py-1.5 text-center font-bold dark:border-stone-600 dark:bg-stone-900 dark:text-stone-100";
+
 function Row({ m }: { m: AdminMatch }) {
   const [home, setHome] = useState(m.homeGoals != null ? String(m.homeGoals) : "");
   const [away, setAway] = useState(m.awayGoals != null ? String(m.awayGoals) : "");
@@ -83,7 +88,7 @@ function Row({ m }: { m: AdminMatch }) {
           inputMode="numeric"
           value={home}
           onChange={(e) => setHome(e.target.value)}
-          className="w-12 rounded-lg border border-stone-200 px-2 py-1.5 text-center font-bold dark:border-stone-600 dark:bg-stone-900 dark:text-stone-100"
+          className={scoreInputClasses}
         />
         <span className="font-black text-stone-300">:</span>
         <input
@@ -92,7 +97,7 @@ function Row({ m }: { m: AdminMatch }) {
           inputMode="numeric"
           value={away}
           onChange={(e) => setAway(e.target.value)}
-          className="w-12 rounded-lg border border-stone-200 px-2 py-1.5 text-center font-bold dark:border-stone-600 dark:bg-stone-900 dark:text-stone-100"
+          className={scoreInputClasses}
         />
         <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
           <span className="truncate text-right text-sm font-bold">

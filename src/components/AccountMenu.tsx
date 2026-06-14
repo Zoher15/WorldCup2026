@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { signOutAction } from "@/app/auth/actions";
 import { FOCUS_RING } from "./theme";
+import { useDismissOnOutside } from "./useDismissOnOutside";
 
 /**
  * Top-right account indicator: a circular avatar with the user's initials and a
@@ -23,21 +24,7 @@ export function AccountMenu({
   const ref = useRef<HTMLDivElement>(null);
 
   // Close on a click anywhere outside the menu, or on Escape.
-  useEffect(() => {
-    if (!open) return;
-    function onPointerDown(e: PointerEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
+  useDismissOnOutside(open, ref, useCallback(() => setOpen(false), []));
 
   if (!loggedIn) {
     return (
