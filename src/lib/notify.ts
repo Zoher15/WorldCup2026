@@ -1,27 +1,39 @@
 /**
- * The prediction reminder emails.
+ * The match-day digest email.
  *
- * Two self-throttling, cron-driven sends, both meant to be hit every few minutes:
- *   - notifyOpenWindows: the broadcast "predictions are open" announcement, ONE
- *     per match-day at its window-open instant. It only acts on a match-day whose
- *     window is open but whose first kickoff is still ahead, and claims the day in
- *     notified_match_days before sending, so overlapping ticks email each day once.
- *   - nudgeMissingPredictions: the per-user "you still have predictions missing"
- *     nudge, fired ONCE per match-day ~1h before that day's FIRST kickoff, to the
- *     members who haven't predicted every one of the day's games. Each email also
- *     carries per-group social proof — "9 of 9 of your group-mates are already in"
- *     — to nudge the laggards with a bit of FOMO. It claims the match-day in
- *     nudged_match_days before sending, so overlapping ticks nudge each day once.
+ * ONE cron-driven, self-throttling send: about an hour before a match-day's
+ * FIRST kickoff, every opted-in member gets a single consolidated email that
+ * folds in everything that used to be two separate sends —
+ *   - the day's matches, with the recipient's picks marked,
+ *   - which of them the recipient still hasn't predicted, and
+ *   - how far they've climbed in each group, plus per-group social proof
+ *     ("9 of 9 of your group-mates are already in") for a nudge of FOMO.
+ * Firing an hour out (rather than at window-open, ~1.5 days early) means members
+ * have had the whole window to play, so the "still missing", climb and FOMO
+ * numbers are meaningful. The match-day is claimed in notified_match_days (PK
+ * insert) before sending, so overlapping cron ticks send each day's digest
+ * exactly once. The emails are enqueued into the shared email_queue and
+ * delivered by its rate-limited drainer — see email-queue.ts.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "./supabase/admin";
-import { openMatchDays, dueMatchDaysForNudge } from "./notify-windows";
+import { dueMatchDaysForDigest } from "./notify-windows";
+import {
+  buildStandings,
+  competitionRanks,
+  BORINGBOT_ID,
+  type StandingMember,
+  type StandingMatch,
+  type StandingPrediction,
+} from "./standings";
+import { isTrialActive } from "./prediction-rules";
 import { teamLabel } from "./fifa";
 import { formatStageLabel } from "./format";
-import { isEmailConfigured, sendEmailBatch, type EmailMessage } from "./email";
+import { isEmailConfigured, type EmailMessage } from "./email";
+import { enqueueDigestEmails } from "./email-queue";
 import { appBaseUrl } from "./app-url";
-import type { Stage } from "./types";
+import type { LateJoinPolicy, Stage } from "./types";
 
 interface MatchRow {
   id: string;
@@ -44,21 +56,29 @@ export interface NotifyResult {
   ok: boolean;
   matchDay: string | null;
   recipients: number;
-  sent: number;
+  queued: number;
   skipped?: string;
 }
-
-/** How long before a match's kickoff the "you're missing this pick" nudge fires. */
-const NUDGE_LEAD_MS = 1 * 60 * 60 * 1000;
 
 const MATCH_COLUMNS =
   "id, kickoff_at, stage, group_label, home_code, away_code, home_team, away_team";
 
-export async function notifyOpenWindows(
+/** How far before a match-day's FIRST kickoff the digest fires. */
+const DIGEST_LEAD_MS = 1 * 60 * 60 * 1000;
+
+/**
+ * Send the once-per-match-day digest: about an hour before a day's first
+ * kickoff, enqueue ONE consolidated email per opted-in member — the day's
+ * matches with their picks marked, what they're still missing, how far they've
+ * climbed, and per-group FOMO. The match-day is claimed in notified_match_days
+ * before enqueuing, so a coarse cron interval is fine and every day's digest is
+ * enqueued exactly once.
+ */
+export async function sendMatchDayDigest(
   now: Date = new Date(),
 ): Promise<NotifyResult> {
   if (!isEmailConfigured()) {
-    return { ok: true, matchDay: null, recipients: 0, sent: 0, skipped: "email not configured" };
+    return { ok: true, matchDay: null, recipients: 0, queued: 0, skipped: "email not configured" };
   }
 
   const db = createAdminClient();
@@ -69,124 +89,45 @@ export async function notifyOpenWindows(
     .eq("is_trial", false);
   const matches = (matchData ?? []) as MatchRow[];
 
-  // Every match-day whose window is open and whose first kickoff is still ahead,
-  // earliest-opening first. There can be more than one at once — e.g. today's
-  // games (opened yesterday, not yet kicked off) AND tomorrow's (opened today).
-  const open = openMatchDays(matches, now);
-  if (open.length === 0) {
-    return { ok: true, matchDay: null, recipients: 0, sent: 0, skipped: "no open match-day" };
+  // Match-days whose first kickoff is within the lead window (about to begin),
+  // earliest first. Usually one at a time, but two can overlap (a late day and
+  // the next day's early one), so we claim each in turn.
+  const due = dueMatchDaysForDigest(matches, now, DIGEST_LEAD_MS);
+  if (due.length === 0) {
+    return { ok: true, matchDay: null, recipients: 0, queued: 0, skipped: "no match-day kicking off soon" };
   }
 
-  // Announce the earliest open day we haven't already sent. Claiming each day in
-  // turn — rather than bailing on the earliest — is the fix for the bug where a
-  // newly-opened day was suppressed while an earlier day sat in its (already
-  // announced) pre-kickoff window. The PK insert makes the claim exactly-once.
+  // Claim the earliest due day we haven't already sent. Claiming each in turn —
+  // rather than bailing on the earliest — means a second due day still gets its
+  // digest on a later tick (within its own lead window). The PK insert makes the
+  // claim exactly-once.
   let matchDay: string | null = null;
   let dueMatches: MatchRow[] = [];
-  for (const day of open) {
+  for (const day of due) {
     const { error: claimErr } = await db
       .from("notified_match_days")
       .insert({ match_day: day.matchDay });
-    if (claimErr) continue; // already announced — try the next open day
+    if (claimErr) continue; // already sent — try the next due day
     matchDay = day.matchDay;
     dueMatches = day.matches;
     break;
   }
   if (matchDay == null) {
-    return { ok: true, matchDay: null, recipients: 0, sent: 0, skipped: "all open match-days already notified" };
+    return { ok: true, matchDay: null, recipients: 0, queued: 0, skipped: "all due match-days already sent" };
   }
 
-  const subject = `⚽ Predictions are open — ${dueMatches.length} match${
-    dueMatches.length === 1 ? "" : "es"
-  }`;
-  const base = appBaseUrl();
-  const ordered = [...dueMatches].sort(
-    (a, b) => Date.parse(a.kickoff_at) - Date.parse(b.kickoff_at),
-  );
-
-  // We've claimed the day; if the send setup throws before any mail goes out,
-  // release the claim so a later tick retries rather than leaving the
-  // announcement permanently unsent. (sendEmailBatch itself never throws.)
-  let recipientCount = 0;
-  let sent = 0;
-  try {
-    const recipients = await loadRecipients(db);
-    recipientCount = recipients.length;
-    const messages: EmailMessage[] = recipients.map((r) => ({
-      to: r.email,
-      subject,
-      html: renderEmail(ordered, base, r.token),
-      headers: { "List-Unsubscribe": `<${base}/unsubscribe?token=${r.token}>` },
-    }));
-    sent = await sendEmailBatch(messages);
-  } catch (e) {
-    await db.from("notified_match_days").delete().eq("match_day", matchDay);
-    throw e;
-  }
-
-  await db.from("notified_match_days").update({ recipients: sent }).eq("match_day", matchDay);
-
-  return { ok: true, matchDay, recipients: recipientCount, sent };
-}
-
-/**
- * The once-per-match-day "you still have predictions missing" nudge.
- *
- * Fires ~NUDGE_LEAD_MS before a match-day's FIRST kickoff, in ONE email per
- * member who hasn't predicted every one of that day's games. The match-day is
- * claimed in nudged_match_days (PK insert) before sending, so overlapping ticks
- * (and repeat runs) nudge each day exactly once. Each email also carries
- * per-group social proof — how many of the recipient's group-mates have already
- * made a pick for the day — to give the laggards a nudge of FOMO.
- */
-export async function nudgeMissingPredictions(
-  now: Date = new Date(),
-): Promise<NotifyResult> {
-  if (!isEmailConfigured()) {
-    return { ok: true, matchDay: null, recipients: 0, sent: 0, skipped: "email not configured" };
-  }
-
-  const db = createAdminClient();
-
-  const { data: matchData } = await db
-    .from("matches")
-    .select(MATCH_COLUMNS)
-    .eq("is_trial", false);
-  const matches = (matchData ?? []) as MatchRow[];
-
-  // Match-days whose first kickoff is within the lead window (about to begin).
-  const dueDays = dueMatchDaysForNudge(matches, now, NUDGE_LEAD_MS);
-  if (dueDays.length === 0) {
-    return { ok: true, matchDay: null, recipients: 0, sent: 0, skipped: "no match-day kicking off soon" };
-  }
-
-  // Claim the earliest unclaimed due day (PK insert = exactly-once). One per
-  // tick is plenty: the 1h lead window spans several 15-min ticks, so a second
-  // due day (rare) is picked up on a later tick, still before its kickoff.
-  let matchDay: string | null = null;
-  let dueMatches: MatchRow[] = [];
-  for (const day of dueDays) {
-    const { error: claimErr } = await db
-      .from("nudged_match_days")
-      .insert({ match_day: day.matchDay });
-    if (claimErr) continue; // already nudged — try the next due day
-    matchDay = day.matchDay;
-    dueMatches = day.matches;
-    break;
-  }
-  if (matchDay == null) {
-    return { ok: true, matchDay: null, recipients: 0, sent: 0, skipped: "all due match-days already nudged" };
-  }
-
+  // We've claimed the day; if the build throws before anything is enqueued,
+  // release the claim so a later tick retries rather than leaving the digest
+  // permanently unsent.
   try {
     const dayMatchIds = dueMatches.map((m) => m.id);
-    // Who has predicted which of the day's games. A failed read must NOT look
-    // like "nobody predicted" — that would nudge members who're already done
-    // and understate the FOMO counts — so release the claim and bail to retry.
+    // Who has predicted which of the day's games — for each recipient's "still
+    // missing" list and the group FOMO counts. A failed read must NOT look like
+    // "nobody predicted", so release the claim and bail to retry.
     const predicted = await loadPredictedByUser(db, dayMatchIds);
     if (!predicted) {
-      await db.from("nudged_match_days").delete().eq("match_day", matchDay);
-      return { ok: true, matchDay: null, recipients: 0, sent: 0, skipped: "prediction read failed" };
+      await db.from("notified_match_days").delete().eq("match_day", matchDay);
+      return { ok: true, matchDay: null, recipients: 0, queued: 0, skipped: "prediction read failed" };
     }
     // Anyone with ≥1 pick among the day's games counts as "in" for the stats.
     const participants = new Set(predicted.keys());
@@ -198,34 +139,66 @@ export async function nudgeMissingPredictions(
       (a, b) => Date.parse(a.kickoff_at) - Date.parse(b.kickoff_at),
     );
 
-    // One email per member who hasn't finished the day, listing what they're
-    // still missing plus how many of their group-mates are already in.
-    const messages: EmailMessage[] = [];
-    for (const r of recipients) {
-      const done = predicted.get(r.userId) ?? new Set<string>();
-      const missing = ordered.filter((m) => !done.has(m.id));
-      if (missing.length === 0) continue; // already predicted the whole day
-
-      const stats = groupStatsFor(r.userId, groups, participants);
-      messages.push({
-        to: r.email,
-        subject: `⏳ ${missing.length} prediction${
-          missing.length === 1 ? "" : "s"
-        } left before kickoff`,
-        html: renderNudgeEmail(missing, stats, base, r.token),
-        headers: { "List-Unsubscribe": `<${base}/unsubscribe?token=${r.token}>` },
-      });
+    // Per-group leaderboard movement since the last digest, for the "you've
+    // climbed N spots" encouragement. Best-effort: if the standings computation
+    // fails, the digest still goes out without the climb section.
+    let currentRanks = new Map<string, Map<string, number>>();
+    let previousRanks = new Map<string, Map<string, number>>();
+    try {
+      currentRanks = await loadGroupRanks(db);
+      previousRanks = await loadRankSnapshots(db);
+    } catch {
+      currentRanks = new Map();
+      previousRanks = new Map();
     }
 
-    const sent = await sendEmailBatch(messages);
-    await db.from("nudged_match_days").update({ recipients: sent }).eq("match_day", matchDay);
+    // One digest per member: the full slate (with their picks marked), what's
+    // still missing, how far they've climbed in each group, and how many
+    // group-mates are already in.
+    const messages: EmailMessage[] = recipients.map((r) => {
+      const done = predicted.get(r.userId) ?? new Set<string>();
+      const missing = ordered.filter((m) => !done.has(m.id));
+      const stats = groupStatsFor(r.userId, groups, participants);
+      const climbs = computeClimbs(r.userId, groups, currentRanks, previousRanks);
+      return {
+        to: r.email,
+        subject: digestSubject(ordered.length, missing.length),
+        html: renderDigestEmail(ordered, done, climbs, stats, base, r.token),
+        headers: { "List-Unsubscribe": `<${base}/unsubscribe?token=${r.token}>` },
+      };
+    });
 
-    return { ok: true, matchDay, recipients: messages.length, sent };
+    const queued = await enqueueDigestEmails(messages);
+    await db.from("notified_match_days").update({ recipients: queued }).eq("match_day", matchDay);
+
+    // Advance the rank baseline so the NEXT digest measures movement from here.
+    if (currentRanks.size > 0) {
+      try {
+        await saveRankSnapshots(db, currentRanks, matchDay);
+      } catch {
+        // Best-effort — a failed snapshot just means the next digest diffs
+        // against the older baseline (slightly larger climb numbers), never wrong
+        // direction.
+      }
+    }
+
+    return { ok: true, matchDay, recipients: messages.length, queued };
   } catch (e) {
-    // Couldn't finish after claiming: release so a later tick retries cleanly.
-    await db.from("nudged_match_days").delete().eq("match_day", matchDay);
+    await db.from("notified_match_days").delete().eq("match_day", matchDay);
     throw e;
   }
+}
+
+/** Subject line, tuned for the ~1h-before-kickoff send: nudge on what's still
+ *  missing, congratulate those who are done. */
+function digestSubject(total: number, missing: number): string {
+  if (missing === 0) {
+    return `✅ You're all set for today's ${total} match${total === 1 ? "" : "es"}`;
+  }
+  if (missing < total) {
+    return `⏳ ${missing} prediction${missing === 1 ? "" : "s"} left before kickoff`;
+  }
+  return `⏳ ${total} match${total === 1 ? "" : "es"} kick off soon — get your predictions in`;
 }
 
 /** One group the recipient is in: how many OTHER members are already in. */
@@ -423,6 +396,239 @@ async function loadGroupStructure(db: SupabaseClient): Promise<GroupStructure> {
   return { membersByGroup, groupsByUser, groupName };
 }
 
+/** One group the recipient has climbed in since the last digest. */
+interface Climb {
+  name: string;
+  /** Positions gained (always ≥ 1 — flat or dropping groups aren't shown). */
+  spots: number;
+}
+
+/**
+ * The recipient's positive rank movements since the last digest, biggest climb
+ * first. Only groups where we have BOTH a prior snapshot and a current rank, and
+ * where they moved UP, are included — this is encouragement, so a drop or no
+ * change is simply omitted. Ranks are the overall-board position (ties shared).
+ */
+function computeClimbs(
+  userId: string,
+  groups: GroupStructure,
+  current: Map<string, Map<string, number>>,
+  previous: Map<string, Map<string, number>>,
+): Climb[] {
+  const climbs: Climb[] = [];
+  for (const gid of groups.groupsByUser.get(userId) ?? []) {
+    const curr = current.get(gid)?.get(userId);
+    const prev = previous.get(gid)?.get(userId);
+    if (curr == null || prev == null) continue;
+    const spots = prev - curr; // smaller rank number = higher position
+    if (spots > 0) {
+      climbs.push({ name: groups.groupName.get(gid) ?? "your group", spots });
+    }
+  }
+  climbs.sort((a, b) => b.spots - a.spots);
+  return climbs;
+}
+
+const SCORABLE_MATCH_COLUMNS =
+  "id, kickoff_at, stage, home_code, away_code, home_goals, away_goals, advanced_code, result_confirmed, status, is_trial";
+
+interface ScorableMatchRow {
+  id: string;
+  kickoff_at: string;
+  stage: Stage;
+  home_code: string | null;
+  away_code: string | null;
+  home_goals: number | null;
+  away_goals: number | null;
+  advanced_code: string | null;
+  result_confirmed: boolean;
+  status: string;
+  is_trial: boolean;
+}
+
+/**
+ * Every member's CURRENT overall-board rank in each group, as group id -> (user
+ * id -> rank). Computed with the same engine and inputs the app's leaderboards
+ * use (BoringBot baseline included, trial matches honored), so the numbers match
+ * what members see. All loads are paged so a large league isn't truncated.
+ */
+async function loadGroupRanks(
+  db: SupabaseClient,
+): Promise<Map<string, Map<string, number>>> {
+  // Group scoring metadata.
+  const groupsMeta = new Map<string, { lateJoinPolicy: LateJoinPolicy; createdAt: string }>();
+  const PAGE = 1000;
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await db
+      .from("groups")
+      .select("id, late_join_policy, created_at")
+      .range(from, from + PAGE - 1);
+    if (error || !data) break;
+    for (const g of data) {
+      groupsMeta.set(g.id as string, {
+        lateJoinPolicy: g.late_join_policy as LateJoinPolicy,
+        createdAt: g.created_at as string,
+      });
+    }
+    if (data.length < PAGE) break;
+  }
+
+  // Members per group (with the details buildStandings needs).
+  const membersByGroup = new Map<string, StandingMember[]>();
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await db
+      .from("memberships")
+      .select("user_id, group_id, display_name, joined_at")
+      .range(from, from + PAGE - 1);
+    if (error || !data) break;
+    for (const m of data) {
+      const gid = m.group_id as string;
+      const member: StandingMember = {
+        userId: m.user_id as string,
+        displayName: m.display_name as string,
+        joinedAt: m.joined_at as string,
+      };
+      const arr = membersByGroup.get(gid);
+      if (arr) arr.push(member);
+      else membersByGroup.set(gid, [member]);
+    }
+    if (data.length < PAGE) break;
+  }
+
+  // The scorable matches (confirmed, or in-play/just-finished with a score so
+  // live results count provisionally) — mirrors getGroupStandings.
+  const { data: matchData } = await db
+    .from("matches")
+    .select(SCORABLE_MATCH_COLUMNS)
+    .or("result_confirmed.eq.true,status.eq.live,status.eq.finished");
+  const matchRows = (matchData ?? []) as ScorableMatchRow[];
+  const isProvisional = (m: ScorableMatchRow): boolean =>
+    !m.result_confirmed &&
+    (m.status === "live" || m.status === "finished") &&
+    m.home_goals != null &&
+    m.away_goals != null;
+  const matches: StandingMatch[] = matchRows.map((m) => ({
+    id: m.id,
+    kickoffAt: m.kickoff_at,
+    stage: m.stage,
+    resultConfirmed: m.result_confirmed,
+    homeGoals: m.home_goals,
+    awayGoals: m.away_goals,
+    advancedCode: m.advanced_code,
+    homeCode: m.home_code,
+    awayCode: m.away_code,
+    isTrial: m.is_trial,
+    live: isProvisional(m),
+  }));
+
+  // Predictions for those matches, grouped by user. Paged past the row cap.
+  const predsByUser = new Map<string, StandingPrediction[]>();
+  const matchIds = matches.map((m) => m.id);
+  if (matchIds.length > 0) {
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await db
+        .from("predictions")
+        .select("user_id, match_id, pred_home, pred_away, advance_pick")
+        .in("match_id", matchIds)
+        .range(from, from + PAGE - 1);
+      if (error || !data) break;
+      for (const p of data) {
+        const uid = p.user_id as string;
+        const pred: StandingPrediction = {
+          userId: uid,
+          matchId: p.match_id as string,
+          predHome: p.pred_home as number,
+          predAway: p.pred_away as number,
+          advancePick: (p.advance_pick as string | null) ?? null,
+        };
+        const arr = predsByUser.get(uid);
+        if (arr) arr.push(pred);
+        else predsByUser.set(uid, [pred]);
+      }
+      if (data.length < PAGE) break;
+    }
+  }
+
+  const countTrialMatches = isTrialActive();
+  const byGroup = new Map<string, Map<string, number>>();
+  for (const [gid, members] of membersByGroup) {
+    const meta = groupsMeta.get(gid);
+    if (!meta) continue;
+    const predictions: StandingPrediction[] = [];
+    for (const member of members) {
+      const up = predsByUser.get(member.userId);
+      if (up) predictions.push(...up);
+    }
+    const standings = buildStandings({
+      members,
+      matches,
+      predictions,
+      lateJoinPolicy: meta.lateJoinPolicy,
+      groupCreatedAt: meta.createdAt,
+      includeBaseline: true,
+      countTrialMatches,
+    });
+    const ranks = competitionRanks(standings.overall);
+    const userRank = new Map<string, number>();
+    standings.overall.forEach((row, i) => {
+      if (row.userId !== BORINGBOT_ID) userRank.set(row.userId, ranks[i]);
+    });
+    byGroup.set(gid, userRank);
+  }
+  return byGroup;
+}
+
+/** The previously-stored ranks, as group id -> (user id -> rank). Paged. */
+async function loadRankSnapshots(
+  db: SupabaseClient,
+): Promise<Map<string, Map<string, number>>> {
+  const byGroup = new Map<string, Map<string, number>>();
+  const PAGE = 1000;
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await db
+      .from("group_rank_snapshots")
+      .select("group_id, user_id, rank")
+      .range(from, from + PAGE - 1);
+    if (error || !data) break;
+    for (const row of data) {
+      const gid = row.group_id as string;
+      let map = byGroup.get(gid);
+      if (!map) byGroup.set(gid, (map = new Map()));
+      map.set(row.user_id as string, row.rank as number);
+    }
+    if (data.length < PAGE) break;
+  }
+  return byGroup;
+}
+
+/** Overwrite the stored ranks with the current ones, so the next digest measures
+ *  movement from here. Upserted in chunks on the (group_id, user_id) key. */
+async function saveRankSnapshots(
+  db: SupabaseClient,
+  ranks: Map<string, Map<string, number>>,
+  matchDay: string,
+): Promise<void> {
+  const now = new Date().toISOString();
+  const rows: {
+    group_id: string;
+    user_id: string;
+    rank: number;
+    match_day: string;
+    updated_at: string;
+  }[] = [];
+  for (const [gid, userRank] of ranks) {
+    for (const [uid, rank] of userRank) {
+      rows.push({ group_id: gid, user_id: uid, rank, match_day: matchDay, updated_at: now });
+    }
+  }
+  const CHUNK = 500;
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    await db
+      .from("group_rank_snapshots")
+      .upsert(rows.slice(i, i + CHUNK), { onConflict: "group_id,user_id" });
+  }
+}
+
 /** Escape user-supplied text (e.g. group names) for safe inlining into email HTML. */
 function escapeHtml(s: string): string {
   return s.replace(
@@ -432,47 +638,27 @@ function escapeHtml(s: string): string {
   );
 }
 
-/** The match list as table rows, shared by both reminder emails. */
-function renderMatchRows(matches: MatchRow[]): string {
+/**
+ * The day's matches as table rows, each tagged with the recipient's status:
+ * a green ✓ for games they've already predicted, an amber "needs a pick" for the
+ * rest. `done` is the set of match ids this recipient has predicted.
+ */
+function renderDigestRows(matches: MatchRow[], done: Set<string>): string {
   return matches
     .map((m) => {
       const home = teamLabel(m.home_code, m.home_team);
       const away = teamLabel(m.away_code, m.away_team);
       const stage = formatStageLabel(m.group_label, m.stage);
+      const picked = done.has(m.id);
+      const tag = picked
+        ? `<span style="color:#0b8a3e;font-weight:600;">✓ predicted</span>`
+        : `<span style="color:#b45309;font-weight:600;">needs a pick</span>`;
       return `<tr>
         <td style="padding:8px 0;font-weight:600;color:#1c1917;">${home} <span style="color:#a8a29e;font-weight:400;">vs</span> ${away}</td>
-        <td style="padding:8px 0;text-align:right;color:#78716c;font-size:13px;">${stage}</td>
+        <td style="padding:8px 0;text-align:right;color:#78716c;font-size:13px;">${stage}<br /><span style="font-size:12px;">${tag}</span></td>
       </tr>`;
     })
     .join("");
-}
-
-function renderEmail(matches: MatchRow[], base: string, token: string): string {
-  const rows = renderMatchRows(matches);
-
-  return `<!doctype html>
-<html>
-  <body style="margin:0;background:#f5f5f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1c1917;">
-    <div style="max-width:480px;margin:0 auto;padding:24px;">
-      <h1 style="margin:0 0 4px;font-size:22px;">⚽ Predictions are open</h1>
-      <p style="margin:0 0 20px;color:#57534e;font-size:15px;">
-        A new match-day is open. Lock in your scorelines before kickoff — each match closes when it starts.
-      </p>
-      <div style="background:#ffffff;border-radius:16px;padding:16px 20px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
-        <table style="width:100%;border-collapse:collapse;font-size:15px;">${rows}</table>
-      </div>
-      <div style="text-align:center;margin:24px 0;">
-        <a href="${base}/predict" style="display:inline-block;background:#0b8a3e;color:#ffffff;text-decoration:none;font-weight:700;padding:14px 28px;border-radius:9999px;font-size:16px;">
-          Make your predictions →
-        </a>
-      </div>
-      <p style="margin:24px 0 0;color:#a8a29e;font-size:12px;text-align:center;">
-        You're getting this because you're in a World Cup 2026 prediction group.<br />
-        <a href="${base}/unsubscribe?token=${token}" style="color:#a8a29e;">Unsubscribe from these emails</a>
-      </p>
-    </div>
-  </body>
-</html>`;
 }
 
 /**
@@ -500,33 +686,64 @@ function renderGroupFomo(stats: GroupStat[]): string {
       </div>`;
 }
 
-/** The "you've still got gaps before kickoff" nudge, with per-group FOMO. */
-function renderNudgeEmail(
-  missing: MatchRow[],
+/**
+ * The recipient's climbs as a celebratory block: "↑ 3 spots in Family". Group
+ * names are user-supplied, so they're HTML-escaped. Nothing renders when the
+ * recipient hasn't climbed anywhere (or there's no prior snapshot yet).
+ */
+function renderClimb(climbs: Climb[]): string {
+  if (climbs.length === 0) return "";
+  const items = climbs
+    .map((c) => {
+      const spots = c.spots === 1 ? "1 spot" : `${c.spots} spots`;
+      return `<tr><td style="padding:6px 0;color:#14532d;font-size:14px;">↑ <strong>${spots}</strong> in <strong>${escapeHtml(c.name)}</strong></td></tr>`;
+    })
+    .join("");
+  return `<div style="margin:0 0 16px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:16px;padding:14px 20px;">
+        <p style="margin:0 0 6px;font-weight:700;font-size:14px;color:#047857;">📈 You're climbing the leaderboard</p>
+        <table style="width:100%;border-collapse:collapse;">${items}</table>
+      </div>`;
+}
+
+/**
+ * The consolidated match-day digest: how far the recipient has climbed, the
+ * day's slate with their picks marked, a one-line summary of what's still
+ * missing, and per-group FOMO.
+ */
+function renderDigestEmail(
+  matches: MatchRow[],
+  done: Set<string>,
+  climbs: Climb[],
   stats: GroupStat[],
   base: string,
   token: string,
 ): string {
-  const rows = renderMatchRows(missing);
-  const n = missing.length;
-  const count = n === 1 ? "1 match" : `${n} matches`;
-  const fomo = renderGroupFomo(stats);
+  const rows = renderDigestRows(matches, done);
+  const total = matches.length;
+  const missing = matches.filter((m) => !done.has(m.id)).length;
+  const summary =
+    missing === 0
+      ? `The day's first match kicks off in about an hour and every pick is in. You're all set — good luck! ✅`
+      : missing === total
+        ? `The day's first match kicks off in about an hour and you've got <strong>${total} match${total === 1 ? "" : "es"}</strong> to predict. Lock in your scorelines before kickoff — each match closes when it starts.`
+        : `The day's first match kicks off in about an hour and you've still got <strong>${missing} of ${total}</strong> without a prediction. Lock them in before kickoff — each match closes when it starts.`;
 
   return `<!doctype html>
 <html>
   <body style="margin:0;background:#f5f5f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1c1917;">
     <div style="max-width:480px;margin:0 auto;padding:24px;">
-      <h1 style="margin:0 0 4px;font-size:22px;">⏳ Kickoff's coming up</h1>
+      <h1 style="margin:0 0 4px;font-size:22px;">⚽ Your match-day predictions</h1>
       <p style="margin:0 0 20px;color:#57534e;font-size:15px;">
-        The day's first match kicks off in about an hour and you've still got <strong>${count}</strong> without a prediction. Lock them in before kickoff — each match closes when it starts.
+        ${summary}
       </p>
+      ${renderClimb(climbs)}
       <div style="background:#ffffff;border-radius:16px;padding:16px 20px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
         <table style="width:100%;border-collapse:collapse;font-size:15px;">${rows}</table>
       </div>
-      ${fomo}
+      ${renderGroupFomo(stats)}
       <div style="text-align:center;margin:24px 0;">
         <a href="${base}/predict" style="display:inline-block;background:#0b8a3e;color:#ffffff;text-decoration:none;font-weight:700;padding:14px 28px;border-radius:9999px;font-size:16px;">
-          Finish your predictions →
+          ${missing === 0 ? "Review your predictions →" : "Make your predictions →"}
         </a>
       </div>
       <p style="margin:24px 0 0;color:#a8a29e;font-size:12px;text-align:center;">
