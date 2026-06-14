@@ -642,3 +642,149 @@ export async function renderMatchPng(board: MatchBoard): Promise<Uint8Array> {
   );
   return new Uint8Array(await res.arrayBuffer());
 }
+
+// ── Personal achievements share image ────────────────────────────────────────
+// A player's scorecard within a group: points, how many they've predicted, and
+// their 🔥 streak / 🎯 exact-score badges. Rendered on demand by the
+// /s/<code>/p/<id>/og endpoint behind the same short CDN cache (these only move
+// as results confirm). Fixed 1200x630 — a compact card, not a growing list.
+
+const SUNBURST = "#f59e0b"; // exact-score accent (matches the on-page 🎯 chip)
+
+/** The PNG dimensions for the achievements card — a fixed link-unfurl frame. */
+export function achievementOgImageSize(): { width: number; height: number } {
+  return { width: OG_WIDTH, height: OG_MIN_HEIGHT };
+}
+
+const STAT_TILE_W = 244;
+const STAT_TILE_H = 196;
+
+/** One big-number stat tile (glass), optionally led by an inline icon. */
+function StatTile({
+  value,
+  label,
+  color,
+  icon,
+}: {
+  value: string;
+  label: string;
+  color: string;
+  icon?: string;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        width: STAT_TILE_W,
+        height: STAT_TILE_H,
+        borderRadius: 28,
+        background: GLASS,
+        border: GLASS_BORDER,
+        gap: 10,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {icon && <img src={icon} width={44} height={52} alt="" />}
+        <div style={{ display: "flex", fontSize: 64, fontWeight: 700, color, lineHeight: 1 }}>{value}</div>
+      </div>
+      <div style={{ display: "flex", fontSize: 20, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 1 }}>
+        {label}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Render a player's achievements card to PNG bytes: their name, the group, and a
+ * row of stat tiles — points, matches predicted, and (when earned) the 🔥
+ * scoring streak and 🎯 exact-score count. Badges below their threshold are
+ * omitted, and the remaining tiles stay centred. Aggregates only — no hidden
+ * pick is ever drawn.
+ */
+export async function renderAchievementsPng(data: {
+  displayName: string;
+  groupName: string;
+  points: number;
+  predicted: number;
+  total: number;
+  streak: number;
+  exact: number;
+}): Promise<Uint8Array> {
+  const size = achievementOgImageSize();
+  const font = loadFont();
+
+  const tiles: React.ReactNode[] = [
+    <StatTile key="pts" value={`${data.points}`} label="Points" color={INK} />,
+    <StatTile key="pred" value={`${data.predicted}/${data.total}`} label="Predicted" color={INK} />,
+  ];
+  if (data.streak >= 2) {
+    tiles.push(
+      <StatTile key="streak" value={`${data.streak}`} label="In a row" color={FLAME} icon={FLAME_ICON} />,
+    );
+  }
+  if (data.exact >= 1) {
+    tiles.push(
+      <StatTile key="exact" value={`${data.exact}`} label="Exact scores" color={SUNBURST} />,
+    );
+  }
+
+  const res = new ImageResponse(
+    (
+      <div
+        style={{
+          width: size.width,
+          height: size.height,
+          display: "flex",
+          padding: 28,
+          fontFamily: "Noto Sans",
+          background:
+            "radial-gradient(1100px 520px at 50% -12%, rgba(124,58,237,0.28), rgba(124,58,237,0) 60%), linear-gradient(160deg, #1c1917 0%, #0c0a09 100%)",
+        }}
+      >
+        {/* Glass card */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+            width: "100%",
+            height: "100%",
+            padding: "18px 34px",
+            borderRadius: 32,
+            background: "rgba(255,255,255,0.04)",
+            border: "1px solid rgba(255,255,255,0.10)",
+          }}
+        >
+          {/* Name + group */}
+          <div style={{ fontSize: 60, fontWeight: 700, color: "#c4b5fd", maxWidth: 1000, ...clip }}>
+            {data.displayName}
+          </div>
+          <div style={{ fontSize: 24, fontWeight: 400, color: MUTED, marginTop: 4, maxWidth: 1000, ...clip }}>
+            {data.groupName} · World Cup 2026
+          </div>
+
+          {/* Stat tiles */}
+          <div style={{ display: "flex", gap: COL_GAP, marginTop: 40, alignItems: "center", justifyContent: "center" }}>
+            {tiles}
+          </div>
+
+          {/* Footer */}
+          <div style={{ display: "flex", fontSize: 20, fontWeight: 400, color: "#78716c", marginTop: 40 }}>
+            worldcup.kachwalas.com
+          </div>
+        </div>
+      </div>
+    ),
+    {
+      ...size,
+      ...(font
+        ? { fonts: [{ name: "Noto Sans", data: font, weight: 400 as const, style: "normal" as const }] }
+        : {}),
+    },
+  );
+  return new Uint8Array(await res.arrayBuffer());
+}

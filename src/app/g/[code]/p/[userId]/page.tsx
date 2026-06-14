@@ -4,6 +4,7 @@ import { getUserId } from "@/lib/identity";
 import { getViewerMembership } from "@/lib/groups";
 import { derivePlayerBadges, getPlayerProfile } from "@/lib/player";
 import { PlayerPredictions } from "@/components/PlayerPredictions";
+import { ShareAchievements } from "@/components/ShareAchievements";
 import { LoadError } from "@/components/LoadError";
 import { FOCUS_RING } from "@/components/theme";
 
@@ -111,13 +112,22 @@ export default async function PlayerPage({
             Picks for matches that haven&apos;t kicked off stay hidden.
           </p>
         ) : null}
-        <div className="mt-3">
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-4">
           <Link
             href={`/g/${group.code}/p/${userId}/past`}
             className={`rounded-md text-sm font-bold text-grape underline-offset-2 hover:underline dark:text-violet-300 ${FOCUS_RING}`}
           >
             Past results →
           </Link>
+          <ShareAchievements
+            code={group.code}
+            userId={userId}
+            displayName={player.displayName}
+            groupName={group.name}
+            points={summary.points}
+            streak={badges.streak}
+            exact={badges.exact}
+          />
         </div>
       </header>
 
