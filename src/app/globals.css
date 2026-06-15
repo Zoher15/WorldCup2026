@@ -314,15 +314,17 @@ body {
     rgba(52, 48, 44, 0.58);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   /* A bright top edge plus a faint bottom shade bevel the pane so it reads as a
-     real sheet of glass, and a soft, tight drop shadow lifts each panel off the
-     flags beneath it (clipped away on the full-bleed flag overlay, so only the
-     floating tiles, pills and bars actually cast it). */
+     real sheet of glass, and a two-layer drop shadow gives it dramatic lift off
+     the flags: a tight contact shadow grounds it, a larger soft ambient one
+     floats it. Both are clipped away on the full-bleed flag overlay, so only the
+     floating tiles, pills and bars actually cast them. */
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.18),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.1),
-    0 4px 16px -10px rgba(0, 0, 0, 0.55);
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18),
+    0 2px 6px -3px rgba(0, 0, 0, 0.45),
+    0 14px 32px -12px rgba(0, 0, 0, 0.7);
   /* Tactile feedback: every glass surface dips and its sheen flares when
      pressed, so taps feel alive even where they don't navigate. */
   transition: transform 0.13s ease, box-shadow 0.13s ease, --g-on 0.2s ease,
@@ -426,12 +428,13 @@ body {
   background-color: rgba(38, 35, 32, 0.92);
   border: 1px solid rgba(255, 255, 255, 0.12);
   /* Same bevel + lift language as glass, so the two materials feel cut from one
-     set: bright top edge, faint bottom shade, and a tight drop shadow that reads
-     as a solid control raised above the glass panels. */
+     set: bright top edge, faint bottom shade, and a two-layer drop shadow that
+     reads as a solid control raised well above the glass panels. */
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.12),
-    0 3px 12px -8px rgba(0, 0, 0, 0.55);
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2),
+    0 2px 5px -2px rgba(0, 0, 0, 0.5),
+    0 10px 24px -10px rgba(0, 0, 0, 0.65);
   transition: transform 0.13s ease, box-shadow 0.13s ease,
     background-color 0.25s ease;
 }
