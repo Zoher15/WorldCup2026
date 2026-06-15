@@ -23,7 +23,7 @@ export function EmptyState({
 }) {
   return (
     <div className={framed ? "rounded-2xl glass p-6 text-center" : "text-center"}>
-      <div className="mb-2 text-4xl">{icon}</div>
+      <div className="float-bob mb-2 text-4xl">{icon}</div>
       <Heading className="text-lg font-black text-stone-700 dark:text-stone-100">
         {title}
       </Heading>
