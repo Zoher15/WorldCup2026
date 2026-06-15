@@ -34,7 +34,7 @@ export default async function PredictPage() {
       >
         ← Home
       </Link>
-      <h1 className="mt-3 mb-1 gradient-text font-display pb-1 text-3xl leading-tight">
+      <h1 className="mt-3 mb-1 gradient-text font-display pb-1 text-3xl leading-tight tracking-tight">
         Your predictions
       </h1>
       <p className="mb-6 text-sm font-medium text-stone-300">

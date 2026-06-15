@@ -18,7 +18,7 @@ export function InviteJoinForm({
 }) {
   return (
     <main className="mx-auto max-w-md px-4 py-12">
-      <h1 className="mb-2 gradient-text pb-1 text-3xl font-black leading-tight">
+      <h1 className="mb-2 gradient-text font-display pb-1 text-3xl leading-tight tracking-tight">
         You&apos;re invited!
       </h1>
       <p className="mb-6 text-sm font-medium text-stone-300">

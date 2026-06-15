@@ -49,7 +49,7 @@ export default async function MatchBoardPage({
       </Link>
 
       <div className="mt-3 mb-6 flex items-start justify-between gap-3">
-        <h1 className="gradient-text font-display pb-1 text-3xl leading-tight">
+        <h1 className="gradient-text font-display pb-1 text-3xl leading-tight tracking-tight">
           Match predictions
         </h1>
         <div className="shrink-0 pt-1">

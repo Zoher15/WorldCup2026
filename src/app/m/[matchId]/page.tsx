@@ -39,7 +39,7 @@ export default async function MatchHubPage({
         ← My predictions
       </Link>
 
-      <h1 className="mt-3 mb-6 gradient-text pb-1 text-3xl font-black leading-tight">
+      <h1 className="mt-3 mb-6 gradient-text font-display pb-1 text-3xl leading-tight tracking-tight">
         Match predictions
       </h1>
 

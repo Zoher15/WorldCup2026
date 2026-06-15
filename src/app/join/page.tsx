@@ -29,7 +29,7 @@ export default async function JoinPage({
       <Link href="/" className={`rounded-md text-sm font-bold text-stone-400 ${FOCUS_RING}`}>
         ← Back
       </Link>
-      <h1 className="mt-3 mb-6 gradient-text font-display pb-1 text-3xl leading-tight">
+      <h1 className="mt-3 mb-6 gradient-text font-display pb-1 text-3xl leading-tight tracking-tight">
         Join the fun
       </h1>
       <JoinForms
