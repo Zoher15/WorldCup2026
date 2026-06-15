@@ -50,6 +50,19 @@ export interface FdMatch {
   };
 }
 
+/**
+ * Fetch a single match's raw record by football-data id (our `external_ref`).
+ * Diagnostics only: returns the provider's untransformed JSON so we can see
+ * exactly what status/score it reports for a given fixture.
+ */
+export async function fetchFdMatchRaw(id: string | number): Promise<unknown> {
+  const r = await fdGet(`/matches/${id}`);
+  if (!r.ok) {
+    throw new Error(`football-data ${r.status}: ${r.text.slice(0, 200)}`);
+  }
+  return r.json;
+}
+
 /** Fetch World Cup matches (all of the current season, or a date range). */
 export async function fetchWorldCupMatches(
   dateFrom?: string,

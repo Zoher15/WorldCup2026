@@ -1,5 +1,5 @@
 import { pollIfDue, syncDay } from "@/lib/sync";
-import { footballDataDiagnostics } from "@/lib/footballdata";
+import { fetchFdMatchRaw, footballDataDiagnostics } from "@/lib/footballdata";
 import { authorizeCron } from "@/lib/cron-auth";
 import { drainEmailQueue } from "@/lib/email-queue";
 import { drainLoginEmails } from "@/lib/login-queue";
@@ -14,6 +14,7 @@ export const dynamic = "force-dynamic";
  *   GET /api/poll?secret=...                  guarded poll (use this for cron)
  *   GET /api/poll?secret=...&date=YYYY-MM-DD&force=1   force a sync, bypassing the guard
  *   GET /api/poll?secret=...&debug=1          probe football-data's raw response
+ *   GET /api/poll?secret=...&match=<id>       dump one fixture's raw provider record
  *   or send the secret as `Authorization: Bearer <CRON_SECRET>`
  */
 async function handle(req: Request): Promise<Response> {
@@ -24,6 +25,14 @@ async function handle(req: Request): Promise<Response> {
   const url = new URL(req.url);
 
   try {
+    // Diagnostics: dump one fixture's raw provider record, write nothing. Use
+    // the football-data id (our external_ref) to see exactly what status/score
+    // the provider reports for a single match.
+    const matchId = url.searchParams.get("match");
+    if (matchId) {
+      return Response.json({ ok: true, match: matchId, raw: await fetchFdMatchRaw(matchId) });
+    }
+
     // Diagnostics: show football-data's raw responses, write nothing.
     if (url.searchParams.get("debug")) {
       return Response.json({ ok: true, debug: true, probes: await footballDataDiagnostics() });
