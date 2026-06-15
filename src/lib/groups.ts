@@ -248,7 +248,13 @@ export async function getGroupStandings(
     },
     viewer: { isMember, isAdmin },
     standings,
-    live: matchList.some(isProvisional),
+    // Board is "live" when a match counts provisionally (a live/just-finished
+    // score), OR when one is in play but its score hasn't landed yet — either way
+    // the board keeps auto-refreshing so it updates the moment the score arrives.
+    live: matchList.some(
+      (m) =>
+        isProvisional(m) || (m.status === "live" && !m.result_confirmed),
+    ),
   };
 }
 

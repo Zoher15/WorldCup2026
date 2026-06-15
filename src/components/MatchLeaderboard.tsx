@@ -136,8 +136,10 @@ function UpsetBadge() {
 }
 
 export function MatchLeaderboard({ board }: { board: MatchBoard }) {
-  // Tick live points forward while the match is in play.
-  useLiveRefresh(board.match.live != null);
+  // Tick live points forward while the match is in play — including the window
+  // where the feed reports it live but the score is still pending, so the board
+  // updates itself the moment the scoreline lands.
+  useLiveRefresh(board.match.live != null || board.match.liveNoScore);
 
   const { rows, revealed, summary, group } = board;
 

@@ -34,6 +34,8 @@ export interface PlayerPredictionRow {
   result: { home: number; away: number; advancedCode: string | null } | null;
   /** In-play (unconfirmed) score while the match is live; null otherwise. */
   live: { home: number; away: number; minute: number | null } | null;
+  /** In play but no score from the feed yet — read as live, not dormant. */
+  liveNoScore: boolean;
   /** Points earned, when scored and counted under the group's policy. */
   points: number | null;
   /** India vs Italy practice match — shown as history, excluded from badges. */
@@ -233,7 +235,7 @@ export async function getPlayerProfile(opts: {
     // Over the moment the feed reports it finished (no waiting on the admin
     // confirmation gate), so a finished match moves to past results — with its
     // score and points — right away. `live` is the in-play score otherwise.
-    const { result, live } = deriveMatchScore(m);
+    const { result, live, liveNoScore } = deriveMatchScore(m);
 
     // Points count once the match is over and it falls within the group's
     // scoring window — graded against the final score the feed reported, without
@@ -274,6 +276,7 @@ export async function getPlayerProfile(opts: {
       pick,
       result,
       live,
+      liveNoScore,
       points: rowPoints,
       isTrial: Boolean(m.is_trial),
     };

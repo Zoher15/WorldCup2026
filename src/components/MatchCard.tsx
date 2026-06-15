@@ -43,6 +43,10 @@ export interface MatchCardData {
   awayGoals?: number | null;
   /** Knockout: the team that advanced (for the advance-bonus math). */
   advancedCode?: string | null;
+  /** In play per the feed but no scoreline yet (provider lag). The card reads as
+   *  live ("LIVE" pill + "score updating") rather than a dormant locked card,
+   *  even though `state` stays "locked" — there's no score to show or grade. */
+  liveNoScore?: boolean;
 }
 
 /**
@@ -64,6 +68,8 @@ export function toMatchCardData(m: {
   state: PredictionState;
   result: { home: number; away: number; advancedCode: string | null } | null;
   live: { home: number; away: number; minute: number | null } | null;
+  /** In play but no score yet — read as live without a scoreline (see below). */
+  liveNoScore?: boolean;
 }): MatchCardData {
   let state: MatchCardState = m.state;
   if (m.state === "locked" && m.result) state = "final";
@@ -79,6 +85,9 @@ export function toMatchCardData(m: {
     venue: m.venue,
     trial: m.trial,
     state,
+    // A live match with no score keeps `state` "locked" (nothing to grade) but
+    // carries the flag so the card reads as live, not dormant.
+    liveNoScore: state === "locked" && Boolean(m.liveNoScore),
     minute: m.live?.minute,
     homeGoals: m.result?.home ?? m.live?.home,
     awayGoals: m.result?.away ?? m.live?.away,
@@ -174,6 +183,11 @@ function StatusPill({
     case "final":
       return <FullTimeBadge className={`${base} glass`}>FULL TIME</FullTimeBadge>;
     case "locked":
+      // In play but the feed hasn't sent a score yet: still read as LIVE so the
+      // card never looks dormant while the match is being played.
+      if (data.liveNoScore) {
+        return <LiveBadge className={`${base} glass`}>LIVE</LiveBadge>;
+      }
       return <span className={`${base} ${GLASS} text-stone-500 dark:text-stone-300`}>🔒 Locked</span>;
     case "open":
       return (
@@ -420,6 +434,9 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
     (data.state === "live" || data.state === "final") &&
     data.homeGoals != null &&
     data.awayGoals != null;
+  // Live with a score, or live-but-score-pending: both wear the live chrome (the
+  // flame ring + frost) so an in-play match never looks dormant.
+  const liveLike = data.state === "live" || Boolean(data.liveNoScore);
   // The player's own scoreline, whether it arrives as a revealed `pick` (profiles)
   // or via the `entry` they saved (the predict page). Drives the live/final tile.
   const myPick = pick ?? (entry ? { home: entry.home, away: entry.away } : null);
@@ -516,6 +533,18 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
         large={hero}
       />
     );
+  } else if (data.liveNoScore) {
+    // In play but no score from the feed yet: a clear "score updating" tile
+    // instead of the kickoff time, so the card reads as live. No fabricated 0–0 —
+    // that would mis-grade the provisional points if the real score isn't level.
+    focal = (
+      <div className={`rounded-xl px-4 py-2 text-center ${GLASS}`}>
+        <div className={`text-lg font-black leading-tight ${LIVE_TEXT}`}>● Live</div>
+        <div className="text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
+          score updating…
+        </div>
+      </div>
+    );
   } else {
     focal = (
       <div className={`rounded-xl px-4 py-2 text-center ${GLASS}`}>
@@ -557,7 +586,7 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
       <div
         aria-hidden
         className={`glass glass-flag absolute inset-0 rounded-2xl ${
-          data.state === "live"
+          liveLike
             ? "glass-live"
             : data.state === "open" || hero
               ? "glass-vivid"
@@ -627,7 +656,7 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
   // outer radius = card's 16px + 3px pad). Live takes precedence: the moving
   // light IS the urgency cue.
   let framed: React.ReactNode;
-  if (data.state === "live") {
+  if (liveLike) {
     framed = <div className="live-ring rounded-[18px] p-[2px]">{card}</div>;
   } else if (hero) {
     framed = <div className="gradient-accent rounded-[19px] p-[3px]">{card}</div>;
@@ -640,7 +669,7 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
   if (nag) {
     const radius = hero
       ? "rounded-[19px]"
-      : data.state === "live"
+      : liveLike
         ? "rounded-[18px]"
         : "rounded-2xl";
     framed = <div className={`nag-pulse ${radius}`}>{framed}</div>;

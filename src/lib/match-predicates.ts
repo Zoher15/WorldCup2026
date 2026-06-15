@@ -47,6 +47,18 @@ export function isLiveMatch(m: {
   );
 }
 
+/** Kicked off and live per the feed, whether or not a score has landed yet — the
+ *  flat (predict board) shape. Superset of `isLiveMatch`: it also catches the
+ *  "live but score still null" window (provider lag), so a match in play never
+ *  reads as a dormant locked card and the page keeps auto-refreshing for the
+ *  score. */
+export function isInPlayMatch(m: {
+  state: PredictionState;
+  status: string;
+}): boolean {
+  return m.state === "locked" && m.status === "live";
+}
+
 /** Over per the feed: the status reports finished, or an admin confirmed the
  *  result — we don't wait on the confirmation gate to treat a match as final. */
 export function isMatchOver(m: {

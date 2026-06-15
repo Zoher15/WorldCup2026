@@ -7,7 +7,7 @@ import { MatchCard } from "./MatchCard";
 import { FOCUS_RING, LIVE_TEXT } from "./theme";
 import { useLiveRefresh } from "./useLiveRefresh";
 import { groupByDate } from "@/lib/group-by-date";
-import { isLiveMatch } from "@/lib/match-predicates";
+import { isInPlayMatch, isLiveMatch } from "@/lib/match-predicates";
 import { savePredictionsAction } from "@/app/predict/actions";
 import type { MatchForPrediction, SavedPrediction } from "@/lib/predictions";
 
@@ -55,8 +55,9 @@ export function PredictionList({
     [matches],
   );
 
-  // Tick the in-play score forward while any listed match is live.
-  useLiveRefresh(matches.some(isLiveMatch));
+  // Tick the in-play score forward while any listed match is in play — including
+  // the live-but-no-score-yet window, so a pending scoreline lands on its own.
+  useLiveRefresh(matches.some(isInPlayMatch));
 
   // Urgency banner: how many open matches lock at the very next kickoff, and
   // when. Matches arrive kickoff-ordered, so the first open one locks soonest;
@@ -116,7 +117,7 @@ export function PredictionList({
   // The single most urgent match gets the hero treatment: the first live match
   // if one's in play, else the first open match of the first date group.
   const heroId = useMemo(() => {
-    const live = matches.find(isLiveMatch);
+    const live = matches.find(isInPlayMatch);
     if (live) return live.id;
     return groups[0]?.items.find((m) => m.state === "open")?.id ?? null;
   }, [matches, groups]);
@@ -164,6 +165,9 @@ export function PredictionList({
               const pick = picks[m.id];
               const open = m.state === "open";
               const live = isLiveMatch(m);
+              // In play but the feed's score is still pending: read as live (the
+              // card shows a LIVE pill + "score updating"), but with no scoreline.
+              const liveNoScore = isInPlayMatch(m) && !live;
               const isSaved = !dirtyIdSet.has(m.id) && savedSnapshot[m.id];
               const hero = m.id === heroId;
               // Gentle nag: an open match with no saved pick where the steppers
@@ -190,6 +194,9 @@ export function PredictionList({
                     // Live games render the dual score + tappable math; the
                     // steppers lock automatically (state is no longer "open").
                     state: live ? "live" : m.state,
+                    // Live but no score yet: keep the locked-in pick tile, but
+                    // flag it so the card wears the live chrome, not a dead lock.
+                    liveNoScore,
                     minute: live ? m.minute : undefined,
                     homeGoals: live ? m.homeGoals : undefined,
                     awayGoals: live ? m.awayGoals : undefined,
@@ -208,7 +215,7 @@ export function PredictionList({
                       ) : (
                         <span className="text-stone-500 dark:text-stone-300">Unsaved</span>
                       )
-                    ) : live ? (
+                    ) : live || liveNoScore ? (
                       <span className={LIVE_TEXT}>● Live</span>
                     ) : (
                       <span className="text-stone-500 dark:text-stone-300">🔒 Locked</span>

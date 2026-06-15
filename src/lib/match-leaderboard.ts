@@ -42,6 +42,9 @@ export interface MatchBoardMatch {
   result: { home: number; away: number; advancedCode: string | null } | null;
   /** In-play (unconfirmed) score while the match is live; null otherwise. */
   live: { home: number; away: number; minute: number | null } | null;
+  /** In play but the feed hasn't sent a score yet — the card reads as live
+   *  ("score updating") and the page keeps refreshing for the score. */
+  liveNoScore: boolean;
 }
 
 export interface MatchBoardRow {
@@ -139,7 +142,7 @@ export async function getMatchLeaderboard(opts: {
   // A stale "live" (its window long passed but the finish was never recorded)
   // must not keep showing as live — trial demos use a synthetic clock, so they're
   // exempt from the real-time window guard.
-  const { result, live } = deriveMatchScore(match, {
+  const { result, live, liveNoScore } = deriveMatchScore(match, {
     liveAllowed:
       match.is_trial ||
       !liveWindowExpired({ kickoffAt: match.kickoff_at, stage: match.stage }),
@@ -259,6 +262,7 @@ export async function getMatchLeaderboard(opts: {
       state,
       result,
       live,
+      liveNoScore,
     },
     revealed,
     rows,

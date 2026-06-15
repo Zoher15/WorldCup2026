@@ -4,8 +4,8 @@
  * every camelCase match display shape repeats.
  */
 
-import { isMatchOver } from "./match-predicates";
-import type { Stage } from "./types";
+import { isMatchOver } from "./match-predicates.ts";
+import type { Stage } from "./types.ts";
 
 /** The raw match columns the score derivation reads. */
 export interface MatchScoreSource {
@@ -33,9 +33,16 @@ export function deriveMatchScore(
   isOver: boolean;
   result: { home: number; away: number; advancedCode: string | null } | null;
   live: { home: number; away: number; minute: number | null } | null;
+  /** In play per the feed but no scoreline yet — the provider reports the match
+   *  live while its score is still null (e.g. football-data's free tier lagging
+   *  on a fixture). There's nothing to show or grade, but the match is NOT
+   *  dormant, so surfaces read it as live ("score updating") rather than locked. */
+  liveNoScore: boolean;
 } {
   const isOver = isMatchOver(m);
   const hasScore = m.home_goals != null && m.away_goals != null;
+  const liveAllowed = opts.liveAllowed ?? true;
+  const inPlay = !isOver && m.status === "live" && liveAllowed;
   const result =
     isOver && hasScore
       ? {
@@ -45,10 +52,10 @@ export function deriveMatchScore(
         }
       : null;
   const live =
-    !isOver && m.status === "live" && hasScore && (opts.liveAllowed ?? true)
+    inPlay && hasScore
       ? { home: m.home_goals!, away: m.away_goals!, minute: m.minute }
       : null;
-  return { isOver, result, live };
+  return { isOver, result, live, liveNoScore: inPlay && !hasScore };
 }
 
 /** The raw match columns shared by every camelCase display shape. */
