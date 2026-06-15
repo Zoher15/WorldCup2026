@@ -16,13 +16,33 @@ export const dynamic = "force-dynamic";
  * by CRON_SECRET (same as /api/poll).
  *
  *   GET /api/notify?secret=...        or  Authorization: Bearer <CRON_SECRET>
+ *
+ * Optional `at=<ISO 8601>` overrides the clock used ONLY to decide which
+ * match-day is due — an operator escape hatch to force-send a day's digest after
+ * its normal 1h-pre-kickoff window has passed (e.g. one that never went out).
+ * Pass a time inside that day's window, e.g. ~30 min before its first kickoff.
+ * It's still claimed once in notified_match_days, so it can't double-send, and
+ * standings / picks / "still missing" are always computed against real now.
+ *
+ *   GET /api/notify?secret=...&at=2026-06-15T15:30:00Z
  */
 async function handle(req: Request): Promise<Response> {
   if (!authorizeCron(req)) {
     return new Response("Unauthorized", { status: 401 });
   }
   try {
-    const digest = await sendMatchDayDigest();
+    const at = new URL(req.url).searchParams.get("at");
+    let now: Date | undefined;
+    if (at) {
+      now = new Date(at);
+      if (Number.isNaN(now.getTime())) {
+        return Response.json(
+          { ok: false, error: `invalid 'at' timestamp: ${at}` },
+          { status: 400 },
+        );
+      }
+    }
+    const digest = await sendMatchDayDigest(now);
     const drained = await drainEmailQueue().catch(() => ({ sent: 0 }));
     return Response.json({ digest, drained });
   } catch (e) {
