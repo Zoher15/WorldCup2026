@@ -195,6 +195,7 @@ export function PredictionList({
                     awayGoals: live ? m.awayGoals : undefined,
                   }}
                   opensAt={m.opensAt}
+                  detailHref={`/m/${m.id}`}
                   entry={{
                     home: pick.home,
                     away: pick.away,
