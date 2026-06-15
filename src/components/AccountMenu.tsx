@@ -55,7 +55,7 @@ export function AccountMenu({
       </button>
 
       {open && (
-        <div className="absolute right-0 z-30 mt-2 w-52 rounded-2xl bg-white p-2 shadow-xl ring-1 ring-black/5 dark:bg-stone-800 dark:ring-white/10">
+        <div className="glass glass-frost absolute right-0 z-30 mt-2 w-52 origin-top-right animate-pop-in rounded-2xl p-2 shadow-xl">
           {name ? (
             <p className="truncate px-3 py-1.5 text-sm font-bold text-stone-700 dark:text-stone-100">
               {name}
@@ -64,34 +64,34 @@ export function AccountMenu({
             <Link
               href="/welcome"
               onClick={() => setOpen(false)}
-              className={`block rounded-lg px-3 py-1.5 text-sm font-bold text-grape hover:bg-stone-100 dark:text-violet-300 dark:hover:bg-stone-700 ${FOCUS_RING}`}
+              className={`block rounded-lg px-3 py-1.5 text-sm font-bold text-grape transition hover:bg-white/10 dark:text-violet-300 ${FOCUS_RING}`}
             >
               Finish setup →
             </Link>
           )}
 
-          <div className="my-1 border-t border-black/5 dark:border-white/10" />
+          <div className="my-1 border-t border-white/10" />
 
           <Link
             href="/predict"
             onClick={() => setOpen(false)}
-            className={`block rounded-lg px-3 py-1.5 text-sm font-bold text-stone-700 hover:bg-stone-100 dark:text-stone-100 dark:hover:bg-stone-700 ${FOCUS_RING}`}
+            className={`block rounded-lg px-3 py-1.5 text-sm font-bold text-stone-700 transition hover:bg-white/10 dark:text-stone-100 ${FOCUS_RING}`}
           >
             ⚽ My predictions
           </Link>
           <Link
             href="/groups"
             onClick={() => setOpen(false)}
-            className={`block rounded-lg px-3 py-1.5 text-sm font-bold text-stone-700 hover:bg-stone-100 dark:text-stone-100 dark:hover:bg-stone-700 ${FOCUS_RING}`}
+            className={`block rounded-lg px-3 py-1.5 text-sm font-bold text-stone-700 transition hover:bg-white/10 dark:text-stone-100 ${FOCUS_RING}`}
           >
             🏆 My groups
           </Link>
 
-          <div className="my-1 border-t border-black/5 dark:border-white/10" />
+          <div className="my-1 border-t border-white/10" />
 
           <form action={signOutAction}>
             <button
-              className={`w-full rounded-lg px-3 py-1.5 text-left text-sm font-bold text-flame hover:bg-stone-100 dark:hover:bg-stone-700 ${FOCUS_RING}`}
+              className={`w-full rounded-lg px-3 py-1.5 text-left text-sm font-bold text-flame transition hover:bg-white/10 ${FOCUS_RING}`}
             >
               Sign out
             </button>

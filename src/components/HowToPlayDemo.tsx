@@ -115,7 +115,8 @@ export function HowToPlayDemo() {
             {board.map((r, i) => (
               <li
                 key={r.name}
-                className={`flex items-center gap-3 rounded-2xl px-4 py-2.5 dark:text-stone-100 ${
+                style={{ animationDelay: `${Math.min(i * 0.06, 0.3)}s` }}
+                className={`rise-in flex items-center gap-3 rounded-2xl px-4 py-2.5 dark:text-stone-100 ${
                   r.you
                     ? "bg-sunburst/30 shadow ring-1 ring-flame/30"
                     : "glass"
