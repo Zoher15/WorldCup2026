@@ -2,24 +2,25 @@
  * One queue for ALL outbound email, drained by ONE single-flight, rate-limited
  * drainer.
  *
- * Resend's real cap is 2 requests/second. A batch request (up to 100 messages)
- * counts as ONE request. The two email paths used to throttle themselves
- * independently against different ideas of the limit, with nothing coordinating
- * them — so a sign-in rush overlapping a match-day broadcast could collectively
- * overshoot. Now both ride this queue:
+ * The cap is on individual emails DELIVERED: at most EMAIL_RATE_PER_MIN (default
+ * 2) per rolling minute, across both paths combined. The two email paths used to
+ * throttle themselves independently against different ideas of the limit, with
+ * nothing coordinating them — so a sign-in rush overlapping a match-day broadcast
+ * could collectively overshoot. Now both ride this queue:
  *   - 'login'  rows: the one-time sign-in code is minted at SEND time (codes
  *     expire fast, and this way no live credential is ever stored — the row only
- *     holds the address + post-auth destination). One email per request.
- *   - 'digest' rows: the per-user match-day email, pre-rendered. Drained in
- *     batches of up to 100 per Resend request.
+ *     holds the address + post-auth destination). One email per row.
+ *   - 'digest' rows: the per-user match-day email, pre-rendered. One email per
+ *     row; rows are grouped into a single Resend batch request (up to BATCH_MAX,
+ *     and never more than the minute's remaining budget) to save round-trips.
  *
- * Single-flight: a drainer claims a lock row (email_drain_lock) before doing any
- * work and releases it after, so at most one drainer runs at a time anywhere.
- * With one drainer active, its in-process request spacing (≥MIN_REQUEST_INTERVAL_MS
- * apart) is globally authoritative — the simplest guarantee we never exceed
- * Resend's 2 req/s. A drain is kicked inline after enqueue (so a lone user, or
- * the first in a burst, gets their code immediately) and every minute by the
- * /api/poll cron (so backlogs keep draining).
+ * Rate gate: each drain counts the emails already sent in the trailing 60s and
+ * sends only up to the remaining budget — no in-process sleeping to pace a slow
+ * cadence, so even a 2/min cap never blocks a serverless invocation. The
+ * single-flight lock (email_drain_lock) means at most one drainer runs at a time
+ * anywhere, so the rolling count is authoritative. A drain is kicked inline after
+ * enqueue (so a lone user gets their code immediately) and every minute by the
+ * /api/poll cron (so backlogs keep draining, one minute's budget at a time).
  */
 import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -27,25 +28,27 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail, sendEmailBatch, isEmailConfigured, type EmailMessage } from "@/lib/email";
 import { appBaseUrl } from "@/lib/app-url";
 
-/** Resend's request/second cap. Raise via EMAIL_RATE_PER_SEC once Resend lifts it. */
-export function ratePerSec(): number {
-  const n = Number(process.env.EMAIL_RATE_PER_SEC);
+/** Emails allowed per rolling minute — your Resend cap. Override per environment
+ *  via EMAIL_RATE_PER_MIN (raise it once Resend lifts your limit). */
+export function ratePerMin(): number {
+  const n = Number(process.env.EMAIL_RATE_PER_MIN);
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : 2;
 }
 
-/** Minimum gap between two Resend requests, so one drainer stays under the rate. */
-function minRequestIntervalMs(): number {
-  return Math.ceil(1000 / ratePerSec());
-}
-
-/** Messages per Resend batch request — Resend's per-request cap. */
+/** Messages per Resend batch request — Resend's per-request cap. A single digest
+ *  batch never exceeds this (nor the minute's remaining email budget). */
 const BATCH_MAX = 100;
-/** Cron drains do up to this many requests per run, bounded by the serverless
- *  time budget; the next tick continues any remaining backlog. */
-const MAX_REQUESTS_PER_DRAIN = 12;
-/** Inline kicks (on a sign-in request) do only a few requests so the HTTP
+/** Cron drains send at most this many emails per run, on top of the per-minute
+ *  budget — a ceiling on one serverless invocation's work; the next tick
+ *  continues any remaining backlog. */
+const MAX_EMAILS_PER_DRAIN = 100;
+/** Inline kicks (on a sign-in request) send at most this many emails so the HTTP
  *  response stays snappy — the cron handles the bulk. */
-export const INLINE_MAX_REQUESTS = 3;
+export const INLINE_MAX_EMAILS = 2;
+/** A short gap between two Resend requests in one drain, so back-to-back sends
+ *  stay under Resend's per-second sub-limit (the per-minute budget is the main
+ *  gate; this only matters when several go out in one drain). */
+const REQUEST_SPACING_MS = 600;
 /** Give up on a row after this many failed send attempts. */
 const MAX_ATTEMPTS = 5;
 /** Reclaim a row stuck in 'sending' (drainer crashed mid-send) after this long. */
@@ -132,11 +135,12 @@ export async function loginEmailStatus(id: number): Promise<string | null> {
 
 /**
  * Estimate, in seconds, when the sign-in code for row `id` will land. The drainer
- * clears one request per minRequestInterval, sending codes one-per-request and
- * digests up to 100-per-request, oldest first. So the wait is the number of
- * requests ahead of this row — every still-pending sign-in at or before it, plus
- * one request per 100 pending digests ahead — divided by the per-second rate.
- * Deliberately a touch conservative: under-promising and landing early is better.
+ * clears ratePerMin() EMAILS per minute, oldest first, one email per row. So the
+ * wait is the number of emails ahead of this row — every still-pending sign-in at
+ * or before it, plus every pending digest ahead — over the per-minute rate. Drain
+ * cycles are driven by the every-minute cron, so each counts as ~a minute (which
+ * also folds in the wait for the next tick). Deliberately a touch conservative:
+ * under-promising and landing early is better.
  */
 export async function estimateEtaSeconds(id: number): Promise<number> {
   const admin = createAdminClient();
@@ -153,9 +157,8 @@ export async function estimateEtaSeconds(id: number): Promise<number> {
     .eq("kind", "digest")
     .lt("id", id);
 
-  const requestsAhead =
-    Math.max(1, loginAhead ?? 1) + Math.ceil((digestAhead ?? 0) / BATCH_MAX);
-  return Math.ceil(requestsAhead / ratePerSec());
+  const emailsAhead = Math.max(1, loginAhead ?? 1) + (digestAhead ?? 0);
+  return Math.ceil(emailsAhead / ratePerMin()) * 60;
 }
 
 // ---------------------------------------------------------------------------
@@ -255,22 +258,33 @@ async function markFailed(admin: SupabaseClient, rows: QueueRow[]): Promise<void
 }
 
 /**
- * Send up to `maxRequests` Resend requests worth of queued mail, oldest first,
- * pacing requests to stay under the rate. Caller must already hold the drain
- * lock. Each iteration is ONE request: a single sign-in code, or a batch of up
- * to 100 digests. Never throws — a failed send leaves its row pending (or marks
- * it failed past MAX_ATTEMPTS) for the next drain.
+ * Send queued mail up to the rolling-minute budget (and `maxEmails`), oldest
+ * first — one email per login row, or a batch of digests grouped into one Resend
+ * request. Caller must already hold the drain lock. The budget counts emails
+ * actually sent in the last 60s, so the inline kick and the cron can't
+ * collectively overshoot. No long sleeps, so even a slow (per-minute) cadence
+ * returns promptly; a short spacing between requests avoids tripping a per-second
+ * sub-limit. Never throws — a failed send leaves its row pending (or marks it
+ * failed past MAX_ATTEMPTS) for the next drain.
  */
 async function drainWhileLocked(
   admin: SupabaseClient,
-  maxRequests: number,
+  maxEmails: number,
 ): Promise<number> {
-  const intervalMs = minRequestIntervalMs();
-  let sent = 0;
-  let requests = 0;
-  let lastRequestAt = 0;
+  // Budget: the per-minute cap minus what's already gone out this rolling minute
+  // (each sent row is one email), then bounded by this invocation's ceiling.
+  const { count: recent } = await admin
+    .from("email_queue")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "sent")
+    .gte("sent_at", new Date(Date.now() - 60_000).toISOString());
+  let budget = Math.min(maxEmails, ratePerMin() - (recent ?? 0));
+  if (budget <= 0) return 0;
 
-  while (requests < maxRequests) {
+  let sent = 0;
+  let firstRequest = true;
+
+  while (budget > 0) {
     const { data: page } = await admin
       .from("email_queue")
       .select(ROW_COLUMNS)
@@ -280,12 +294,13 @@ async function drainWhileLocked(
     const rows = (page ?? []) as QueueRow[];
     if (rows.length === 0) break;
 
-    // The next request takes the oldest row's kind: one login code, or up to a
-    // full batch of the page's digests.
+    // The next request takes the oldest row's kind: one login code, or a batch of
+    // digests — never more than the minute's remaining budget (nor Resend's
+    // per-request cap).
     const target =
       rows[0].kind === "login"
         ? [rows[0]]
-        : rows.filter((r) => r.kind === "digest").slice(0, BATCH_MAX);
+        : rows.filter((r) => r.kind === "digest").slice(0, Math.min(budget, BATCH_MAX));
 
     // Claim them so a crash can't double-send (and to skip rows another path
     // already took, though single-flight makes that rare).
@@ -298,13 +313,15 @@ async function drainWhileLocked(
     const claimed = (claimedData ?? []) as QueueRow[];
     if (claimed.length === 0) continue;
 
-    // Pace: hold each request to ≥intervalMs after the previous one started.
-    if (lastRequestAt > 0) {
-      const elapsed = Date.now() - lastRequestAt;
-      if (elapsed < intervalMs) await sleep(intervalMs - elapsed);
-    }
-    lastRequestAt = Date.now();
-    requests++;
+    // Spend the budget on the emails we're attempting now, whether or not the
+    // send succeeds (a failed request may still have reached Resend); failed rows
+    // return to pending for the NEXT minute's budget to retry.
+    budget -= claimed.length;
+
+    // A short gap between requests keeps two sends in one drain under Resend's
+    // per-second sub-limit — never before the first, so a lone code is instant.
+    if (!firstRequest) await sleep(REQUEST_SPACING_MS);
+    firstRequest = false;
 
     if (claimed[0].kind === "login") {
       const row = claimed[0];
@@ -339,11 +356,11 @@ async function drainWhileLocked(
 /**
  * Drain the queue under the single-flight lock. Safe to call from the inline
  * kick and the cron at once: only one caller holds the lock and actually drains;
- * the others return immediately. `maxRequests` bounds the work so an inline kick
- * stays snappy (pass INLINE_MAX_REQUESTS) while the cron clears the backlog.
+ * the others return immediately. `maxEmails` bounds the work so an inline kick
+ * stays snappy (pass INLINE_MAX_EMAILS) while the cron clears the backlog.
  */
 export async function drainEmailQueue(
-  maxRequests: number = MAX_REQUESTS_PER_DRAIN,
+  maxEmails: number = MAX_EMAILS_PER_DRAIN,
 ): Promise<{ sent: number }> {
   if (!isEmailConfigured()) return { sent: 0 };
   const admin = createAdminClient();
@@ -357,7 +374,7 @@ export async function drainEmailQueue(
 
   if (!(await acquireDrainLock(admin))) return { sent: 0 };
   try {
-    const sent = await drainWhileLocked(admin, maxRequests);
+    const sent = await drainWhileLocked(admin, maxEmails);
     return { sent };
   } finally {
     await releaseDrainLock(admin);
