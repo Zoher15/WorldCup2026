@@ -135,10 +135,10 @@ function UpsetBadge() {
   );
 }
 
-export function MatchLeaderboard({ board }: { board: MatchBoard }) {
-  // Tick live points forward while the match is in play.
-  useLiveRefresh(board.match.live != null);
-
+/** The ranked picks for ONE group's board (heading + summary + the list), with
+ *  no match card. Presentational — the caller drives any live refresh. Reused by
+ *  the single-group page and by each collapsible group in the cross-group hub. */
+export function MatchBoardRows({ board }: { board: MatchBoard }) {
   const { rows, revealed, summary, group } = board;
 
   // Standard competition ranking (1, 1, 3) over the scored rows; un-scored picks
@@ -147,10 +147,7 @@ export function MatchLeaderboard({ board }: { board: MatchBoard }) {
   let lastRank = 0;
 
   return (
-    <div>
-      <MatchCard data={toMatchCardData(board.match)} pick={null} />
-
-      <div className="mt-6 rounded-3xl glass p-5">
+    <div className="rounded-3xl glass p-5">
         <h2 className="mb-1 text-center text-xl font-black text-grape dark:text-violet-300">
           {revealed ? "🏅 This match" : "Who's locked in"}
         </h2>
@@ -205,6 +202,19 @@ export function MatchLeaderboard({ board }: { board: MatchBoard }) {
             );
           })}
         </ol>
+    </div>
+  );
+}
+
+export function MatchLeaderboard({ board }: { board: MatchBoard }) {
+  // Tick live points forward while the match is in play.
+  useLiveRefresh(board.match.live != null);
+
+  return (
+    <div>
+      <MatchCard data={toMatchCardData(board.match)} pick={null} />
+      <div className="mt-6">
+        <MatchBoardRows board={board} />
       </div>
     </div>
   );

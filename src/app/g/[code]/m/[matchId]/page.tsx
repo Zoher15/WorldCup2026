@@ -64,6 +64,16 @@ export default async function MatchBoardPage({
 
       <MatchLeaderboard board={board} />
 
+      <div className="mt-6 text-center">
+        <Link
+          href={`/m/${matchId}`}
+          prefetch={false}
+          className="inline-flex items-center gap-1.5 rounded-full glass px-5 py-2.5 text-sm font-bold text-grape transition active:scale-95 dark:text-violet-300"
+        >
+          Compare across your groups →
+        </Link>
+      </div>
+
       <p className="mt-8 text-center text-xs text-stone-400">
         Picks unlock at kickoff · points are confirmed once the result is final.
       </p>

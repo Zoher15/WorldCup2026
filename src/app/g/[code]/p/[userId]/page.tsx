@@ -112,13 +112,22 @@ export default async function PlayerPage({
             Picks for matches that haven&apos;t kicked off stay hidden.
           </p>
         ) : null}
-        <div className="mt-3 flex flex-wrap items-center justify-center gap-4">
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
           <Link
             href={`/g/${group.code}/p/${userId}/past`}
             className={`rounded-md text-sm font-bold text-grape underline-offset-2 hover:underline dark:text-violet-300 ${FOCUS_RING}`}
           >
             Past results →
           </Link>
+          {!player.isBot && (
+            <Link
+              href={`/p/${userId}`}
+              prefetch={false}
+              className={`rounded-md text-sm font-bold text-grape underline-offset-2 hover:underline dark:text-violet-300 ${FOCUS_RING}`}
+            >
+              {player.isViewer ? "You across your groups →" : "Across your groups →"}
+            </Link>
+          )}
           <ShareAchievements
             code={group.code}
             userId={userId}

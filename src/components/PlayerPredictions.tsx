@@ -44,6 +44,7 @@ function PlayerCard({
       }
       pickLabel={pickLabel}
       status={status}
+      detailHref={`/m/${row.matchId}`}
     />
   );
 }

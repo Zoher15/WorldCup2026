@@ -1,6 +1,11 @@
 import { createAdminClient } from "./supabase/admin";
 import { generateGroupCode, normalizeCode } from "./codes";
-import { buildStandings, type Standings } from "./standings";
+import {
+  buildStandings,
+  BORINGBOT_ID,
+  BORINGBOT_NAME,
+  type Standings,
+} from "./standings";
 import { isTrialActive } from "./prediction-rules";
 import type { LateJoinPolicy } from "./types";
 
@@ -126,6 +131,118 @@ export async function getUserGroups(userId: string): Promise<UserGroup[]> {
     name: g.name,
     memberCount: counts.get(g.id) ?? 0,
   }));
+}
+
+/**
+ * The groups the viewer and another player BOTH belong to — the intersection of
+ * their memberships. This is the privacy boundary for the cross-group player
+ * hub: we only ever surface a player through groups the viewer is also in.
+ */
+export async function getSharedGroups(
+  viewerId: string,
+  targetUserId: string,
+): Promise<UserGroup[]> {
+  const db = createAdminClient();
+  const [{ data: mine }, { data: theirs }] = await Promise.all([
+    db.from("memberships").select("group_id").eq("user_id", viewerId),
+    db.from("memberships").select("group_id").eq("user_id", targetUserId),
+  ]);
+  const theirSet = new Set((theirs ?? []).map((m) => m.group_id));
+  const sharedIds = (mine ?? [])
+    .map((m) => m.group_id)
+    .filter((id) => theirSet.has(id));
+  if (sharedIds.length === 0) return [];
+
+  const [{ data: groups }, { data: members }] = await Promise.all([
+    db.from("groups").select("id, code, name").in("id", sharedIds),
+    db.from("memberships").select("group_id").in("group_id", sharedIds),
+  ]);
+
+  const counts = new Map<string, number>();
+  for (const m of members ?? []) {
+    counts.set(m.group_id, (counts.get(m.group_id) ?? 0) + 1);
+  }
+
+  return (groups ?? []).map((g) => ({
+    code: g.code,
+    name: g.name,
+    memberCount: counts.get(g.id) ?? 0,
+  }));
+}
+
+export interface CrossGroupPlayerGroup {
+  code: string;
+  name: string;
+  /** The player's alias in THIS group (can differ across groups). */
+  displayName: string;
+  /** 1-based standing in the group's overall board (standard competition rank). */
+  rank: number;
+  points: number;
+  /** Number of competitors on the board (incl. the baseline bot). */
+  total: number;
+  /** True while an in-play match is moving this group's board. */
+  live: boolean;
+}
+
+export interface CrossGroupPlayer {
+  player: { displayName: string; isViewer: boolean; isBot: boolean };
+  /** One summary per shared group: the player's rank + points there. */
+  groups: CrossGroupPlayerGroup[];
+}
+
+/**
+ * A player across every group the viewer shares with them: their rank and points
+ * in each, reusing the exact standings shown on the group page. Lightweight by
+ * design — it surfaces standings, not each group's full prediction list.
+ */
+export async function getCrossGroupPlayer(opts: {
+  viewerId: string;
+  targetUserId: string;
+}): Promise<CrossGroupPlayer> {
+  const isBot = opts.targetUserId === BORINGBOT_ID;
+  const isViewer = opts.viewerId === opts.targetUserId && !isBot;
+  const shared = await getSharedGroups(opts.viewerId, opts.targetUserId);
+  if (shared.length === 0) {
+    return {
+      player: { displayName: isBot ? BORINGBOT_NAME : "", isViewer, isBot },
+      groups: [],
+    };
+  }
+
+  const standingsList = await Promise.all(
+    shared.map((g) => getGroupStandings(g.code, opts.viewerId)),
+  );
+
+  let headerName = "";
+  const groups: CrossGroupPlayerGroup[] = [];
+  for (let i = 0; i < shared.length; i++) {
+    const s = standingsList[i];
+    if (!s) continue;
+    const board = s.standings.overall;
+    const row = board.find((r) => r.userId === opts.targetUserId);
+    if (!row) continue; // not on this board (e.g. removed) — skip
+    // Standard competition ranking: one more than the number strictly ahead.
+    const rank = board.filter((r) => r.points > row.points).length + 1;
+    headerName ||= row.displayName;
+    groups.push({
+      code: shared[i].code,
+      name: shared[i].name,
+      displayName: row.displayName,
+      rank,
+      points: row.points,
+      total: board.length,
+      live: s.live,
+    });
+  }
+
+  return {
+    player: {
+      displayName: isBot ? BORINGBOT_NAME : headerName,
+      isViewer,
+      isBot,
+    },
+    groups,
+  };
 }
 
 export interface GroupStandings {

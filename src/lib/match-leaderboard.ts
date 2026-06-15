@@ -12,6 +12,7 @@
  */
 
 import { createAdminClient } from "./supabase/admin";
+import { getUserGroups } from "./groups";
 import { normalizeCode } from "./codes";
 import { isMatchOver } from "./match-predicates";
 import { deriveMatchScore, mapMatchFields } from "./match-status";
@@ -267,6 +268,50 @@ export async function getMatchLeaderboard(opts: {
       total: members.length,
     },
   };
+}
+
+export interface CrossGroupMatchBoards {
+  /** The (global) match itself, taken from any group's board. null only when the
+   *  viewer is in no groups (so there's no board to source it from). */
+  match: MatchBoardMatch | null;
+  /** One per-match board for every group the viewer belongs to. */
+  groups: MatchBoard[];
+}
+
+/**
+ * The cross-group match hub: every group the viewer belongs to, each with its
+ * own per-match leaderboard for ONE match — so they can compare how all their
+ * groups called the same game in one place. Predictions are global, so this is
+ * the same pick re-scored under each group's window; the per-group privacy rule
+ * (picks hidden until kickoff) is enforced by getMatchLeaderboard.
+ *
+ * Returns null when the match doesn't exist in any of the viewer's groups (a bad
+ * match id). A viewer in zero groups gets { match: null, groups: [] }.
+ */
+export async function getCrossGroupMatchBoards(opts: {
+  matchId: string;
+  viewerId: string;
+}): Promise<CrossGroupMatchBoards | null> {
+  const groups = await getUserGroups(opts.viewerId);
+  if (groups.length === 0) return { match: null, groups: [] };
+
+  // ~4 queries per group, run in parallel — fine for a handful of groups.
+  const boards = (
+    await Promise.all(
+      groups.map((g) =>
+        getMatchLeaderboard({
+          code: g.code,
+          matchId: opts.matchId,
+          viewerId: opts.viewerId,
+        }),
+      ),
+    )
+  ).filter((b): b is MatchBoard => b != null);
+
+  // Every board is null only when the match id itself doesn't exist.
+  if (boards.length === 0) return null;
+
+  return { match: boards[0].match, groups: boards };
 }
 
 export interface BoardMatchSummary {

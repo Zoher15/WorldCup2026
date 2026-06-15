@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Stepper } from "./Stepper";
 import { Countdown } from "./Countdown";
 import { BreakdownRow } from "./BreakdownRow";
@@ -109,6 +110,10 @@ export interface MatchCardProps {
   status?: React.ReactNode;
   /** Contextual strip under the teams (saved indicator, points, privacy note). */
   footer?: React.ReactNode;
+  /** When set, renders a "See all groups' picks →" link under the card to the
+   *  cross-group match hub. Lives in the footer region so it never overlaps the
+   *  score steppers or the tap-for-math tile. */
+  detailHref?: string;
   /** Fired when a header countdown reaches zero (e.g. to refresh the page). */
   onExpire?: () => void;
   /** Brighten the flags on hover (as if unlocked) — used in the homepage preview. */
@@ -414,7 +419,7 @@ function FlagHalf({ code, side }: { code: string | null; side: "left" | "right" 
   );
 }
 
-export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, footer, onExpire, revealOnHover, hero, nag }: MatchCardProps) {
+export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, footer, detailHref, onExpire, revealOnHover, hero, nag }: MatchCardProps) {
   const editing = data.state === "open" && entry != null;
   const hasResult =
     (data.state === "live" || data.state === "final") &&
@@ -610,6 +615,16 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
             <div className={`rounded-lg px-3 py-1.5 ${GLASS} text-stone-700 dark:text-stone-100`}>
               {footer}
             </div>
+          )}
+          {detailHref && (
+            <Link
+              href={detailHref}
+              prefetch={false}
+              className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 ${GLASS} text-grape transition active:scale-[0.98] dark:text-violet-300`}
+            >
+              See all groups&apos; picks
+              <span aria-hidden>→</span>
+            </Link>
           )}
         </div>
       </div>
