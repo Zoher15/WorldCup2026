@@ -2,18 +2,37 @@
 
 /* The app is dark-mode only. Force every Tailwind `dark:` utility to apply
    unconditionally (instead of keying off the OS `prefers-color-scheme`), so the
-   dark palette renders regardless of the visitor's device setting. */
+   dark palette renders regardless of the visitor's device setting. The markup's
+   light/`dark:` pairs have been collapsed to their dark values directly, but
+   this variant stays as the safety net (and mechanism) for any stray `dark:`. */
 @custom-variant dark (&);
 
 /* Festive & colorful theme tokens */
 @theme {
   --color-pitch: #0b8a3e;
-  --color-pitch-dark: #066b2e;
   --color-sunburst: #ffd23f;
   --color-flame: #ff5a36;
   --color-grape: #6b2fb3;
   --color-ocean: #1e8fd5;
-  --color-cream: #fff8ec;
+}
+
+/* Shared motion + shape scale. Defined here as the single source of truth for
+   later work to reference; existing animations aren't refactored onto these yet.
+   - Easing: `standard` for everyday moves, `emphasis` for entrances with a
+     little "land" (the rise-in entrance already uses this curve), `exit` for
+     things leaving.
+   - Duration: matches the existing feel — `fast` is the press/sheen dip
+     (≈130ms), `base` the pop-in, `slow` the longer settles.
+   - Radius convention (documentation only — components keep their own classes):
+     pill = `rounded-full`, control (buttons/inputs) = `rounded-xl`,
+     tile = `rounded-2xl`, panel = `rounded-3xl`. */
+@theme {
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasis: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --dur-fast: 130ms;
+  --dur-base: 350ms;
+  --dur-slow: 600ms;
 }
 
 /* Display face for headlines and big scores. `--font-archivo` is set on <html>
@@ -482,4 +501,26 @@ body {
   }
   .glass.glass-muted { background: rgba(28, 25, 23, 0.94); }
   .glass.glass-frost { background: rgba(20, 18, 16, 0.96); }
+}
+
+/* Reduced-motion parity for the Tailwind *utility* layer. Every `@keyframes`
+   above is gated individually; this block closes the gap left by motion that
+   ships as utilities rather than as our own animations. We deliberately do NOT
+   blanket-zero all transitions/animations — that would also kill the static
+   handoffs (e.g. colour/opacity fades) the design relies on. */
+@media (prefers-reduced-motion: reduce) {
+  /* The two utility-driven looping/entrance animations not covered above. */
+  .animate-pop-in,
+  .animate-pulse {
+    animation: none !important;
+  }
+  /* Kill the press/hover *scale* on the ~50 buttons that use `active:scale-*` /
+     `hover:scale-*`. In Tailwind v4 these compile to the CSS `scale` property
+     (not `transform`), so we reset `scale`, not `transform`. Scoped to the
+     :active / :hover state and to elements that actually carry a scale utility,
+     so no other element is touched. */
+  [class*="active:scale"]:active,
+  [class*="hover:scale"]:hover {
+    scale: none !important;
+  }
 }
