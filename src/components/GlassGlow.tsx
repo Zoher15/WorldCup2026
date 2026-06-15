@@ -53,13 +53,9 @@ export function GlassGlow() {
       pressed = null;
     };
 
-    const apply = () => {
-      raf = 0;
-      if (!pending) return;
-      const { x, y } = pending;
-      const el = frontGlass(x, y);
-      if (el !== hovered) clearHover();
-      if (!el) return;
+    // Light the specular sheen on `el` at this point. Shared by the hover path
+    // and the press path so a tap hit-tests the stack only once.
+    const paintSheen = (el: HTMLElement, x: number, y: number) => {
       const r = el.getBoundingClientRect();
       el.style.setProperty("--gx", `${((x - r.left) / r.width) * 100}%`);
       el.style.setProperty("--gy", `${((y - r.top) / r.height) * 100}%`);
@@ -67,14 +63,27 @@ export function GlassGlow() {
       hovered = el;
     };
 
+    const apply = () => {
+      raf = 0;
+      if (!pending) return;
+      const { x, y } = pending;
+      const el = frontGlass(x, y);
+      if (el !== hovered) clearHover();
+      if (el) paintSheen(el, x, y);
+    };
+
     const onMove = (e: PointerEvent) => {
       pending = { x: e.clientX, y: e.clientY };
       if (!raf) raf = requestAnimationFrame(apply);
     };
 
+    // Hit-test the stack once and drive both the sheen and the press dip from
+    // it — synchronously, so the tactile feedback lands on the same frame as the
+    // tap (no waiting on the rAF-batched move path).
     const onDown = (e: PointerEvent) => {
-      onMove(e); // refresh the sheen position immediately
       const el = frontGlass(e.clientX, e.clientY);
+      if (el !== hovered) clearHover();
+      if (el) paintSheen(el, e.clientX, e.clientY);
       if (el !== pressed) releasePress();
       if (el) {
         el.classList.add("glass-press");
