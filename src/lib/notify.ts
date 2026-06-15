@@ -5,9 +5,11 @@
  * FIRST kickoff, every opted-in member gets a single consolidated email that
  * folds in everything that used to be two separate sends —
  *   - the day's matches, with the recipient's picks marked,
- *   - which of them the recipient still hasn't predicted, and
+ *   - which of them the recipient still hasn't predicted,
  *   - how far they've climbed in each group, plus per-group social proof
- *     ("9 of 9 of your group-mates are already in") for a nudge of FOMO.
+ *     ("9 of 9 of your group-mates are already in") for a nudge of FOMO, and
+ *   - a celebratory achievements block: their current 🔥 scoring streak and any
+ *     fresh 🔮 "against the crowd" calls settled since the last digest.
  * Firing an hour out (rather than at window-open, ~1.5 days early) means members
  * have had the whole window to play, so the "still missing", climb and FOMO
  * numbers are meaningful. The match-day is claimed in notified_match_days (PK
@@ -30,6 +32,12 @@ import {
 import { isTrialActive } from "./prediction-rules";
 import { teamLabel } from "./fifa";
 import { formatStageLabel } from "./format";
+import {
+  computeNewUpsets,
+  type UpsetCall,
+  type UpsetMatch,
+  type UpsetPick,
+} from "./upsets";
 import { isEmailConfigured, type EmailMessage } from "./email";
 import { enqueueDigestEmails } from "./email-queue";
 import { appBaseUrl } from "./app-url";
@@ -65,6 +73,11 @@ const MATCH_COLUMNS =
 
 /** How far before a match-day's FIRST kickoff the digest fires. */
 const DIGEST_LEAD_MS = 1 * 60 * 60 * 1000;
+
+/** How many fresh "against the crowd" calls the achievements block lists
+ *  (newest first) before it stops — enough to celebrate without burying the
+ *  call-to-action. */
+const MAX_DIGEST_UPSETS = 3;
 
 /**
  * Send the once-per-match-day digest: about an hour before a day's first
@@ -139,17 +152,31 @@ export async function sendMatchDayDigest(
       (a, b) => Date.parse(a.kickoff_at) - Date.parse(b.kickoff_at),
     );
 
-    // Per-group leaderboard movement since the last digest, for the "you've
-    // climbed N spots" encouragement. Best-effort: if the standings computation
-    // fails, the digest still goes out without the climb section.
+    // Per-group leaderboard movement since the last digest (the "you've climbed
+    // N spots" line), plus the celebratory achievements — each member's current
+    // scoring streak and any fresh "against the crowd" calls. Best-effort: if the
+    // standings computation fails, the digest still goes out without these.
     let currentRanks = new Map<string, Map<string, number>>();
     let previousRanks = new Map<string, Map<string, number>>();
+    let streakByUser = new Map<string, number>();
+    let upsetsByUser = new Map<string, UpsetCall[]>();
     try {
-      currentRanks = await loadGroupRanks(db);
+      const ranks = await loadGroupRanks(db);
+      currentRanks = ranks.ranks;
+      streakByUser = ranks.streakByUser;
       previousRanks = await loadRankSnapshots(db);
+      // "New since last digest" rides the climb's baseline: the first digest for a
+      // league has no prior snapshot, so (like the climb) it surfaces no upsets
+      // yet — only matches settled between consecutive digests are "new".
+      const lastDigestAt = await loadLastDigestAt(db);
+      if (lastDigestAt != null) {
+        upsetsByUser = await loadNewUpsets(db, groups, lastDigestAt);
+      }
     } catch {
       currentRanks = new Map();
       previousRanks = new Map();
+      streakByUser = new Map();
+      upsetsByUser = new Map();
     }
 
     // One digest per member: the full slate (with their picks marked), what's
@@ -160,10 +187,12 @@ export async function sendMatchDayDigest(
       const missing = ordered.filter((m) => !done.has(m.id));
       const stats = groupStatsFor(r.userId, groups, participants);
       const climbs = computeClimbs(r.userId, groups, currentRanks, previousRanks);
+      const streak = streakByUser.get(r.userId) ?? 0;
+      const upsets = upsetsByUser.get(r.userId) ?? [];
       return {
         to: r.email,
         subject: digestSubject(ordered.length, missing.length),
-        html: renderDigestEmail(ordered, done, climbs, stats, base, r.token),
+        html: renderDigestEmail(ordered, done, climbs, streak, upsets, stats, base, r.token),
         headers: { "List-Unsubscribe": `<${base}/unsubscribe?token=${r.token}>` },
       };
     });
@@ -448,13 +477,18 @@ interface ScorableMatchRow {
 
 /**
  * Every member's CURRENT overall-board rank in each group, as group id -> (user
- * id -> rank). Computed with the same engine and inputs the app's leaderboards
- * use (BoringBot baseline included, trial matches honored), so the numbers match
- * what members see. All loads are paged so a large league isn't truncated.
+ * id -> rank), plus each member's best scoring streak across their groups (for
+ * the achievements block). Computed with the same engine and inputs the app's
+ * leaderboards use (BoringBot baseline included, trial matches honored), so the
+ * numbers match what members see. All loads are paged so a large league isn't
+ * truncated.
  */
 async function loadGroupRanks(
   db: SupabaseClient,
-): Promise<Map<string, Map<string, number>>> {
+): Promise<{
+  ranks: Map<string, Map<string, number>>;
+  streakByUser: Map<string, number>;
+}> {
   // Group scoring metadata.
   const groupsMeta = new Map<string, { lateJoinPolicy: LateJoinPolicy; createdAt: string }>();
   const PAGE = 1000;
@@ -551,6 +585,10 @@ async function loadGroupRanks(
 
   const countTrialMatches = isTrialActive();
   const byGroup = new Map<string, Map<string, number>>();
+  // A member's scoring streak is per-group (a start_even group ignores pre-join
+  // matches), so the digest headline takes their best across groups — the streak
+  // their main board would show.
+  const streakByUser = new Map<string, number>();
   for (const [gid, members] of membersByGroup) {
     const meta = groupsMeta.get(gid);
     if (!meta) continue;
@@ -571,11 +609,16 @@ async function loadGroupRanks(
     const ranks = competitionRanks(standings.overall);
     const userRank = new Map<string, number>();
     standings.overall.forEach((row, i) => {
-      if (row.userId !== BORINGBOT_ID) userRank.set(row.userId, ranks[i]);
+      if (row.userId === BORINGBOT_ID) return;
+      userRank.set(row.userId, ranks[i]);
+      const streak = row.streak ?? 0;
+      if (streak > (streakByUser.get(row.userId) ?? 0)) {
+        streakByUser.set(row.userId, streak);
+      }
     });
     byGroup.set(gid, userRank);
   }
-  return byGroup;
+  return { ranks: byGroup, streakByUser };
 }
 
 /** The previously-stored ranks, as group id -> (user id -> rank). Paged. */
@@ -627,6 +670,105 @@ async function saveRankSnapshots(
       .from("group_rank_snapshots")
       .upsert(rows.slice(i, i + CHUNK), { onConflict: "group_id,user_id" });
   }
+}
+
+/**
+ * When the previous digest ran (the most recent snapshot's updated_at, epoch
+ * ms), or null if none has — the boundary for "new since the last digest". Read
+ * BEFORE saveRankSnapshots overwrites the snapshots, so the upsets it bounds are
+ * exactly the matches settled between this digest and the previous one.
+ */
+async function loadLastDigestAt(db: SupabaseClient): Promise<number | null> {
+  const { data } = await db
+    .from("group_rank_snapshots")
+    .select("updated_at")
+    .order("updated_at", { ascending: false })
+    .limit(1);
+  const row = data?.[0];
+  if (!row) return null;
+  const ms = Date.parse(row.updated_at as string);
+  return Number.isNaN(ms) ? null : ms;
+}
+
+const UPSET_MATCH_COLUMNS =
+  "id, kickoff_at, stage, home_code, away_code, home_team, away_team, home_goals, away_goals, advanced_code";
+
+interface UpsetMatchRow {
+  id: string;
+  kickoff_at: string;
+  stage: Stage;
+  home_code: string | null;
+  away_code: string | null;
+  home_team: string | null;
+  away_team: string | null;
+  home_goals: number | null;
+  away_goals: number | null;
+  advanced_code: string | null;
+}
+
+/**
+ * Each member's fresh "against the crowd" calls: the confirmed matches that
+ * kicked off since the last digest (`sinceMs`), scored against every group's
+ * consensus with the same rule the per-match board uses (computeNewUpsets).
+ * Only the recently-settled slate is loaded, so this is cheap — not the whole
+ * tournament. Picks for a kicked-off match are already public, so revealing the
+ * callers here leaks nothing.
+ */
+async function loadNewUpsets(
+  db: SupabaseClient,
+  groups: GroupStructure,
+  sinceMs: number,
+): Promise<Map<string, UpsetCall[]>> {
+  const sinceIso = new Date(sinceMs).toISOString();
+  const { data: matchData, error } = await db
+    .from("matches")
+    .select(UPSET_MATCH_COLUMNS)
+    .eq("result_confirmed", true)
+    .eq("is_trial", false)
+    .gt("kickoff_at", sinceIso);
+  if (error || !matchData) return new Map();
+
+  const matches: UpsetMatch[] = [];
+  for (const m of matchData as UpsetMatchRow[]) {
+    if (m.home_goals == null || m.away_goals == null) continue;
+    matches.push({
+      id: m.id,
+      kickoffMs: Date.parse(m.kickoff_at),
+      label: `${teamLabel(m.home_code, m.home_team)} vs ${teamLabel(m.away_code, m.away_team)}`,
+      stage: m.stage,
+      homeCode: m.home_code,
+      awayCode: m.away_code,
+      result: { home: m.home_goals, away: m.away_goals, advancedCode: m.advanced_code },
+    });
+  }
+  if (matches.length === 0) return new Map();
+
+  // Picks for those (now public) matches, by match then user. Paged past the row
+  // cap so a busy slate can't be silently truncated.
+  const matchIds = matches.map((m) => m.id);
+  const picksByMatch = new Map<string, Map<string, UpsetPick>>();
+  const PAGE = 1000;
+  for (let from = 0; ; from += PAGE) {
+    const { data, error: predErr } = await db
+      .from("predictions")
+      .select("user_id, match_id, pred_home, pred_away, advance_pick")
+      .in("match_id", matchIds)
+      .range(from, from + PAGE - 1);
+    if (predErr || !data) break;
+    for (const p of data) {
+      const mid = p.match_id as string;
+      let byUser = picksByMatch.get(mid);
+      if (!byUser) picksByMatch.set(mid, (byUser = new Map()));
+      byUser.set(p.user_id as string, {
+        home: p.pred_home as number,
+        away: p.pred_away as number,
+        advancePick: (p.advance_pick as string | null) ?? null,
+      });
+    }
+    if (data.length < PAGE) break;
+  }
+
+  return computeNewUpsets(matches, picksByMatch, groups.membersByGroup, groups.groupName);
 }
 
 /** Escape user-supplied text (e.g. group names) for safe inlining into email HTML. */
@@ -706,14 +848,47 @@ function renderClimb(climbs: Climb[]): string {
 }
 
 /**
- * The consolidated match-day digest: how far the recipient has climbed, the
- * day's slate with their picks marked, a one-line summary of what's still
- * missing, and per-group FOMO.
+ * The recipient's celebratory achievements: their current scoring streak (the
+ * same 🔥 the leaderboard and scorecard show, surfaced at the same ≥2 threshold)
+ * and any fresh "against the crowd" 🔮 calls since the last digest, newest first
+ * and capped. Group names are user-supplied, so they're HTML-escaped; team
+ * labels come from the curated fixtures and are inlined as-is, like the match
+ * rows. Nothing renders when there's neither a streak nor a new upset.
+ */
+function renderAchievements(streak: number, upsets: UpsetCall[]): string {
+  const lines: string[] = [];
+  if (streak >= 2) {
+    lines.push(`🔥 <strong>${streak} in a row</strong> — your current run of correct calls`);
+  }
+  for (const u of upsets.slice(0, MAX_DIGEST_UPSETS)) {
+    lines.push(
+      `🔮 Called <strong>${u.match}</strong> against the crowd in <strong>${escapeHtml(u.group)}</strong>`,
+    );
+  }
+  if (lines.length === 0) return "";
+  const items = lines
+    .map(
+      (line) =>
+        `<tr><td style="padding:6px 0;color:#5b21b6;font-size:14px;">${line}</td></tr>`,
+    )
+    .join("");
+  return `<div style="margin:0 0 16px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:16px;padding:14px 20px;">
+        <p style="margin:0 0 6px;font-weight:700;font-size:14px;color:#6d28d9;">🏅 Your achievements</p>
+        <table style="width:100%;border-collapse:collapse;">${items}</table>
+      </div>`;
+}
+
+/**
+ * The consolidated match-day digest: how far the recipient has climbed, their
+ * achievements (streak + fresh upset calls), the day's slate with their picks
+ * marked, a one-line summary of what's still missing, and per-group FOMO.
  */
 function renderDigestEmail(
   matches: MatchRow[],
   done: Set<string>,
   climbs: Climb[],
+  streak: number,
+  upsets: UpsetCall[],
   stats: GroupStat[],
   base: string,
   token: string,
@@ -737,6 +912,7 @@ function renderDigestEmail(
         ${summary}
       </p>
       ${renderClimb(climbs)}
+      ${renderAchievements(streak, upsets)}
       <div style="background:#ffffff;border-radius:16px;padding:16px 20px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
         <table style="width:100%;border-collapse:collapse;font-size:15px;">${rows}</table>
       </div>

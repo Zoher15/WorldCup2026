@@ -5,10 +5,10 @@
  * provisional projection (scoreMatch doesn't require a confirmed result).
  */
 
-import { scoreMatch, advancePoints } from "./scoring";
-import { actualWinnerDirection } from "./recompute";
-import { isKnockoutStage } from "./polling";
-import type { Stage } from "./types";
+import { scoreMatch, advancePoints } from "./scoring.ts";
+import { actualWinnerDirection } from "./recompute.ts";
+import { isKnockoutStage } from "./polling.ts";
+import type { Stage } from "./types.ts";
 
 export interface ScoreBreakdown {
   /** Outcome points: 0, 2, or 5 (right direction). */
