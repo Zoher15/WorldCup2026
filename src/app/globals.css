@@ -204,6 +204,50 @@ body {
   );
 }
 
+/* Let the brand sweep breathe: a slow drift across a double-wide gradient so the
+   page headlines (.gradient-text) and the hero card's accent ring
+   (.gradient-accent) feel alive rather than printed. Slow enough (14s) to read
+   as ambient light, not motion. Reduced motion parks it on the first frame. */
+@keyframes gradient-drift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.gradient-text,
+.gradient-accent {
+  background-size: 200% 100%;
+  animation: gradient-drift 14s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gradient-text,
+  .gradient-accent { animation: none; }
+}
+
+/* A slow diagonal glint travelling across a surface — used on the leaderboard
+   winner's gold step so first place quietly catches the light. The host needs
+   `position: relative` and clips its overflow; the ::after is a skewed
+   translucent band swept across by transform. Reduced motion removes it. */
+.shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.5) 50%,
+    transparent 65%
+  );
+  transform: translateX(-130%);
+  animation: shine-sweep 4.5s ease-in-out infinite;
+}
+@keyframes shine-sweep {
+  0% { transform: translateX(-130%); }
+  55%, 100% { transform: translateX(130%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shine::after { display: none; }
+}
+
 /* Liquid-glass surface for the text panels floating over the flags. A frosted,
    translucent tint lets the vibrant flags glow through, while the blur keeps
    text crisp; `saturate` pushes the flag colours that bleed through, and the
@@ -350,6 +394,14 @@ body {
     0 3px 12px -8px rgba(0, 0, 0, 0.55);
   transition: transform 0.13s ease, box-shadow 0.13s ease,
     background-color 0.25s ease;
+}
+/* Chrome only ever clothes interactive controls (buttons, tabs, pills), so a
+   pointer that can hover gets a gentle lighten as an affordance — paired with
+   the JS press dip for the full down-state. */
+@media (hover: hover) {
+  .chrome:hover {
+    background-color: rgba(48, 44, 40, 0.95);
+  }
 }
 .chrome.glass-press {
   transform: scale(0.985);

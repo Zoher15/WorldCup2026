@@ -228,7 +228,9 @@ export function Leaderboard({
                   "glass over flags" treatment on the match cards. */}
               <div className={`relative w-full ${PODIUM_HEIGHT[ranks[idx] - 1]}`}>
                 <div
-                  className={`absolute inset-0 rounded-t-xl bg-gradient-to-b ${PODIUM_BG[ranks[idx] - 1]}`}
+                  className={`absolute inset-0 overflow-hidden rounded-t-xl bg-gradient-to-b ${PODIUM_BG[ranks[idx] - 1]}${
+                    ranks[idx] === 1 ? " shine" : ""
+                  }`}
                 />
                 <div className="absolute inset-0 rounded-t-xl glass" />
                 {/* Gold flash when a riser just took (or rose within) this slot. */}
