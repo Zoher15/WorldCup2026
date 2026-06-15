@@ -13,11 +13,9 @@ import type { MatchBoard, MatchBoardMatch } from "@/lib/match-leaderboard";
  * same game without hopping between group pages.
  */
 export function CrossGroupMatchHub({
-  matchId,
   match,
   boards,
 }: {
-  matchId: string;
   match: MatchBoardMatch;
   boards: MatchBoard[];
 }) {
@@ -36,21 +34,24 @@ export function CrossGroupMatchHub({
             className="rounded-3xl glass p-4 [&_summary::-webkit-details-marker]:hidden"
           >
             <summary className="flex cursor-pointer list-none items-center gap-3">
-              <span className="min-w-0 flex-1 truncate text-lg font-black text-grape dark:text-violet-300">
+              <Link
+                href={`/g/${board.group.code}`}
+                prefetch={false}
+                onClick={(e) => e.stopPropagation()}
+                className="min-w-0 flex-1 truncate text-lg font-black text-grape hover:underline dark:text-violet-300"
+              >
                 {board.group.name}
-              </span>
+              </Link>
               <span className="shrink-0 text-xs font-medium text-stone-500 dark:text-stone-300">
                 {board.summary.entered} of {board.summary.total}{" "}
                 {board.revealed ? "predicted" : "entered"}
               </span>
-              <Link
-                href={`/g/${board.group.code}/m/${matchId}`}
-                prefetch={false}
-                className="hidden shrink-0 text-xs font-bold text-stone-400 hover:underline sm:inline"
-                onClick={(e) => e.stopPropagation()}
+              <span
+                aria-hidden
+                className="shrink-0 text-stone-400 transition-transform [details[open]_&]:rotate-180"
               >
-                view group →
-              </Link>
+                ▾
+              </span>
             </summary>
             <div className="mt-3">
               <MatchBoardRows board={board} />

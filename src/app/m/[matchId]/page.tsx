@@ -45,11 +45,7 @@ export default async function MatchHubPage({
 
       {data.match && data.groups.length > 0 ? (
         <>
-          <CrossGroupMatchHub
-            matchId={matchId}
-            match={data.match}
-            boards={data.groups}
-          />
+          <CrossGroupMatchHub match={data.match} boards={data.groups} />
           <p className="mt-8 text-center text-xs text-stone-400">
             Picks unlock at kickoff · points are confirmed once the result is
             final.
