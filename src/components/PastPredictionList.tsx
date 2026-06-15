@@ -72,19 +72,19 @@ function ShareNudge({ matches }: { matches: PastPrediction[] }) {
 
   return (
     <div className="mb-6 flex items-center gap-3 rounded-2xl glass px-4 py-3">
-      <p className="min-w-0 flex-1 text-sm font-bold text-stone-700 dark:text-stone-100">
+      <p className="min-w-0 flex-1 text-sm font-bold text-stone-100">
         🎯 Great call on {home}–{away}! Share it with your group
       </p>
       <button
         onClick={share}
-        className={`shrink-0 rounded-full chrome px-4 py-2 text-sm font-bold text-pitch transition active:scale-95 dark:text-emerald-400 ${FOCUS_RING}`}
+        className={`shrink-0 rounded-full chrome px-4 py-2 text-sm font-bold text-emerald-400 transition active:scale-95 ${FOCUS_RING}`}
       >
         {copied ? "Copied ✓" : "Share"}
       </button>
       <button
         onClick={dismiss}
         aria-label="Dismiss"
-        className={`shrink-0 rounded-full px-2 py-1 text-sm font-bold text-stone-400 transition hover:text-stone-600 active:scale-95 dark:hover:text-stone-200 ${FOCUS_RING}`}
+        className={`shrink-0 rounded-full px-2 py-1 text-sm font-bold text-stone-400 transition hover:text-stone-200 active:scale-95 ${FOCUS_RING}`}
       >
         ✕
       </button>

@@ -68,14 +68,14 @@ function MatchRow({ code, match }: { code: string; match: BoardMatchSummary }) {
         </span>
         <span
           title={`${home} v ${away}`}
-          className="min-w-0 flex-1 truncate font-bold text-stone-800 dark:text-stone-100"
+          className="min-w-0 flex-1 truncate font-bold text-stone-100"
         >
           {home}
           <span className="px-1.5 text-stone-400">v</span>
           {away}
         </span>
         <MatchStatus match={match} />
-        <span className="text-grape dark:text-violet-300">→</span>
+        <span className="text-violet-300">→</span>
       </Link>
     </li>
   );
@@ -99,10 +99,10 @@ export function GroupMatches({
 
   return (
     <section className="mt-6 rounded-3xl glass p-5">
-      <h2 className="mb-1 text-center text-xl font-black text-grape dark:text-violet-300">
+      <h2 className="mb-1 text-center text-xl font-black text-violet-300">
         ⚽ Matches
       </h2>
-      <p className="mb-4 text-center text-xs font-medium text-stone-500 dark:text-stone-300">
+      <p className="mb-4 text-center text-xs font-medium text-stone-300">
         See everyone&apos;s predictions, match by match
       </p>
 
@@ -124,7 +124,7 @@ export function GroupMatches({
             <button
               onClick={() => setShowFinished((v) => !v)}
               aria-expanded={showFinished}
-              className={`rounded-full chrome px-4 py-2 text-sm font-bold text-grape transition active:scale-95 dark:text-violet-300 ${FOCUS_RING}`}
+              className={`rounded-full chrome px-4 py-2 text-sm font-bold text-violet-300 transition active:scale-95 ${FOCUS_RING}`}
             >
               {showFinished
                 ? "Hide finished"

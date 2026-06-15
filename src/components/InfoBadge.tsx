@@ -61,7 +61,7 @@ export function InfoBadge({
       </button>
       {open && (
         <div
-          className={`absolute top-full z-20 mt-1 w-48 rounded-xl glass glass-frost px-3 py-2 text-left text-[11px] font-medium leading-snug text-stone-700 dark:text-stone-100 ${ALIGN[align]}`}
+          className={`absolute top-full z-20 mt-1 w-48 rounded-xl glass glass-frost px-3 py-2 text-left text-[11px] font-medium leading-snug text-stone-100 ${ALIGN[align]}`}
         >
           {explainer}
         </div>

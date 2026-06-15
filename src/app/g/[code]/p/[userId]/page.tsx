@@ -51,7 +51,7 @@ export default async function PlayerPage({
       </Link>
 
       <header className="mt-3 mb-6 rounded-3xl glass p-6 text-center">
-        <h1 className="text-3xl font-black text-grape dark:text-violet-300">
+        <h1 className="text-3xl font-black text-violet-300">
           {player.displayName}
           {player.isViewer && (
             <span className="ml-2 align-middle text-xs font-bold text-stone-400">
@@ -60,12 +60,12 @@ export default async function PlayerPage({
           )}
         </h1>
         {player.realName && (
-          <p className="mt-1 text-sm font-semibold text-stone-500 dark:text-stone-400">
+          <p className="mt-1 text-sm font-semibold text-stone-400">
             {player.realName}
           </p>
         )}
         {player.email && (
-          <p className="mt-0.5 text-xs font-medium text-stone-400 dark:text-stone-500">
+          <p className="mt-0.5 text-xs font-medium text-stone-500">
             <a
               href={`mailto:${player.email}`}
               className={`rounded-md underline-offset-2 hover:underline ${FOCUS_RING}`}
@@ -74,7 +74,7 @@ export default async function PlayerPage({
             </a>
           </p>
         )}
-        <p className="mt-2 text-sm font-medium text-stone-500 dark:text-stone-300">
+        <p className="mt-2 text-sm font-medium text-stone-300">
           {summary.points} pts · predicted {summary.predicted} of {summary.total}{" "}
           matches
         </p>
@@ -115,7 +115,7 @@ export default async function PlayerPage({
         <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
           <Link
             href={`/g/${group.code}/p/${userId}/past`}
-            className={`rounded-md text-sm font-bold text-grape underline-offset-2 hover:underline dark:text-violet-300 ${FOCUS_RING}`}
+            className={`rounded-md text-sm font-bold text-violet-300 underline-offset-2 hover:underline ${FOCUS_RING}`}
           >
             Past results →
           </Link>
@@ -123,7 +123,7 @@ export default async function PlayerPage({
             <Link
               href={`/p/${userId}`}
               prefetch={false}
-              className={`rounded-md text-sm font-bold text-grape underline-offset-2 hover:underline dark:text-violet-300 ${FOCUS_RING}`}
+              className={`rounded-md text-sm font-bold text-violet-300 underline-offset-2 hover:underline ${FOCUS_RING}`}
             >
               {player.isViewer ? "You across your groups →" : "Across your groups →"}
             </Link>

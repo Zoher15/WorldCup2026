@@ -24,7 +24,7 @@ export function InviteLink({ code }: { code: string }) {
     <button
       onClick={copy}
       aria-label="Copy invite link to clipboard"
-      className={`rounded-full chrome px-4 py-2 text-sm font-bold text-grape transition active:scale-95 dark:text-violet-300 ${FOCUS_RING}`}
+      className={`rounded-full chrome px-4 py-2 text-sm font-bold text-violet-300 transition active:scale-95 ${FOCUS_RING}`}
     >
       {copied ? "Link copied ✓" : "🔗 Copy invite link"}
     </button>

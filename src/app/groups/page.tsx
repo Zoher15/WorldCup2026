@@ -21,10 +21,10 @@ export default async function GroupsPage() {
       >
         ← Home
       </Link>
-      <h1 className="mt-3 mb-1 gradient-text font-display pb-1 text-3xl leading-tight">
+      <h1 className="mt-3 mb-1 gradient-text font-display pb-1 text-3xl leading-tight tracking-tight">
         Your groups
       </h1>
-      <p className="mb-6 text-sm font-medium text-stone-500 dark:text-stone-300">
+      <p className="mb-6 text-sm font-medium text-stone-300">
         Every group you&apos;re in — tap one for its leaderboard.
       </p>
 
@@ -48,16 +48,16 @@ export default async function GroupsPage() {
                   <span className="min-w-0">
                     <span
                       title={g.name}
-                      className="block truncate font-black text-stone-800 dark:text-stone-100"
+                      className="block truncate font-black text-stone-100"
                     >
                       {g.name}
                     </span>
-                    <span className="text-xs font-medium text-stone-500 dark:text-stone-400">
+                    <span className="text-xs font-medium text-stone-400">
                       {g.memberCount} {g.memberCount === 1 ? "member" : "members"} ·
                       code {g.code}
                     </span>
                   </span>
-                  <span className="text-grape dark:text-violet-300">→</span>
+                  <span className="text-violet-300">→</span>
                 </Link>
               </li>
             ))}
@@ -65,7 +65,7 @@ export default async function GroupsPage() {
 
           <Link
             href="/join"
-            className={`mt-5 inline-block rounded-full glass px-6 py-3 font-bold text-pitch transition active:scale-95 dark:text-emerald-400 ${FOCUS_RING}`}
+            className={`mt-5 inline-block rounded-full glass px-6 py-3 font-bold text-emerald-400 transition active:scale-95 ${FOCUS_RING}`}
           >
             + New group
           </Link>

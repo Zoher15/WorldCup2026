@@ -81,9 +81,9 @@ function PastStatus({ row }: { row: PlayerPredictionRow }) {
 /** Open/upcoming match: the pick stays private — only entered-or-not is shown. */
 function FutureStatus({ row, isBot }: { row: PlayerPredictionRow; isBot: boolean }) {
   if (isBot) return <span className={PREDICTION_TEXT}>Predicts 0–0</span>;
-  if (row.pick) return <span className="text-pitch dark:text-emerald-400">✓ Entered</span>;
+  if (row.pick) return <span className="text-emerald-400">✓ Entered</span>;
   if (row.hasPrediction)
-    return <span className="text-stone-500 dark:text-stone-300">🔒 Hidden</span>;
+    return <span className="text-stone-300">🔒 Hidden</span>;
   return <span className="text-stone-400">Not entered</span>;
 }
 
@@ -150,7 +150,7 @@ export function PlayerPredictions({
     const past = profile.rows.filter(isFinal).reverse();
     if (past.length === 0) {
       return (
-        <div className="rounded-2xl glass p-6 text-center font-medium text-stone-500 dark:text-stone-300">
+        <div className="rounded-2xl glass p-6 text-center font-medium text-stone-300">
           <div className="mb-2 text-4xl">⚽</div>
           No finished matches yet — they&apos;ll appear here after kickoff.
         </div>
@@ -202,7 +202,7 @@ export function PlayerPredictions({
       {profile.player.isViewer && (
         <Link
           href="/predict"
-          className="mt-2 inline-block rounded-full glass px-6 py-3 font-bold text-pitch dark:text-emerald-400 transition active:scale-95"
+          className="mt-2 inline-block rounded-full glass px-6 py-3 font-bold text-emerald-400 transition active:scale-95"
         >
           ⚽ Edit your predictions
         </Link>

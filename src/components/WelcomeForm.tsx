@@ -36,7 +36,7 @@ export function WelcomeForm({ next }: { next: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-full glass py-3.5 text-lg font-bold text-pitch transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:text-emerald-400"
+        className="w-full rounded-full glass py-3.5 text-lg font-bold text-emerald-400 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {pending ? "Saving…" : "Continue →"}
       </button>

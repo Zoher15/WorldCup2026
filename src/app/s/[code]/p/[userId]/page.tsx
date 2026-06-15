@@ -67,16 +67,16 @@ export default async function PlayerSharePage({
     if (!name) notFound();
     return (
       <main className="mx-auto max-w-md px-4 py-12">
-        <h1 className="mb-2 gradient-text font-display pb-1 text-3xl leading-tight">
+        <h1 className="mb-2 gradient-text font-display pb-1 text-3xl leading-tight tracking-tight">
           You&apos;re invited!
         </h1>
-        <p className="mb-6 text-sm font-medium text-stone-500 dark:text-stone-300">
-          Join <strong className="text-grape dark:text-violet-300">{name}</strong> to see
+        <p className="mb-6 text-sm font-medium text-stone-300">
+          Join <strong className="text-violet-300">{name}</strong> to see
           the scorecard and make your own predictions.
         </p>
         <Link
           href={`/login?next=${encodeURIComponent(next)}`}
-          className="block w-full rounded-full glass py-3.5 text-center text-lg font-bold text-pitch transition active:scale-95 dark:text-emerald-400"
+          className="block w-full rounded-full glass py-3.5 text-center text-lg font-bold text-emerald-400 transition active:scale-95"
         >
           Sign in to join →
         </Link>

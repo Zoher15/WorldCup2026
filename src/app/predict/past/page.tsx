@@ -32,16 +32,16 @@ export default async function PastPredictionsPage() {
       >
         ← Predictions
       </Link>
-      <h1 className="mt-3 mb-1 gradient-text font-display pb-1 text-3xl leading-tight">
+      <h1 className="mt-3 mb-1 gradient-text font-display pb-1 text-3xl leading-tight tracking-tight">
         Past results
       </h1>
-      <p className="mb-6 text-sm font-medium text-stone-500 dark:text-stone-300">
+      <p className="mb-6 text-sm font-medium text-stone-300">
         Every match you&apos;ve predicted that&apos;s finished — your call beside
         the full-time score. Tap a card for the points math.
       </p>
 
       {matches.length === 0 ? (
-        <div className="rounded-2xl glass p-6 text-center font-medium text-stone-500 dark:text-stone-300">
+        <div className="rounded-2xl glass p-6 text-center font-medium text-stone-300">
           <div className="mb-2 text-4xl">⚽</div>
           No finished matches yet — they&apos;ll appear here after kickoff.
         </div>

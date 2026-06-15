@@ -49,7 +49,7 @@ export function GroupAdmin({
     <div className="mt-6">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="rounded-full glass px-4 py-2 text-sm font-bold text-stone-600 transition active:scale-95 dark:text-stone-200"
+        className="rounded-full glass px-4 py-2 text-sm font-bold text-stone-200 transition active:scale-95"
       >
         {open ? "Done managing" : "⚙️ Manage group"}
       </button>
@@ -72,13 +72,13 @@ export function GroupAdmin({
             <button
               onClick={rename}
               disabled={renameDisabled}
-              className="shrink-0 rounded-full glass px-4 py-3 text-sm font-bold text-pitch transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 dark:text-emerald-400"
+              className="shrink-0 rounded-full glass px-4 py-3 text-sm font-bold text-emerald-400 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Rename
             </button>
           </div>
           {renameMsg && (
-            <p className="mt-1.5 text-xs font-bold text-stone-500 dark:text-stone-300">
+            <p className="mt-1.5 text-xs font-bold text-stone-300">
               {renameMsg}
             </p>
           )}
@@ -92,7 +92,7 @@ export function GroupAdmin({
                 key={m.userId}
                 className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5"
               >
-                <span className="truncate text-sm font-bold text-stone-700 dark:text-stone-100">
+                <span className="truncate text-sm font-bold text-stone-100">
                   {m.displayName}
                   {m.userId === creatorId && (
                     <span className="ml-1.5 text-xs font-bold text-stone-400">
@@ -117,7 +117,7 @@ export function GroupAdmin({
             ))}
           </ul>
 
-          <div className="mt-4 border-t border-black/5 pt-3 dark:border-white/10">
+          <div className="mt-4 border-white/10 pt-3">
             <button
               disabled={pending}
               onClick={() => {

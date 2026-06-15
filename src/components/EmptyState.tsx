@@ -24,15 +24,15 @@ export function EmptyState({
   return (
     <div className={framed ? "rounded-2xl glass p-6 text-center" : "text-center"}>
       <div className="float-bob mb-2 text-4xl">{icon}</div>
-      <Heading className="text-lg font-black text-stone-700 dark:text-stone-100">
+      <Heading className="text-lg font-black text-stone-100">
         {title}
       </Heading>
-      <p className="mt-1 text-sm font-medium text-stone-500 dark:text-stone-300">
+      <p className="mt-1 text-sm font-medium text-stone-300">
         {hint}
       </p>
       <Link
         href={href}
-        className={`mt-4 inline-block rounded-full chrome px-6 py-3 font-bold text-pitch transition active:scale-95 dark:text-emerald-400 ${FOCUS_RING}`}
+        className={`mt-4 inline-block rounded-full chrome px-6 py-3 font-bold text-emerald-400 transition active:scale-95 ${FOCUS_RING}`}
       >
         {cta}
       </Link>

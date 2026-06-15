@@ -30,7 +30,7 @@ export function AccountMenu({
     return (
       <Link
         href="/login"
-        className={`rounded-full glass px-4 py-1.5 text-sm font-bold text-grape dark:text-violet-300 ${FOCUS_RING}`}
+        className={`rounded-full glass px-4 py-1.5 text-sm font-bold text-violet-300 ${FOCUS_RING}`}
       >
         Sign in
       </Link>
@@ -49,7 +49,7 @@ export function AccountMenu({
         aria-label="Account menu"
         className={`-m-1.5 flex cursor-pointer items-center rounded-full p-1.5 ${FOCUS_RING}`}
       >
-        <span className="grid h-9 w-9 place-items-center rounded-full glass text-sm font-black text-grape dark:text-violet-300">
+        <span className="grid h-9 w-9 place-items-center rounded-full glass text-sm font-black text-violet-300">
           {initials}
         </span>
       </button>
@@ -57,14 +57,14 @@ export function AccountMenu({
       {open && (
         <div className="glass glass-frost absolute right-0 z-30 mt-2 w-52 origin-top-right animate-pop-in rounded-2xl p-2 shadow-xl">
           {name ? (
-            <p className="truncate px-3 py-1.5 text-sm font-bold text-stone-700 dark:text-stone-100">
+            <p className="truncate px-3 py-1.5 text-sm font-bold text-stone-100">
               {name}
             </p>
           ) : (
             <Link
               href="/welcome"
               onClick={() => setOpen(false)}
-              className={`block rounded-lg px-3 py-1.5 text-sm font-bold text-grape transition hover:bg-white/10 dark:text-violet-300 ${FOCUS_RING}`}
+              className={`block rounded-lg px-3 py-1.5 text-sm font-bold text-violet-300 transition hover:bg-white/10 ${FOCUS_RING}`}
             >
               Finish setup →
             </Link>
@@ -75,14 +75,14 @@ export function AccountMenu({
           <Link
             href="/predict"
             onClick={() => setOpen(false)}
-            className={`block rounded-lg px-3 py-1.5 text-sm font-bold text-stone-700 transition hover:bg-white/10 dark:text-stone-100 ${FOCUS_RING}`}
+            className={`block rounded-lg px-3 py-1.5 text-sm font-bold text-stone-100 transition hover:bg-white/10 ${FOCUS_RING}`}
           >
             ⚽ My predictions
           </Link>
           <Link
             href="/groups"
             onClick={() => setOpen(false)}
-            className={`block rounded-lg px-3 py-1.5 text-sm font-bold text-stone-700 transition hover:bg-white/10 dark:text-stone-100 ${FOCUS_RING}`}
+            className={`block rounded-lg px-3 py-1.5 text-sm font-bold text-stone-100 transition hover:bg-white/10 ${FOCUS_RING}`}
           >
             🏆 My groups
           </Link>

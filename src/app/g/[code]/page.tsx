@@ -42,22 +42,22 @@ export default async function GroupPage({
     return (
       <main className="mx-auto max-w-md px-4 py-16 text-center">
         <div className="text-4xl">🔒</div>
-        <h1 className="mt-3 text-xl font-black text-stone-700 dark:text-stone-100">
+        <h1 className="mt-3 text-xl font-black text-stone-100">
           You&apos;re not in this group
         </h1>
-        <p className="mt-2 text-sm font-medium text-stone-500 dark:text-stone-300">
+        <p className="mt-2 text-sm font-medium text-stone-300">
           Ask an admin for the join code, then enter it on the join page.
         </p>
         <div className="mt-6 flex justify-center gap-3">
           <Link
             href="/join"
-            className={`rounded-full glass px-6 py-3 font-bold text-pitch transition active:scale-95 dark:text-emerald-400 ${FOCUS_RING}`}
+            className={`rounded-full glass px-6 py-3 font-bold text-emerald-400 transition active:scale-95 ${FOCUS_RING}`}
           >
             Join a group
           </Link>
           <Link
             href="/groups"
-            className={`rounded-full glass px-6 py-3 font-bold text-grape transition active:scale-95 dark:text-violet-300 ${FOCUS_RING}`}
+            className={`rounded-full glass px-6 py-3 font-bold text-violet-300 transition active:scale-95 ${FOCUS_RING}`}
           >
             My groups
           </Link>
@@ -82,10 +82,10 @@ export default async function GroupPage({
       </Link>
 
       <header className="mt-3 mb-6 rounded-3xl glass p-6 text-center">
-        <h1 className="text-3xl font-black text-grape dark:text-violet-300">
+        <h1 className="text-3xl font-black text-violet-300">
           {group.name}
         </h1>
-        <p className="mt-1 text-sm font-medium text-stone-500 dark:text-stone-300">
+        <p className="mt-1 text-sm font-medium text-stone-300">
           Invite others with the code
         </p>
         <div className="mt-2 inline-block rounded-2xl glass px-6 py-2 text-2xl font-black tracking-[0.25em] text-flame">
@@ -103,7 +103,7 @@ export default async function GroupPage({
         </p>
         <Link
           href="/predict"
-          className={`mt-4 inline-block rounded-full glass px-6 py-3 font-bold text-pitch transition active:scale-95 dark:text-emerald-400 ${FOCUS_RING}`}
+          className={`mt-4 inline-block rounded-full glass px-6 py-3 font-bold text-emerald-400 transition active:scale-95 ${FOCUS_RING}`}
         >
           ⚽ Make your predictions
         </Link>

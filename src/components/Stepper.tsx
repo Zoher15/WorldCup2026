@@ -34,7 +34,7 @@ export function Stepper({
         aria-label="Decrease score"
         disabled={value <= 0}
         onClick={() => onChange(Math.max(0, value - 1))}
-        className={`${btn} chrome text-stone-700 disabled:cursor-not-allowed disabled:opacity-40 dark:text-stone-200`}
+        className={`${btn} chrome text-stone-200 disabled:cursor-not-allowed disabled:opacity-40`}
       >
         −
       </button>
@@ -48,7 +48,7 @@ export function Stepper({
         type="button"
         aria-label="Increase score"
         onClick={() => onChange(value + 1)}
-        className={`${btn} chrome text-pitch dark:text-emerald-400`}
+        className={`${btn} chrome text-emerald-400`}
       >
         +
       </button>

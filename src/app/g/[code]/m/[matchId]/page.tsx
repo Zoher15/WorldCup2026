@@ -49,7 +49,7 @@ export default async function MatchBoardPage({
       </Link>
 
       <div className="mt-3 mb-6 flex items-start justify-between gap-3">
-        <h1 className="gradient-text font-display pb-1 text-3xl leading-tight">
+        <h1 className="gradient-text font-display pb-1 text-3xl leading-tight tracking-tight">
           Match predictions
         </h1>
         <div className="shrink-0 pt-1">
@@ -68,7 +68,7 @@ export default async function MatchBoardPage({
         <Link
           href={`/m/${matchId}`}
           prefetch={false}
-          className="inline-flex items-center gap-1.5 rounded-full glass px-5 py-2.5 text-sm font-bold text-grape transition active:scale-95 dark:text-violet-300"
+          className="inline-flex items-center gap-1.5 rounded-full glass px-5 py-2.5 text-sm font-bold text-violet-300 transition active:scale-95"
         >
           Compare across your groups →
         </Link>

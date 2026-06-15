@@ -48,12 +48,12 @@ export default async function RootLayout({
 
   return (
     <html lang="en" className={archivoBlack.variable}>
-      <body className="text-stone-800 antialiased dark:text-stone-100">
+      <body className="text-stone-100 antialiased">
         <GlassGlow />
         <header className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
           <Link
             href="/"
-            className={`inline-flex items-center gap-1.5 rounded-full glass px-3 py-1.5 text-sm font-black tracking-tight text-pitch dark:text-emerald-400 ${FOCUS_RING}`}
+            className={`inline-flex items-center gap-1.5 rounded-full glass px-3 py-1.5 text-sm font-black tracking-tight text-emerald-400 ${FOCUS_RING}`}
           >
             ⚽ World Cup 2026
           </Link>

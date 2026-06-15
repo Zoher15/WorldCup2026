@@ -35,15 +35,15 @@ function InvalidInvite() {
   return (
     <main className="mx-auto max-w-md px-4 py-16 text-center">
       <div className="text-4xl">🤷</div>
-      <h1 className="mt-3 text-xl font-black text-stone-700 dark:text-stone-100">
+      <h1 className="mt-3 text-xl font-black text-stone-100">
         That invite link isn&apos;t valid
       </h1>
-      <p className="mt-2 text-sm font-medium text-stone-500 dark:text-stone-300">
+      <p className="mt-2 text-sm font-medium text-stone-300">
         Double-check the link, or ask for the group code.
       </p>
       <Link
         href="/join"
-        className="mt-6 inline-block rounded-full glass px-6 py-3 font-bold text-pitch transition active:scale-95 dark:text-emerald-400"
+        className="mt-6 inline-block rounded-full glass px-6 py-3 font-bold text-emerald-400 transition active:scale-95"
       >
         Join with a code
       </Link>
@@ -67,16 +67,16 @@ export default async function InvitePage({
     if (!name) return <InvalidInvite />;
     return (
       <main className="mx-auto max-w-md px-4 py-12">
-        <h1 className="mb-2 gradient-text font-display pb-1 text-3xl leading-tight">
+        <h1 className="mb-2 gradient-text font-display pb-1 text-3xl leading-tight tracking-tight">
           You&apos;re invited!
         </h1>
-        <p className="mb-6 text-sm font-medium text-stone-500 dark:text-stone-300">
-          Join <strong className="text-grape dark:text-violet-300">{name}</strong> and
+        <p className="mb-6 text-sm font-medium text-stone-300">
+          Join <strong className="text-violet-300">{name}</strong> and
           start predicting World Cup 2026 matches.
         </p>
         <Link
           href={`/login?next=${encodeURIComponent(`/i/${code}`)}`}
-          className="block w-full rounded-full glass py-3.5 text-center text-lg font-bold text-pitch transition active:scale-95 dark:text-emerald-400"
+          className="block w-full rounded-full glass py-3.5 text-center text-lg font-bold text-emerald-400 transition active:scale-95"
         >
           Sign in to join →
         </Link>

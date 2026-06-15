@@ -67,27 +67,27 @@ export default async function Home() {
         <h1 className="gradient-text font-display pb-1 text-4xl leading-tight tracking-tight sm:text-5xl">
           You think you know ball?
         </h1>
-        <p className="mt-2 font-medium text-stone-500 dark:text-stone-300">
+        <p className="mt-2 font-medium text-stone-300">
           Football, that is. Dubious until proven — predict every World Cup 2026
           match and beat your group.
         </p>
         <div className="mt-5 flex justify-center gap-3">
           <a
             href="/join?mode=create"
-            className="rounded-full chrome px-6 py-3 font-bold text-pitch dark:text-emerald-400 transition active:scale-95"
+            className="rounded-full chrome px-6 py-3 font-bold text-emerald-400 transition active:scale-95"
           >
             Create a group
           </a>
           <a
             href="/join"
-            className="rounded-full chrome px-6 py-3 font-bold text-grape transition active:scale-95 dark:text-violet-300"
+            className="rounded-full chrome px-6 py-3 font-bold text-violet-300 transition active:scale-95"
           >
             Join a group
           </a>
         </div>
         <a
           href="/how-to-play"
-          className="mt-3 inline-block text-sm font-bold text-grape hover:underline dark:text-violet-300"
+          className="mt-3 inline-block text-sm font-bold text-violet-300 hover:underline"
         >
           New here? How to play →
         </a>
@@ -96,13 +96,13 @@ export default async function Home() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.2fr_1fr]">
         <section>
           <div className="mb-3 flex items-baseline justify-between px-1">
-            <h2 className="text-lg font-black text-stone-700 dark:text-stone-100">
+            <h2 className="text-lg font-black text-stone-100">
               {board ? "Next up — make your calls" : "Upcoming matches"}
             </h2>
             {board && (
               <Link
                 href="/predict"
-                className={`rounded-md text-sm font-bold text-grape underline-offset-2 hover:underline dark:text-violet-300 ${FOCUS_RING}`}
+                className={`rounded-md text-sm font-bold text-violet-300 underline-offset-2 hover:underline ${FOCUS_RING}`}
               >
                 All matches →
               </Link>
@@ -111,7 +111,7 @@ export default async function Home() {
 
           {board ? (
             boardMatches.length === 0 ? (
-              <div className="rounded-2xl glass p-6 text-center font-medium text-stone-500 dark:text-stone-300">
+              <div className="rounded-2xl glass p-6 text-center font-medium text-stone-300">
                 <div className="float-bob mb-2 text-4xl">⚽</div>
                 No upcoming matches to predict right now.
               </div>
@@ -132,7 +132,7 @@ export default async function Home() {
               {/* Signed out: predictions live behind a login. Say so up front. */}
               <Link
                 href="/login?next=/"
-                className={`mb-4 flex items-center justify-center gap-2 rounded-2xl glass px-4 py-3 text-sm font-bold text-pitch transition active:scale-[0.99] dark:text-emerald-400 ${FOCUS_RING}`}
+                className={`mb-4 flex items-center justify-center gap-2 rounded-2xl glass px-4 py-3 text-sm font-bold text-emerald-400 transition active:scale-[0.99] ${FOCUS_RING}`}
               >
                 🔓 Log in to make your predictions →
               </Link>
@@ -158,7 +158,7 @@ export default async function Home() {
         <section>
           {board ? (
             <div className="rounded-3xl glass p-5">
-              <h2 className="mb-4 text-center text-2xl font-black text-grape dark:text-violet-300">
+              <h2 className="mb-4 text-center text-2xl font-black text-violet-300">
                 👥 Your groups
               </h2>
               {groups.length === 0 ? (
@@ -178,7 +178,7 @@ export default async function Home() {
                       <Link
                         href={`/g/${g.code}`}
                         style={{ animationDelay: `${Math.min(i * 0.05, 0.3)}s` }}
-                        className={`rise-in flex items-center justify-between gap-3 rounded-2xl glass px-4 py-3 font-bold text-stone-700 transition hover:scale-[1.01] active:scale-[0.99] dark:text-stone-100 ${FOCUS_RING}`}
+                        className={`rise-in flex items-center justify-between gap-3 rounded-2xl glass px-4 py-3 font-bold text-stone-100 transition hover:scale-[1.01] active:scale-[0.99] ${FOCUS_RING}`}
                       >
                         <span className="truncate">{g.name}</span>
                         <span className="shrink-0 text-xs font-bold text-stone-400">

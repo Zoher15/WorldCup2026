@@ -99,9 +99,11 @@ Aim: **festive and colorful**, fun for all ages, friction-free on phones.
   where they meet. Open cards have active +/− steppers; non-open cards grey the
   steppers out. When locked, the card reads as a scoreboard: your pick, the
   result, and points earned.
-- **Light & dark**: the whole UI adapts to the viewer's `prefers-color-scheme`,
-  so OS / browser dark settings (and dark-mode toggles) get a proper dark theme
-  rather than a washed-out auto-invert. `color-scheme` is declared too.
+- **Deliberate dark theme**: the UI is dark-only by design, not adaptive. Rather
+  than chasing `prefers-color-scheme`, it forces a single hand-tuned dark palette
+  (the `dark` Tailwind variant is wired to always apply, and `color-scheme: dark`
+  keeps form controls and scrollbars in step) so the festive colours, liquid-glass
+  panels and flag backgrounds always render exactly as intended.
 - **Leaderboard graphic**: a top-3 podium (gold/silver/bronze), ranked rows with
   flag/avatar + display name + points + live movement arrows (▲▼), and three
   tabs — Overall · Win predictor · Scoreline predictor. Points animate as live

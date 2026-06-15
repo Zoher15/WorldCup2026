@@ -128,7 +128,7 @@ export function PredictionList({
       {/* Urgency hero: the next lock moment, ticking down. Refreshing on expiry
           re-derives match states so the banner (and the locked cards) update. */}
       {nextLock && (
-        <div className="mb-6 flex items-center justify-center gap-2 rounded-2xl glass px-4 py-3 text-sm font-bold text-stone-700 ring-1 ring-flame/30 dark:text-stone-100">
+        <div className="mb-6 flex items-center justify-center gap-2 rounded-2xl glass px-4 py-3 text-sm font-bold text-stone-100 ring-1 ring-flame/30">
           <span className="animate-pulse" aria-hidden>
             ⏳
           </span>
@@ -205,14 +205,14 @@ export function PredictionList({
                   status={
                     open ? (
                       isSaved ? (
-                        <span className="text-pitch dark:text-emerald-400">Saved ✓</span>
+                        <span className="text-emerald-400">Saved ✓</span>
                       ) : (
-                        <span className="text-stone-500 dark:text-stone-300">Unsaved</span>
+                        <span className="text-stone-300">Unsaved</span>
                       )
                     ) : live ? (
                       <span className={LIVE_TEXT}>● Live</span>
                     ) : (
-                      <span className="text-stone-500 dark:text-stone-300">🔒 Locked</span>
+                      <span className="text-stone-300">🔒 Locked</span>
                     )
                   }
                 />
@@ -243,14 +243,14 @@ export function PredictionList({
             <span
               className={`text-sm font-bold ${
                 flash.kind === "ok"
-                  ? "text-pitch dark:text-emerald-400"
+                  ? "text-emerald-400"
                   : "text-flame"
               }`}
             >
               {flash.text}
             </span>
           ) : (
-            <span className="text-sm font-bold text-stone-500 dark:text-stone-300">
+            <span className="text-sm font-bold text-stone-300">
               {dirtyIds.length
                 ? `${dirtyIds.length} unsaved`
                 : "All caught up"}
@@ -259,7 +259,7 @@ export function PredictionList({
           <button
             onClick={save}
             disabled={pending || dirtyIds.length === 0}
-            className={`rounded-full chrome px-6 py-3 font-bold text-pitch dark:text-emerald-400 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${FOCUS_RING}`}
+            className={`rounded-full chrome px-6 py-3 font-bold text-emerald-400 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${FOCUS_RING}`}
           >
             {pending ? "Saving…" : "Save predictions"}
           </button>
