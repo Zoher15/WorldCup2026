@@ -210,10 +210,20 @@ export function Leaderboard({
           return (
             <div
               key={slot}
-              className="flex w-20 flex-col items-center max-sm:max-w-24 max-sm:flex-1 max-sm:w-auto"
+              // Steps rise into place on mount; the centre (winner) lands last
+              // so the eye finishes on the gold. Keyed by slot, so this plays
+              // once on first paint, not on every live refresh.
+              className="rise-in flex w-20 flex-col items-center max-sm:max-w-24 max-sm:flex-1 max-sm:w-auto"
+              style={{ animationDelay: slot === 1 ? "0.16s" : slot === 2 ? "0.08s" : "0s" }}
               title={isTied(idx) ? `Tied at ${r.points} pts` : undefined}
             >
-              <div className="mb-1 text-2xl">{MEDALS[ranks[idx] - 1]}</div>
+              <div
+                className={`mb-1 drop-shadow-[0_2px_3px_rgba(0,0,0,0.35)] ${
+                  ranks[idx] === 1 ? "text-3xl" : "text-2xl"
+                }`}
+              >
+                {MEDALS[ranks[idx] - 1]}
+              </div>
               {/* No profile to link to without a group (BoringBot has a synthetic one). */}
               <PlayerLink
                 userId={r.userId}

@@ -248,6 +248,30 @@ body {
   .shine::after { display: none; }
 }
 
+/* A gentle rise + fade for elements settling into place on mount — e.g. the
+   leaderboard podium steps, staggered by slot via an inline animation-delay.
+   The soft overshoot easing gives them a little "land". Reduced motion shows
+   them at rest with no movement. */
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.rise-in { animation: rise-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .rise-in { animation: none; }
+}
+
+/* A slow, soft bob so a friendly empty-state emoji has a heartbeat instead of
+   sitting dead-still over the panel. Decorative — reduced motion stills it. */
+@keyframes float-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.float-bob { animation: float-bob 3s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .float-bob { animation: none; }
+}
+
 /* Liquid-glass surface for the text panels floating over the flags. A frosted,
    translucent tint lets the vibrant flags glow through, while the blur keeps
    text crisp; `saturate` pushes the flag colours that bleed through, and the

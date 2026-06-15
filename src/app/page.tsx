@@ -112,7 +112,7 @@ export default async function Home() {
           {board ? (
             boardMatches.length === 0 ? (
               <div className="rounded-2xl glass p-6 text-center font-medium text-stone-500 dark:text-stone-300">
-                <div className="mb-2 text-4xl">⚽</div>
+                <div className="float-bob mb-2 text-4xl">⚽</div>
                 No upcoming matches to predict right now.
               </div>
             ) : (
