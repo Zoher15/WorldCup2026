@@ -224,15 +224,21 @@ body {
   background:
     radial-gradient(
       circle 3rem at var(--gx, 50%) var(--gy, 50%),
-      rgba(255, 255, 255, calc(0.1 * var(--g-on, 0))),
+      rgba(255, 255, 255, calc(0.16 * var(--g-on, 0))),
       transparent 72%
     ),
     rgba(52, 48, 44, 0.58);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  /* Just the bright top edge that gives the glass its sheen — no drop shadow. */
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  /* A bright top edge plus a faint bottom shade bevel the pane so it reads as a
+     real sheet of glass, and a soft, tight drop shadow lifts each panel off the
+     flags beneath it (clipped away on the full-bleed flag overlay, so only the
+     floating tiles, pills and bars actually cast it). */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.1),
+    0 4px 16px -10px rgba(0, 0, 0, 0.55);
   /* Tactile feedback: every glass surface dips and its sheen flares when
      pressed, so taps feel alive even where they don't navigate. */
   transition: transform 0.13s ease, box-shadow 0.13s ease, --g-on 0.2s ease,
@@ -260,7 +266,7 @@ body {
   background:
     radial-gradient(
       circle 3rem at var(--gx, 50%) var(--gy, 50%),
-      rgba(255, 255, 255, calc(0.1 * var(--g-on, 0))),
+      rgba(255, 255, 255, calc(0.16 * var(--g-on, 0))),
       transparent 72%
     ),
     rgba(28, 25, 23, 0.9);
@@ -276,7 +282,7 @@ body {
   background:
     radial-gradient(
       circle 3rem at var(--gx, 50%) var(--gy, 50%),
-      rgba(255, 255, 255, calc(0.1 * var(--g-on, 0))),
+      rgba(255, 255, 255, calc(0.16 * var(--g-on, 0))),
       transparent 72%
     ),
     rgba(52, 48, 44, 0.72);
@@ -292,7 +298,7 @@ body {
   background:
     radial-gradient(
       circle 3rem at var(--gx, 50%) var(--gy, 50%),
-      rgba(255, 255, 255, calc(0.1 * var(--g-on, 0))),
+      rgba(255, 255, 255, calc(0.16 * var(--g-on, 0))),
       transparent 72%
     ),
     linear-gradient(rgba(11, 138, 62, 0.10), rgba(11, 138, 62, 0.04)),
@@ -307,7 +313,7 @@ body {
   background:
     radial-gradient(
       circle 3rem at var(--gx, 50%) var(--gy, 50%),
-      rgba(255, 255, 255, calc(0.1 * var(--g-on, 0))),
+      rgba(255, 255, 255, calc(0.16 * var(--g-on, 0))),
       transparent 72%
     ),
     linear-gradient(rgba(255, 90, 54, 0.10), rgba(255, 90, 54, 0.04)),
@@ -321,7 +327,7 @@ body {
   background:
     radial-gradient(
       circle 3rem at var(--gx, 50%) var(--gy, 50%),
-      rgba(255, 255, 255, calc(0.1 * var(--g-on, 0))),
+      rgba(255, 255, 255, calc(0.16 * var(--g-on, 0))),
       transparent 72%
     ),
     rgba(52, 48, 44, 0.82);
@@ -335,7 +341,13 @@ body {
 .chrome {
   background-color: rgba(38, 35, 32, 0.92);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10);
+  /* Same bevel + lift language as glass, so the two materials feel cut from one
+     set: bright top edge, faint bottom shade, and a tight drop shadow that reads
+     as a solid control raised above the glass panels. */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.12),
+    0 3px 12px -8px rgba(0, 0, 0, 0.55);
   transition: transform 0.13s ease, box-shadow 0.13s ease,
     background-color 0.25s ease;
 }
@@ -354,8 +366,28 @@ body {
   }
 }
 
-/* Graceful fallback: if the browser can't blur the backdrop, lean opaque so
-   text never sits on a bare flag. */
+/* Graceful fallback: if the browser can't blur the backdrop (e.g. Firefox
+   < 103, or any engine where an ancestor's filter/transform neutralises the
+   blur), every glass surface leans near-opaque so text never sits on a bare
+   flag. Each variant keeps its own hue but at a legible alpha — without this,
+   the thinner variants (notably `.glass-vivid` at ~0.3 opacity) would leave the
+   overlay copy unreadable over a bright flag. The decorative pointer sheen is
+   dropped here: it's transparent at rest and only animates where `@property` is
+   supported, which always implies backdrop-filter support too. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .glass { background: rgba(28, 25, 23, 0.9); }
+  .glass.glass-flag { background: rgba(28, 25, 23, 0.92); }
+  .glass.glass-vivid,
+  .glass-reveal:hover .glass-flag {
+    background:
+      linear-gradient(rgba(11, 138, 62, 0.12), rgba(11, 138, 62, 0.06)),
+      rgba(24, 28, 24, 0.92);
+  }
+  .glass.glass-live {
+    background:
+      linear-gradient(rgba(255, 90, 54, 0.12), rgba(255, 90, 54, 0.06)),
+      rgba(30, 24, 22, 0.92);
+  }
+  .glass.glass-muted { background: rgba(28, 25, 23, 0.94); }
+  .glass.glass-frost { background: rgba(20, 18, 16, 0.96); }
 }
