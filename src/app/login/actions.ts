@@ -9,7 +9,7 @@ import {
   drainEmailQueue,
   loginEmailStatus,
   estimateEtaSeconds,
-  INLINE_MAX_EMAILS,
+  INLINE_MAX_REQUESTS,
 } from "@/lib/email-queue";
 import { postAuthDest } from "@/lib/profile";
 import type { LoginState, VerifyState } from "./login-state";
@@ -99,8 +99,8 @@ export async function sendMagicLinkAction(
 
   // Kick the drainer inline so a lone user (or the first few in a burst) get
   // their code immediately instead of waiting for the next cron tick. A small
-  // email cap keeps this response snappy; the cron clears any backlog.
-  await drainEmailQueue(INLINE_MAX_EMAILS);
+  // request cap keeps this response snappy; the cron clears any backlog.
+  await drainEmailQueue(INLINE_MAX_REQUESTS);
 
   // If this request's code already went out, no need to set expectations.
   if ((await loginEmailStatus(id)) === "sent") {
