@@ -128,6 +128,7 @@ export function PastPredictionList({ matches }: { matches: PastPrediction[] }) {
                   advancedCode: m.result.advancedCode,
                 }}
                 pick={m.pick}
+                detailHref={`/m/${m.id}`}
               />
             ))}
           </div>
