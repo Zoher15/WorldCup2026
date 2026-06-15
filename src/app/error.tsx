@@ -24,11 +24,11 @@ export default function Error({
     <main className="mx-auto max-w-md px-4 py-16 text-center">
       <div className="text-4xl">😵</div>
       <h1 className="mt-3 text-xl font-black text-flame">Something went wrong</h1>
-      <p className="mt-2 text-sm font-medium text-stone-500 dark:text-stone-300">
+      <p className="mt-2 text-sm font-medium text-stone-300">
         Sorry — that didn&apos;t load.
       </p>
 
-      <div className="mt-4 break-words rounded-2xl glass p-4 text-left text-xs font-medium text-stone-600 dark:text-stone-200">
+      <div className="mt-4 break-words rounded-2xl glass p-4 text-left text-xs font-medium text-stone-200">
         {redacted ? (
           <p>
             A server-side error was hidden by the production build. Reference{" "}
@@ -53,13 +53,13 @@ export default function Error({
       <div className="mt-6 flex justify-center gap-3">
         <button
           onClick={reset}
-          className="rounded-full glass px-6 py-3 font-bold text-pitch dark:text-emerald-400 transition active:scale-95"
+          className="rounded-full glass px-6 py-3 font-bold text-emerald-400 transition active:scale-95"
         >
           Try again
         </button>
         <a
           href="/"
-          className="rounded-full glass px-6 py-3 font-bold text-grape transition active:scale-95 dark:text-violet-300"
+          className="rounded-full glass px-6 py-3 font-bold text-violet-300 transition active:scale-95"
         >
           Home
         </a>

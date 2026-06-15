@@ -131,7 +131,7 @@ export interface MatchCardProps {
 /** Frosted liquid-glass surface for every text panel floating over the flags.
  *  Keeps the same default text tones as before; the `.glass` class supplies the
  *  translucent tint, blur, edge and sheen. */
-const GLASS = "glass text-stone-700 dark:text-stone-100";
+const GLASS = "glass text-stone-100";
 
 /** Last seen live score per match, module-level so it survives the remounts a
  *  `router.refresh` can cause — a goal still flashes whether the card
@@ -179,7 +179,7 @@ function StatusPill({
     case "final":
       return <FullTimeBadge className={`${base} glass`}>FULL TIME</FullTimeBadge>;
     case "locked":
-      return <span className={`${base} ${GLASS} text-stone-500 dark:text-stone-300`}>🔒 Locked</span>;
+      return <span className={`${base} ${GLASS} text-stone-300`}>🔒 Locked</span>;
     case "open":
       return (
         <span
@@ -199,7 +199,7 @@ function StatusPill({
       return (
         <span
           title={cityFull ?? undefined}
-          className={`${base} ${GLASS} inline-flex items-center gap-1 text-ocean dark:text-sky-400`}
+          className={`${base} ${GLASS} inline-flex items-center gap-1 text-sky-400`}
         >
           {city ? <>📍 {city}</> : "Upcoming"}
         </span>
@@ -214,7 +214,7 @@ function TeamName({ code, label }: { code: string | null; label?: string | null 
   return (
     <span
       title={name}
-      className={`truncate rounded-lg px-2.5 py-1 text-center text-sm font-extrabold ${GLASS} text-stone-800 dark:text-stone-50`}
+      className={`truncate rounded-lg px-2.5 py-1 text-center text-sm font-extrabold ${GLASS} text-stone-50`}
     >
       {name}
     </span>
@@ -242,11 +242,11 @@ function Score({
     <div className={`rounded-xl px-4 py-1.5 text-center ${GLASS}`}>
       <div className={`flex items-center justify-center gap-2 font-display tabular-nums ${large ? "text-4xl" : "text-3xl"} ${tone}`}>
         <span>{home}</span>
-        <span className="text-stone-300 dark:text-stone-600">:</span>
+        <span className="text-stone-600">:</span>
         <span>{away}</span>
       </div>
       {label && (
-        <div className="text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">{label}</div>
+        <div className="text-[10px] font-bold uppercase tracking-wide text-stone-200">{label}</div>
       )}
     </div>
   );
@@ -269,12 +269,12 @@ function MiniScore({
 }) {
   return (
     <div className="text-center">
-      <div className="text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
+      <div className="text-[10px] font-bold uppercase tracking-wide text-stone-200">
         {label}
       </div>
       <div className={`flex items-center justify-center gap-1.5 font-display tabular-nums ${large ? "text-3xl" : "text-2xl"} ${tone}`}>
         <span>{home}</span>
-        <span className="text-stone-300 dark:text-stone-600">:</span>
+        <span className="text-stone-600">:</span>
         <span>{away}</span>
       </div>
     </div>
@@ -328,7 +328,7 @@ function DualScore({
       ? RESULT_TEXT
       : b.total <= 3
         ? "text-flame"
-        : "text-ocean dark:text-sky-400";
+        : "text-sky-400";
 
   return (
     <div className="flex flex-col items-stretch">
@@ -346,16 +346,16 @@ function DualScore({
             tone={PREDICTION_TEXT}
             large={large}
           />
-          <span className="h-7 w-px bg-stone-300/70 dark:bg-stone-600/70" />
+          <span className="h-7 w-px bg-stone-600/70" />
           <MiniScore
             label={live ? "live score" : "full time"}
             home={result.home}
             away={result.away}
-            tone={live ? LIVE_TEXT : "text-stone-800 dark:text-stone-50"}
+            tone={live ? LIVE_TEXT : "text-stone-50"}
             large={large}
           />
         </div>
-        <div className="mt-0.5 flex items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
+        <div className="mt-0.5 flex items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wide text-stone-200">
           <span className={`font-black tabular-nums ${pointsTone}`}>
             {live ? "~" : ""}<CountUp value={b.total} /> pt{b.total === 1 ? "" : "s"}
           </span>
@@ -373,8 +373,8 @@ function DualScore({
           {b.knockout && (
             <BreakdownRow label="Who advances" value={b.advance} />
           )}
-          <div className="mt-1 flex items-center justify-between border-t border-stone-300/60 pt-1 dark:border-stone-600/60">
-            <span className="text-[11px] font-black uppercase tracking-wide text-stone-500 dark:text-stone-200">
+          <div className="mt-1 flex items-center justify-between border-stone-600/60 pt-1">
+            <span className="text-[11px] font-black uppercase tracking-wide text-stone-200">
               {live ? "If it ends now" : "Total"}
             </span>
             <span className={`text-sm font-black tabular-nums ${live ? LIVE_TEXT : RESULT_TEXT}`}>
@@ -464,7 +464,7 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
       <Score
         home={data.homeGoals!}
         away={data.awayGoals!}
-        tone={data.state === "live" ? LIVE_TEXT : "text-stone-800 dark:text-stone-50"}
+        tone={data.state === "live" ? LIVE_TEXT : "text-stone-50"}
         large={hero}
       />
     );
@@ -476,10 +476,10 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
       <div className={`rounded-xl ${hero ? "px-3" : "px-2"} py-1.5 ${GLASS}`}>
         <div className={`flex items-center justify-center ${hero ? "gap-3" : "gap-2"}`}>
           <Stepper size={hero ? "md" : "sm"} value={entry.home} onChange={(n) => entry.onChange("home", n)} />
-          <span className="text-xl font-black text-stone-300 dark:text-stone-600">:</span>
+          <span className="text-xl font-black text-stone-600">:</span>
           <Stepper size={hero ? "md" : "sm"} value={entry.away} onChange={(n) => entry.onChange("away", n)} />
         </div>
-        <div className="text-center text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
+        <div className="text-center text-[10px] font-bold uppercase tracking-wide text-stone-200">
           your call
         </div>
       </div>
@@ -488,13 +488,13 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
     // Window shut at kickoff: drop the +/- and show the locked-in pick.
     focal = (
       <div className={`rounded-xl px-4 py-1.5 ${GLASS}`}>
-        <div className="flex items-center justify-center gap-2 text-2xl font-black tabular-nums text-stone-400 dark:text-stone-300">
+        <div className="flex items-center justify-center gap-2 text-2xl font-black tabular-nums text-stone-300">
           <span className="text-xl leading-none">🔒</span>
           <span>{entry.home}</span>
-          <span className="text-stone-300 dark:text-stone-600">:</span>
+          <span className="text-stone-600">:</span>
           <span>{entry.away}</span>
         </div>
-        <div className="text-center text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
+        <div className="text-center text-[10px] font-bold uppercase tracking-wide text-stone-200">
           locked
         </div>
       </div>
@@ -505,8 +505,8 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
     // place this timing lives, with the host city already shown top-right.
     focal = (
       <div className={`rounded-xl px-4 py-2 text-center ${GLASS}`}>
-        <div className="text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">opens in</div>
-        <div className="text-xl font-black tabular-nums text-ocean dark:text-sky-400">
+        <div className="text-[10px] font-bold uppercase tracking-wide text-stone-200">opens in</div>
+        <div className="text-xl font-black tabular-nums text-sky-400">
           <Countdown target={opensAt} expiredLabel="open now" onExpire={onExpire} />
         </div>
       </div>
@@ -524,10 +524,10 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
   } else {
     focal = (
       <div className={`rounded-xl px-4 py-2 text-center ${GLASS}`}>
-        <div className="text-lg font-black leading-tight text-stone-700 dark:text-stone-100">
+        <div className="text-lg font-black leading-tight text-stone-100">
           {formatKickoffDateCompact(data.kickoffAt)}
         </div>
-        <div className="text-[10px] font-bold uppercase tracking-wide text-stone-400 dark:text-stone-200">
+        <div className="text-[10px] font-bold uppercase tracking-wide text-stone-200">
           {formatKickoffTime(data.kickoffAt)} · kickoff
         </div>
       </div>
@@ -546,7 +546,7 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
   const showNextUp = hero && (data.state === "open" || data.state === "upcoming");
 
   const card = (
-    <div className={`relative animate-pop-in overflow-hidden rounded-2xl bg-stone-200 shadow-lg ring-1 ring-white/30 dark:bg-stone-800 dark:ring-white/15${revealOnHover ? " glass-reveal" : ""}`}>
+    <div className={`relative animate-pop-in overflow-hidden rounded-2xl bg-stone-800 shadow-lg ring-1 ring-white/15${revealOnHover ? " glass-reveal" : ""}`}>
       {/* The two flags fill the card and butt together at a hard centre split.
           A 1px bleed past the edges keeps the rounded clip from leaving a hairline. */}
       <div aria-hidden className="pointer-events-none absolute -inset-px">
@@ -580,7 +580,7 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
         <div className="relative flex items-center justify-between gap-2">
           <span
             title={stageLabel}
-            className={`min-w-0 truncate rounded-full px-2.5 py-0.5 ${GLASS} text-stone-600 dark:text-stone-200`}
+            className={`min-w-0 truncate rounded-full px-2.5 py-0.5 ${GLASS} text-stone-200`}
           >
             {stageLabel}
           </span>
@@ -612,7 +612,7 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
             <TeamName code={data.awayCode} label={data.awayLabel} />
           </div>
           {footer && (
-            <div className={`rounded-lg px-3 py-1.5 ${GLASS} text-stone-700 dark:text-stone-100`}>
+            <div className={`rounded-lg px-3 py-1.5 ${GLASS} text-stone-100`}>
               {footer}
             </div>
           )}
@@ -620,7 +620,7 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
             <Link
               href={detailHref}
               prefetch={false}
-              className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 ${GLASS} text-grape transition active:scale-[0.98] dark:text-violet-300`}
+              className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 ${GLASS} text-violet-300 transition active:scale-[0.98]`}
             >
               See all groups&apos; picks
               <span aria-hidden>→</span>
@@ -667,7 +667,7 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
     return (
       <div className="flex flex-col">
         <div className="mb-1.5 flex justify-center">
-          <span className="rounded-full glass px-3 py-0.5 text-xs font-black text-ocean dark:text-sky-400">
+          <span className="rounded-full glass px-3 py-0.5 text-xs font-black text-sky-400">
             ⚡ Next up
           </span>
         </div>

@@ -28,7 +28,7 @@ export default async function WelcomePage({
       <h1 className="mb-2 gradient-text font-display pb-1 text-3xl leading-tight">
         One last thing
       </h1>
-      <p className="mb-6 text-sm font-medium text-stone-500 dark:text-stone-300">
+      <p className="mb-6 text-sm font-medium text-stone-300">
         What&apos;s your name? It&apos;s shown on your group leaderboards — you can
         pick a different nickname for each group when you join.
       </p>

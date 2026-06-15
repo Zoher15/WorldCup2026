@@ -37,14 +37,14 @@ export default async function PredictPage() {
       <h1 className="mt-3 mb-1 gradient-text font-display pb-1 text-3xl leading-tight">
         Your predictions
       </h1>
-      <p className="mb-6 text-sm font-medium text-stone-500 dark:text-stone-300">
+      <p className="mb-6 text-sm font-medium text-stone-300">
         A day&apos;s games all open for prediction{" "}
         <strong>the day before</strong>, and each match closes at kickoff — watch
         the countdowns. Live games stay here with the score; your picks count in
         every group you&apos;re in.{" "}
         <Link
           href="/predict/past"
-          className={`rounded-md font-bold text-grape underline-offset-2 hover:underline dark:text-violet-300 ${FOCUS_RING}`}
+          className={`rounded-md font-bold text-violet-300 underline-offset-2 hover:underline ${FOCUS_RING}`}
         >
           Past results →
         </Link>

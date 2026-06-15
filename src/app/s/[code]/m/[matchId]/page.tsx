@@ -68,13 +68,13 @@ export default async function MatchSharePage({
         <h1 className="mb-2 gradient-text font-display pb-1 text-3xl leading-tight">
           You&apos;re invited!
         </h1>
-        <p className="mb-6 text-sm font-medium text-stone-500 dark:text-stone-300">
-          Join <strong className="text-grape dark:text-violet-300">{name}</strong> to see
+        <p className="mb-6 text-sm font-medium text-stone-300">
+          Join <strong className="text-violet-300">{name}</strong> to see
           everyone&apos;s predictions and make your own.
         </p>
         <Link
           href={`/login?next=${encodeURIComponent(next)}`}
-          className="block w-full rounded-full glass py-3.5 text-center text-lg font-bold text-pitch transition active:scale-95 dark:text-emerald-400"
+          className="block w-full rounded-full glass py-3.5 text-center text-lg font-bold text-emerald-400 transition active:scale-95"
         >
           Sign in to join →
         </Link>

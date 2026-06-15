@@ -53,13 +53,13 @@ export default async function MatchHubPage({
         </>
       ) : (
         <div className="rounded-3xl glass p-8 text-center">
-          <p className="font-medium text-stone-500 dark:text-stone-300">
+          <p className="font-medium text-stone-300">
             You&apos;re not in any groups yet — join one to compare everyone&apos;s
             picks for this match.
           </p>
           <Link
             href="/join"
-            className="mt-4 inline-block rounded-full glass px-6 py-3 font-bold text-pitch dark:text-emerald-400 transition active:scale-95"
+            className="mt-4 inline-block rounded-full glass px-6 py-3 font-bold text-emerald-400 transition active:scale-95"
           >
             Create or join a group
           </Link>

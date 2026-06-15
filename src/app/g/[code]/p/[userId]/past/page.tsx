@@ -63,7 +63,7 @@ export default async function PlayerPastPage({
       <h1 className="mt-3 mb-1 gradient-text font-display pb-1 text-3xl leading-tight">
         Past results
       </h1>
-      <p className="mb-6 text-sm font-medium text-stone-500 dark:text-stone-300">
+      <p className="mb-6 text-sm font-medium text-stone-300">
         Every match {who.has} predicted that&apos;s finished — {who.call} call
         beside the full-time score. Tap a card for the points math.
       </p>

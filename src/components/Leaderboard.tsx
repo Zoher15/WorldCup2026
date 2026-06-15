@@ -35,7 +35,7 @@ function Movement({ value }: { value: number }) {
   const up = value > 0;
   return (
     <span
-      className={`text-xs font-bold ${up ? "text-pitch dark:text-emerald-400" : "text-flame"}`}
+      className={`text-xs font-bold ${up ? "text-emerald-400" : "text-flame"}`}
       title={`${up ? "Up" : "Down"} ${Math.abs(value)}`}
     >
       {up ? "▲" : "▼"} {Math.abs(value)}
@@ -163,7 +163,7 @@ export function Leaderboard({
 
   return (
     <div className="rounded-3xl glass p-5">
-      <h2 className="mb-4 flex items-center justify-center gap-2 text-center text-2xl font-black text-grape dark:text-violet-300">
+      <h2 className="mb-4 flex items-center justify-center gap-2 text-center text-2xl font-black text-violet-300">
         🏆 Leaderboard
         {live && (
           <span className="inline-flex items-center gap-1 rounded-full glass px-2.5 py-0.5 text-xs font-bold text-flame">
@@ -187,8 +187,8 @@ export function Leaderboard({
             onClick={() => setTab(t.key)}
             className={`flex-1 rounded-full px-3 py-1.5 text-sm font-bold transition ${FOCUS_RING} ${
               tab === t.key
-                ? "chrome text-grape dark:text-violet-300"
-                : "text-stone-500 hover:text-stone-700 dark:text-stone-300 dark:hover:text-white"
+                ? "chrome text-violet-300"
+                : "text-stone-300 hover:text-white"
             }`}
           >
             {t.label}
@@ -250,10 +250,10 @@ export function Leaderboard({
                     className="overtake-flash pointer-events-none absolute inset-0 rounded-t-xl"
                   />
                 )}
-                <div className="relative flex h-full flex-col items-center gap-0.5 pt-1 font-display text-stone-800 dark:text-stone-50">
+                <div className="relative flex h-full flex-col items-center gap-0.5 pt-1 font-display text-stone-50">
                   <span>
                     {isTied(idx) && (
-                      <span className="mr-0.5 text-stone-500 dark:text-stone-300">=</span>
+                      <span className="mr-0.5 text-stone-300">=</span>
                     )}
                     {r.points}
                   </span>
@@ -292,7 +292,7 @@ export function Leaderboard({
             // Rows settle in with a short stagger; `backwards` fill means the
             // entrance never pins the transform, so the hover lift still works.
             style={{ animationDelay: `${Math.min(i * 0.04, 0.28)}s` }}
-            className="rise-in relative flex items-center gap-3 rounded-2xl glass px-4 py-3 text-stone-700 transition hover:scale-[1.01] dark:text-stone-100"
+            className="rise-in relative flex items-center gap-3 rounded-2xl glass px-4 py-3 text-stone-100 transition hover:scale-[1.01]"
           >
             {/* Gold flash overlay (rather than animating the row's own
                 background, which would fight the .glass layers) when this
@@ -359,7 +359,7 @@ export function Leaderboard({
             <button
               onClick={() => setExpanded((v) => !v)}
               aria-expanded={expanded}
-              className={`rounded-full chrome px-4 py-2 text-sm font-bold text-grape transition active:scale-95 dark:text-violet-300 ${FOCUS_RING}`}
+              className={`rounded-full chrome px-4 py-2 text-sm font-bold text-violet-300 transition active:scale-95 ${FOCUS_RING}`}
             >
               {expanded ? "Show less" : `Show all ${rows.length} →`}
             </button>

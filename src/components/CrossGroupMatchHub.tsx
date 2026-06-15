@@ -38,11 +38,11 @@ export function CrossGroupMatchHub({
                 href={`/g/${board.group.code}`}
                 prefetch={false}
                 onClick={(e) => e.stopPropagation()}
-                className="min-w-0 flex-1 truncate text-lg font-black text-grape hover:underline dark:text-violet-300"
+                className="min-w-0 flex-1 truncate text-lg font-black text-violet-300 hover:underline"
               >
                 {board.group.name}
               </Link>
-              <span className="shrink-0 text-xs font-medium text-stone-500 dark:text-stone-300">
+              <span className="shrink-0 text-xs font-medium text-stone-300">
                 {board.summary.entered} of {board.summary.total}{" "}
                 {board.revealed ? "predicted" : "entered"}
               </span>

@@ -75,8 +75,8 @@ function RevealedScore({ row }: { row: MatchBoardRow }) {
           <BreakdownRow label="Right result" value={b.outcome} max={5} />
           <BreakdownRow label="Scoreline closeness" value={b.closeness} max={5} />
           {b.knockout && <BreakdownRow label="Who advances" value={b.advance} />}
-          <div className="mt-1 flex items-center justify-between border-t border-stone-300/60 pt-1 dark:border-stone-600/60">
-            <span className="text-[11px] font-black uppercase tracking-wide text-stone-500 dark:text-stone-200">
+          <div className="mt-1 flex items-center justify-between border-stone-600/60 pt-1">
+            <span className="text-[11px] font-black uppercase tracking-wide text-stone-200">
               {row.provisional ? "If it ends now" : "Total"}
             </span>
             <span
@@ -102,7 +102,7 @@ function PlayerName({ row, code }: { row: MatchBoardRow; code: string }) {
       title={row.displayName}
       className={row.isBot ? undefined : "truncate"}
     >
-      <span className="truncate font-bold text-stone-800 dark:text-stone-100">
+      <span className="truncate font-bold text-stone-100">
         {row.displayName}
         {row.isViewer && (
           <span className="ml-1.5 text-[10px] font-bold text-stone-400">(you)</span>
@@ -148,10 +148,10 @@ export function MatchBoardRows({ board }: { board: MatchBoard }) {
 
   return (
     <div className="rounded-3xl glass p-5">
-        <h2 className="mb-1 text-center text-xl font-black text-grape dark:text-violet-300">
+        <h2 className="mb-1 text-center text-xl font-black text-violet-300">
           {revealed ? "🏅 This match" : "Who's locked in"}
         </h2>
-        <p className="mb-4 text-center text-xs font-medium text-stone-500 dark:text-stone-300">
+        <p className="mb-4 text-center text-xs font-medium text-stone-300">
           {revealed
             ? `${summary.entered} of ${summary.total} predicted`
             : `${summary.entered} of ${summary.total} entered · picks reveal at kickoff`}
@@ -170,7 +170,7 @@ export function MatchBoardRows({ board }: { board: MatchBoard }) {
                 key={r.userId}
                 className={`flex items-center gap-3 rounded-2xl px-4 py-2.5 transition hover:scale-[1.01] ${
                   r.isViewer
-                    ? "glass ring-2 ring-grape/40 dark:ring-violet-300/40"
+                    ? "glass ring-2 ring-violet-300/40"
                     : "glass"
                 }`}
               >
@@ -189,7 +189,7 @@ export function MatchBoardRows({ board }: { board: MatchBoard }) {
                   {revealed ? (
                     <RevealedScore row={r} />
                   ) : r.hasPrediction ? (
-                    <span className="text-xs font-bold text-pitch dark:text-emerald-400">
+                    <span className="text-xs font-bold text-emerald-400">
                       ✓ Entered
                     </span>
                   ) : (

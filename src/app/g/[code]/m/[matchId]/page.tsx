@@ -68,7 +68,7 @@ export default async function MatchBoardPage({
         <Link
           href={`/m/${matchId}`}
           prefetch={false}
-          className="inline-flex items-center gap-1.5 rounded-full glass px-5 py-2.5 text-sm font-bold text-grape transition active:scale-95 dark:text-violet-300"
+          className="inline-flex items-center gap-1.5 rounded-full glass px-5 py-2.5 text-sm font-bold text-violet-300 transition active:scale-95"
         >
           Compare across your groups →
         </Link>

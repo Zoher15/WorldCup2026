@@ -55,7 +55,7 @@ export default function LoginPage({
       <h1 className="mt-3 mb-2 gradient-text font-display pb-1 text-3xl leading-tight">
         Sign in
       </h1>
-      <p className="mb-6 text-sm font-medium text-stone-500 dark:text-stone-300">
+      <p className="mb-6 text-sm font-medium text-stone-300">
         Enter your email and we&apos;ll send you a sign-in code — no password to
         remember. You&apos;ll stay signed in on this device.
       </p>
@@ -63,16 +63,16 @@ export default function LoginPage({
       {state.status === "sent" ? (
         <div className="animate-pop-in rounded-3xl glass p-6">
           <div className="text-center text-4xl">📬</div>
-          <h2 className="mt-2 text-center text-xl font-black text-pitch dark:text-emerald-400">
+          <h2 className="mt-2 text-center text-xl font-black text-emerald-400">
             Check your email
           </h2>
-          <p className="mt-1 text-center text-sm text-stone-500 dark:text-stone-300">
+          <p className="mt-1 text-center text-sm text-stone-300">
             We sent a code to <strong>{state.email}</strong>. Enter it below to
             sign in.
           </p>
 
           {state.etaSeconds ? (
-            <p className="mt-3 rounded-2xl glass px-4 py-3 text-center text-sm text-stone-600 dark:text-stone-300">
+            <p className="mt-3 rounded-2xl glass px-4 py-3 text-center text-sm text-stone-300">
               📨 Lots of people are signing in right now, so codes are going out in
               turn. Yours should arrive in about{" "}
               <strong>{etaText(state.etaSeconds)}</strong> — keep this tab open and
@@ -101,13 +101,13 @@ export default function LoginPage({
             <button
               type="submit"
               disabled={verifying}
-              className="w-full rounded-full glass py-3.5 text-lg font-bold text-pitch dark:text-emerald-400 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full rounded-full glass py-3.5 text-lg font-bold text-emerald-400 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {verifying ? "Signing you in…" : "Verify & sign in"}
             </button>
           </form>
 
-          <p className="mt-4 text-xs leading-relaxed text-stone-400 dark:text-stone-400">
+          <p className="mt-4 text-xs leading-relaxed text-stone-400">
             Entering the code keeps you in <strong>this</strong> browser. The
             email also has a tap-to-sign-in link — but if you tap it, it opens in
             your phone&apos;s default browser, so use the code here if you want to
@@ -120,7 +120,7 @@ export default function LoginPage({
             <button
               type="submit"
               disabled={pending || cooldown > 0}
-              className="text-sm font-bold text-grape underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-50 dark:text-violet-300"
+              className="text-sm font-bold text-violet-300 underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
             >
               {cooldown > 0
                 ? `Resend code in ${mmss(cooldown)}`
@@ -151,7 +151,7 @@ export default function LoginPage({
           <button
             type="submit"
             disabled={pending}
-            className="w-full rounded-full glass py-3.5 text-lg font-bold text-pitch dark:text-emerald-400 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full rounded-full glass py-3.5 text-lg font-bold text-emerald-400 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {pending ? "Sending…" : "Email me a link"}
           </button>

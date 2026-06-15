@@ -15,16 +15,16 @@ function Success({ state }: { state: JoinState }) {
   return (
     <div className="animate-pop-in rounded-3xl glass p-6 text-center">
       <div className="text-4xl">🎉</div>
-      <h2 className="mt-2 text-2xl font-black text-pitch dark:text-emerald-400">You&apos;re in!</h2>
-      <p className="mt-1 text-stone-500 dark:text-stone-300">
+      <h2 className="mt-2 text-2xl font-black text-emerald-400">You&apos;re in!</h2>
+      <p className="mt-1 text-stone-300">
         Share this code so others can join:
       </p>
-      <div className="my-3 inline-block rounded-2xl glass px-6 py-3 text-3xl font-black tracking-[0.2em] text-grape dark:text-violet-300">
+      <div className="my-3 inline-block rounded-2xl glass px-6 py-3 text-3xl font-black tracking-[0.2em] text-violet-300">
         {state.groupCode}
       </div>
       <Link
         href={`/g/${state.groupCode}`}
-        className="mt-5 inline-block rounded-full glass px-6 py-3 font-bold text-pitch dark:text-emerald-400 transition active:scale-95"
+        className="mt-5 inline-block rounded-full glass px-6 py-3 font-bold text-emerald-400 transition active:scale-95"
       >
         Go to the group →
       </Link>
@@ -80,7 +80,7 @@ function CreateForm({ defaultName }: { defaultName: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-full glass py-3.5 text-lg font-bold text-pitch dark:text-emerald-400 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+        className="w-full rounded-full glass py-3.5 text-lg font-bold text-emerald-400 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {pending ? "Creating…" : "Create group"}
       </button>
@@ -126,7 +126,7 @@ function JoinForm({ defaultName }: { defaultName: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-full glass py-3.5 text-lg font-bold text-grape dark:text-violet-300 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+        className="w-full rounded-full glass py-3.5 text-lg font-bold text-violet-300 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {pending ? "Joining…" : "Join group"}
       </button>
@@ -151,8 +151,8 @@ export function JoinForms({
             onClick={() => setTab(t.key)}
             className={`flex-1 rounded-full py-2 text-sm font-bold capitalize transition ${
               tab === t.key
-                ? "glass text-stone-800 dark:text-stone-100"
-                : "text-stone-500 dark:text-stone-300"
+                ? "glass text-stone-100"
+                : "text-stone-300"
             }`}
           >
             {t.label}
