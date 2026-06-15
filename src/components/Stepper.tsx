@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { FOCUS_RING } from "./theme";
 
 const SIZES = {
@@ -20,6 +21,12 @@ export function Stepper({
 }) {
   const s = SIZES[size];
   const btn = `${s.btn} rounded-full font-bold grid place-items-center transition active:scale-90 ${FOCUS_RING}`;
+  // Only pop the digit once we're past the first paint, so a predict page full
+  // of steppers doesn't pop in unison on load — just on real taps thereafter.
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+  }, []);
   return (
     <div className="flex items-center gap-2">
       <button
@@ -31,7 +38,10 @@ export function Stepper({
       >
         −
       </button>
-      <span className={`${s.value} text-center font-extrabold tabular-nums`}>
+      <span
+        key={value}
+        className={`${s.value} text-center font-extrabold tabular-nums ${mounted.current ? "digit-bump" : ""}`}
+      >
         {value}
       </span>
       <button

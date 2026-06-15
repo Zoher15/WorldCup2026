@@ -289,7 +289,10 @@ export function Leaderboard({
           return (
           <li
             key={r.userId}
-            className="relative flex items-center gap-3 rounded-2xl glass px-4 py-3 text-stone-700 transition hover:scale-[1.01] dark:text-stone-100"
+            // Rows settle in with a short stagger; `backwards` fill means the
+            // entrance never pins the transform, so the hover lift still works.
+            style={{ animationDelay: `${Math.min(i * 0.04, 0.28)}s` }}
+            className="rise-in relative flex items-center gap-3 rounded-2xl glass px-4 py-3 text-stone-700 transition hover:scale-[1.01] dark:text-stone-100"
           >
             {/* Gold flash overlay (rather than animating the row's own
                 background, which would fight the .glass layers) when this

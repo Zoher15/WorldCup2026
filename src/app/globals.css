@@ -256,9 +256,25 @@ body {
   from { opacity: 0; transform: translateY(14px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.rise-in { animation: rise-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+/* `backwards` (not `both`): the entrance holds the start frame through any
+   stagger delay, but stops filling once finished — so it never pins `transform`
+   and a row's own `hover:scale` keeps working afterwards. The resting state
+   already matches the final keyframe, so there's no flash at handoff. */
+.rise-in { animation: rise-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
 @media (prefers-reduced-motion: reduce) {
   .rise-in { animation: none; }
+}
+
+/* A quick pop when a stepper digit changes (keyed on the value so it replays on
+   each tap), making score entry feel responsive. Ends at rest, so no fill. */
+@keyframes digit-bump {
+  0% { transform: scale(0.7); }
+  55% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+.digit-bump { animation: digit-bump 0.22s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .digit-bump { animation: none; }
 }
 
 /* A slow, soft bob so a friendly empty-state emoji has a heartbeat instead of

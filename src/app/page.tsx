@@ -173,11 +173,12 @@ export default async function Home() {
                 />
               ) : (
                 <ul className="space-y-2">
-                  {groups.map((g) => (
+                  {groups.map((g, i) => (
                     <li key={g.code}>
                       <Link
                         href={`/g/${g.code}`}
-                        className={`flex items-center justify-between gap-3 rounded-2xl glass px-4 py-3 font-bold text-stone-700 transition hover:scale-[1.01] active:scale-[0.99] dark:text-stone-100 ${FOCUS_RING}`}
+                        style={{ animationDelay: `${Math.min(i * 0.05, 0.3)}s` }}
+                        className={`rise-in flex items-center justify-between gap-3 rounded-2xl glass px-4 py-3 font-bold text-stone-700 transition hover:scale-[1.01] active:scale-[0.99] dark:text-stone-100 ${FOCUS_RING}`}
                       >
                         <span className="truncate">{g.name}</span>
                         <span className="shrink-0 text-xs font-bold text-stone-400">
