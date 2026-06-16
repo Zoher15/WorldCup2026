@@ -208,8 +208,8 @@ export default async function Home() {
         <section>
           {board ? (
             <div className="rounded-3xl glass p-5">
-              <h2 className="mb-4 text-center text-2xl font-black text-violet-300">
-                👥 Your groups
+              <h2 className="mb-4 text-center text-2xl font-black">
+                👥 <span className="gradient-text">Your groups</span>
               </h2>
               {groups.length === 0 ? (
                 <EmptyState

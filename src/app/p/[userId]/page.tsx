@@ -39,8 +39,8 @@ export default async function PlayerHubPage({
   return (
     <PageShell width="content" back={{ href: "/groups", label: "My groups" }}>
       <header className="mb-6 rounded-3xl glass p-6 text-center">
-        <h1 className="text-3xl font-black text-violet-300">
-          {title}
+        <h1 className="text-3xl font-black">
+          <span className="gradient-text">{title}</span>
           {player.isViewer && (
             <span className="ml-2 align-middle text-xs font-bold text-stone-400">
               (you)

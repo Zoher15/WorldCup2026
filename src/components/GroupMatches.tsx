@@ -102,8 +102,8 @@ export function GroupMatches({
 
   return (
     <section className="mt-6 rounded-3xl glass p-5">
-      <h2 className="mb-1 text-center text-xl font-black text-violet-300">
-        ⚽ Matches
+      <h2 className="mb-1 text-center text-xl font-black">
+        ⚽ <span className="gradient-text">Matches</span>
       </h2>
       <p className="mb-4 text-center text-xs font-medium text-stone-300">
         See everyone&apos;s predictions, match by match

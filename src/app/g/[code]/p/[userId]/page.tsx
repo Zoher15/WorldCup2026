@@ -45,8 +45,8 @@ export default async function PlayerPage({
   return (
     <PageShell width="content" back={{ href: `/g/${group.code}`, label: group.name }}>
       <header className="mb-6 rounded-3xl glass p-6 text-center">
-        <h1 className="text-3xl font-black text-violet-300">
-          {player.displayName}
+        <h1 className="text-3xl font-black">
+          <span className="gradient-text">{player.displayName}</span>
           {player.isViewer && (
             <span className="ml-2 align-middle text-xs font-bold text-stone-400">
               (you)

@@ -182,8 +182,8 @@ export function Leaderboard({
 
   return (
     <div className="rounded-3xl glass p-5">
-      <h2 className="mb-4 flex items-center justify-center gap-2 text-center text-2xl font-black text-violet-300">
-        🏆 Leaderboard
+      <h2 className="mb-4 flex items-center justify-center gap-2 text-center text-2xl font-black">
+        <span>🏆 <span className="gradient-text">Leaderboard</span></span>
         {live && (
           <span className="inline-flex items-center gap-1 rounded-full glass px-2.5 py-0.5 text-xs font-bold text-flame">
             <span className="live-dot h-2 w-2 rounded-full bg-flame" />
