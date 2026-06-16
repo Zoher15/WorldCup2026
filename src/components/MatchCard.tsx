@@ -228,7 +228,9 @@ function TeamName({ code, label }: { code: string | null; label?: string | null 
 
 /** The single focal tile: a solid block holding the score (or kickoff time).
  *  Digits wear the display face (`font-display`, Archivo Black) — the face is
- *  inherently black, so no `font-black` (which would synthesise a faux bold). */
+ *  inherently black, so no `font-black` (which would synthesise a faux bold).
+ *  `tabular-nums` keeps the two sides on a fixed pitch so the colon never
+ *  shifts as the score changes. */
 function Score({
   home,
   away,
@@ -240,12 +242,13 @@ function Score({
   away: number;
   tone: string;
   label?: string;
-  /** Hero card: one step larger digits. */
+  /** Hero card: oversized, stadium-scoreboard digits (text-5xl) so the score
+   *  dominates the focal tile. Still fits the fixed-height focal region. */
   large?: boolean;
 }) {
   return (
     <div className={`rounded-xl px-4 py-1.5 text-center ${GLASS}`}>
-      <div className={`flex items-center justify-center gap-2 font-display tabular-nums ${large ? "text-4xl" : "text-3xl"} ${tone}`}>
+      <div className={`flex items-center justify-center gap-2 font-display tabular-nums ${large ? "text-5xl" : "text-3xl"} ${tone}`}>
         <span>{home}</span>
         <span className="text-stone-600">:</span>
         <span>{away}</span>
@@ -277,7 +280,7 @@ function MiniScore({
       <div className="text-[10px] font-bold uppercase tracking-wide text-stone-200">
         {label}
       </div>
-      <div className={`flex items-center justify-center gap-1.5 font-display tabular-nums ${large ? "text-3xl" : "text-2xl"} ${tone}`}>
+      <div className={`flex items-center justify-center gap-1.5 font-display tabular-nums ${large ? "text-4xl" : "text-2xl"} ${tone}`}>
         <span>{home}</span>
         <span className="text-stone-600">:</span>
         <span>{away}</span>

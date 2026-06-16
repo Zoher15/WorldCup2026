@@ -39,7 +39,7 @@ export function GroupAdmin({
     setRenameMsg(null);
     start(async () => {
       const res = await renameGroupAction(code, nameDraft);
-      setRenameMsg(res.ok ? "Renamed ✓" : res.error ?? "Failed");
+      setRenameMsg(res.ok ? "Renamed ✓" : res.error ?? "Rename didn't take — give it another go.");
     });
   }
 

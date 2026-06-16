@@ -90,7 +90,7 @@ export function ShareButton({
       await navigator.clipboard.writeText(absUrl);
       flash("Link copied ✓");
     } catch {
-      flash("Couldn't share");
+      flash("Sharing's being shy — try again");
     }
   }
 

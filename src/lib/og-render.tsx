@@ -4,6 +4,7 @@ import { competitionRanks, type StandingsRow } from "./standings";
 import { teamLabel } from "./fifa";
 import { formatStageLabel } from "./format";
 import { NOTO_SANS_BASE64 } from "./noto-sans-font";
+import { ARCHIVO_BLACK_BASE64 } from "./archivo-black-font";
 import type { MatchBoard } from "./match-leaderboard";
 
 // Renders the leaderboard share image (1200x630) on the Node runtime — during
@@ -27,7 +28,7 @@ const OG_MIN_HEIGHT = 630;
 // Bump when the layout changes. The /s/<code>/og endpoint compares this to each
 // stored image's render_version (migration 0006) and re-renders anything older,
 // so a design change reaches already-cached groups on their next view.
-export const OG_RENDER_VERSION = 7;
+export const OG_RENDER_VERSION = 8;
 
 /**
  * A fingerprint of everything the image draws: the layout version, the group
@@ -94,9 +95,14 @@ export function ogImageSize(total: number): { width: number; height: number } {
   return { width: OG_WIDTH, height: Math.max(OG_MIN_HEIGHT, content) };
 }
 
-function loadFont(): ArrayBuffer | null {
+/** Decode an inlined base64 font to an ArrayBuffer, validating it's a real SFNT
+ *  font (TTF/OTF) before handing it to Satori — a non-font payload would make
+ *  Satori read past the buffer and throw, blanking the whole share image. On any
+ *  doubt we return null and the caller drops that font (next/og falls back to its
+ *  built-in face) rather than crashing. */
+function decodeFont(base64: string): ArrayBuffer | null {
   try {
-    const bin = atob(NOTO_SANS_BASE64);
+    const bin = atob(base64);
     const bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
     if (bytes.byteLength < 2000) return null;
@@ -106,6 +112,31 @@ function loadFont(): ArrayBuffer | null {
   } catch {
     return null;
   }
+}
+
+// The two faces the share images draw with, mirroring the site: Noto Sans for
+// body/UI text (Satori has no system stack) and Archivo Black ("Display") for
+// the big headline + score numerals, the same display face the app uses via
+// next/font. Either can independently come back null on a bad decode; we only
+// register the ones that validated, and the layout still reads with the fallback.
+const DISPLAY = "Display"; // Archivo Black — headlines + score numerals
+const BODY = "Noto Sans"; // everything else
+
+/** Build the `fonts` option for an ImageResponse, including only the faces that
+ *  decoded to valid SFNT bytes. */
+function loadFonts() {
+  const body = decodeFont(NOTO_SANS_BASE64);
+  const display = decodeFont(ARCHIVO_BLACK_BASE64);
+  const fonts: {
+    name: string;
+    data: ArrayBuffer;
+    weight: 400;
+    style: "normal";
+  }[] = [];
+  if (body) fonts.push({ name: BODY, data: body, weight: 400, style: "normal" });
+  if (display)
+    fonts.push({ name: DISPLAY, data: display, weight: 400, style: "normal" });
+  return fonts;
 }
 
 // Satori: a <div> with more than one child must declare display:flex, and an
@@ -121,7 +152,11 @@ const GLASS = "rgba(255,255,255,0.06)";
 const GLASS_BORDER = "1px solid rgba(255,255,255,0.12)";
 const INK = "#f5f5f4"; // names / primary text
 const MUTED = "#a8a29e"; // ranks / secondary
-const FLAME = "#ff5a36"; // scoring-streak flame (matches --color-flame)
+// Brand/semantic accents pinned to the on-site values so the share image reads
+// as the same app: flame = --color-flame / LIVE_TEXT (text-flame); emerald =
+// RESULT_TEXT (text-emerald-400) for full-time scores; violet = PREDICTION_TEXT
+// (text-violet-300) for a player's call. See src/components/theme.ts.
+const FLAME = "#ff5a36"; // live / scoring-streak flame (--color-flame, text-flame)
 
 // Emoji don't render in this Satori/Noto setup (no emoji font, no network to a
 // CDN), so the streak flame is a self-contained inline SVG drawn as an <img> —
@@ -135,6 +170,66 @@ const FLAME_SVG =
   `<path fill="url(#f)" fill-rule="evenodd" clip-rule="evenodd" ` +
   `d="M12.963 2.286a.75.75 0 0 0-1.071-.136 9.742 9.742 0 0 0-3.539 6.177A7.547 7.547 0 0 1 5.648 6.61a.75.75 0 0 0-1.152.082A9 9 0 1 0 15.68 4.534a7.46 7.46 0 0 1-2.717-2.248ZM15.75 14.25a3.75 3.75 0 1 1-7.313-1.172c.628.465 1.35.81 2.133 1.005a5.99 5.99 0 0 1 1.925-3.546 3.75 3.75 0 0 1 3.255 3.713Z"/></svg>`;
 const FLAME_ICON = `data:image/svg+xml;base64,${Buffer.from(FLAME_SVG).toString("base64")}`;
+
+// The site's flame→grape→ocean brand sweep (the `.gradient-text` headline and
+// `.gradient-accent` ring in globals.css). Satori supports `background-clip:
+// text` with a transparent fill, so the share-image headlines can carry the
+// exact same gradient as the on-page hero.
+const BRAND_GRADIENT = "linear-gradient(90deg, #ff5a36 0%, #6b2fb3 50%, #1e8fd5 100%)";
+
+/** The brand gradient applied to text, the way `.gradient-text` does on-site:
+ *  paint a linear-gradient and clip it to the glyphs. Satori needs the
+ *  transparent fill via `color: "transparent"` (it has no -webkit- prefix
+ *  plumbing); a flat `color` fallback is irrelevant here since these strings are
+ *  always drawn by Satori, never a browser. Spread onto a text node's style. */
+function gradientText(): React.CSSProperties {
+  return {
+    backgroundImage: BRAND_GRADIENT,
+    backgroundClip: "text",
+    WebkitBackgroundClip: "text",
+    color: "transparent",
+  };
+}
+
+// Satori can't do font-variant-numeric: tabular-nums, so a 1 is narrower than a
+// 0 and stacked score/points columns drift out of alignment. We fake fixed-pitch
+// numerals by laying each glyph in an equal-width flex cell — the digits then sit
+// on a strict grid like the on-site tabular-nums. CH_W is sized per font size so
+// the cell comfortably holds the widest Archivo Black digit at that size.
+function TabularNum({
+  value,
+  fontSize,
+  color,
+  fontFamily = DISPLAY,
+}: {
+  value: number | string;
+  fontSize: number;
+  color: string;
+  fontFamily?: string;
+}) {
+  const text = String(value);
+  const chW = Math.ceil(fontSize * 0.62); // widest digit cell at this size
+  return (
+    <div style={{ display: "flex", fontFamily, fontSize, color, lineHeight: 1 }}>
+      {text.split("").map((ch, i) => {
+        const isDigit = ch >= "0" && ch <= "9";
+        // Separators (–, :, =, /, +) hug their natural width; only digits claim a
+        // full fixed cell, so "10–2" still reads tight. Satori dislikes a literal
+        // `width: undefined`, so the cell only carries a width when it's a digit.
+        const style: React.CSSProperties = {
+          display: "flex",
+          justifyContent: "center",
+          ...(isDigit ? { width: chW } : {}),
+        };
+        return (
+          <div key={i} style={style}>
+            {ch}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 // Podium (top three). Render order places #2 left, #1 center, #3 right.
 const PODIUM_ORDER = [1, 0, 2];
@@ -210,9 +305,9 @@ function PodiumColumn({
           boxShadow: "inset 0 2px 0 rgba(255,255,255,0.35)",
         }}
       >
-        <div style={{ display: "flex", fontSize: 42, lineHeight: 1, fontWeight: 700, color: "#fafaf9" }}>
-          {tied ? `=${row.points}` : row.points}
-        </div>
+        {/* The podium points wear the display face (Archivo Black) with fixed-
+            pitch digits — the stadium-scoreboard numerals the app uses. */}
+        <TabularNum value={tied ? `=${row.points}` : row.points} fontSize={42} color="#fafaf9" />
         {/* A live scoring streak rides under the points, like the on-page bar —
             on a dark pill so the flame reads against the gold/silver/bronze
             gradient (the PNG has no frosted glass to sit it on). */}
@@ -286,7 +381,11 @@ function ListRow({ row, rank, tied, colW }: ListEntry & { colW: number }) {
             {row.streak}
           </div>
         )}
-        <div style={{ display: "flex", fontSize: 25, fontWeight: 700, color: "#fafaf9" }}>{row.points}</div>
+        {/* Points: a fixed-width, right-aligned, display-face cell so multi-digit
+            totals down a column line up like the on-site tabular-nums. */}
+        <div style={{ display: "flex", width: 56, justifyContent: "flex-end" }}>
+          <TabularNum value={row.points} fontSize={25} color="#fafaf9" />
+        </div>
       </div>
     </div>
   );
@@ -330,7 +429,7 @@ export async function renderLeaderboardPng(
   const col1 = restRows.slice(0, rowsPerCol);
   const col2 = restRows.slice(rowsPerCol);
   const size = ogImageSize(overall.length);
-  const font = loadFont();
+  const fonts = loadFonts();
 
   const res = new ImageResponse(
     (
@@ -359,10 +458,11 @@ export async function renderLeaderboardPng(
             border: "1px solid rgba(255,255,255,0.10)",
           }}
         >
-          {/* Header */}
+          {/* Header — the group name as the on-site hero headline: display face
+              (Archivo Black) carrying the flame→grape→ocean brand gradient. */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
             <div style={{ display: "flex", fontSize: 40 }}>🏆</div>
-            <div style={{ fontSize: 40, fontWeight: 700, color: "#c4b5fd", maxWidth: 940, ...clip }}>
+            <div style={{ fontFamily: DISPLAY, fontSize: 44, maxWidth: 940, ...clip, ...gradientText() }}>
               {groupName ?? "Leaderboard"}
             </div>
           </div>
@@ -401,9 +501,7 @@ export async function renderLeaderboardPng(
     ),
     {
       ...size,
-      ...(font
-        ? { fonts: [{ name: "Noto Sans", data: font, weight: 400 as const, style: "normal" as const }] }
-        : {}),
+      ...(fonts.length ? { fonts } : {}),
     },
   );
   return new Uint8Array(await res.arrayBuffer());
@@ -423,8 +521,8 @@ const MATCH_SUB_H = 28; // "World Cup 2026 · <stage>"
 const MATCH_BAR_H = 116; // teams + score tile
 const MATCH_CAPTION_H = 28; // "<n> of <m> predicted"
 
-const PICK_INK = "#c4b5fd"; // a player's predicted scoreline (violet, like the app)
-const PITCH = "#34d399"; // "locked in" / full-time accent (emerald)
+const PICK_INK = "#c4b5fd"; // a player's predicted scoreline (text-violet-300, like the app)
+const PITCH = "#34d399"; // "locked in" / full-time accent (text-emerald-400 / RESULT_TEXT)
 
 /** How a match board's rows split into columns, shared by the renderer and the
  *  height calc so both agree on row counts. */
@@ -476,12 +574,19 @@ function MatchRowStatus({ row, revealed }: { row: MatchRow; revealed: boolean })
   }
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-      <div style={{ display: "flex", fontSize: 23, fontWeight: 700, color: row.pick ? PICK_INK : MUTED }}>
-        {row.pick ? `${row.pick.home}–${row.pick.away}` : "No pick"}
-      </div>
+      {/* The call: display-face fixed-pitch digits (like the on-card scoreline)
+          so scorelines line up down the column; "No pick" stays plain body. */}
+      {row.pick ? (
+        <TabularNum value={`${row.pick.home}–${row.pick.away}`} fontSize={23} color={PICK_INK} />
+      ) : (
+        <div style={{ display: "flex", fontSize: 23, fontWeight: 700, color: MUTED }}>No pick</div>
+      )}
       {row.points != null && (
-        <div style={{ display: "flex", fontSize: 24, fontWeight: 700, color: INK }}>
-          {row.points} pt{row.points === 1 ? "" : "s"}
+        <div style={{ display: "flex", alignItems: "baseline", gap: 4, width: 78, justifyContent: "flex-end" }}>
+          <TabularNum value={row.points} fontSize={24} color={INK} />
+          <div style={{ display: "flex", fontSize: 18, fontWeight: 700, color: INK }}>
+            pt{row.points === 1 ? "" : "s"}
+          </div>
         </div>
       )}
     </div>
@@ -554,7 +659,7 @@ export async function renderMatchPng(board: MatchBoard): Promise<Uint8Array> {
   const col1 = shown.slice(0, rowsPerCol);
   const col2 = shown.slice(rowsPerCol);
   const size = matchOgImageSize(rows.length);
-  const font = loadFont();
+  const fonts = loadFonts();
 
   const res = new ImageResponse(
     (
@@ -583,8 +688,9 @@ export async function renderMatchPng(board: MatchBoard): Promise<Uint8Array> {
             border: "1px solid rgba(255,255,255,0.10)",
           }}
         >
-          {/* Header: group name + subtitle */}
-          <div style={{ justifyContent: "center", fontSize: 40, fontWeight: 700, color: "#c4b5fd", maxWidth: 1000, ...clip }}>
+          {/* Header: group name (on-site hero headline — display face + brand
+              gradient) + subtitle */}
+          <div style={{ justifyContent: "center", fontFamily: DISPLAY, fontSize: 44, maxWidth: 1000, ...clip, ...gradientText() }}>
             {group.name}
           </div>
           <div style={{ display: "flex", justifyContent: "center", fontSize: 20, fontWeight: 400, color: MUTED, marginTop: 2 }}>
@@ -599,8 +705,11 @@ export async function renderMatchPng(board: MatchBoard): Promise<Uint8Array> {
               </div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: MATCH_CENTER_W }}>
-              <div style={{ display: "flex", fontSize: 46, fontWeight: 700, color: INK, lineHeight: 1 }}>{centerScore}</div>
-              <div style={{ display: "flex", fontSize: 18, fontWeight: 700, color: stateColor, marginTop: 6 }}>{stateLabel}</div>
+              {/* The score: oversized display-face numerals with fixed-pitch
+                  digits — the stadium-scoreboard look the on-card score uses.
+                  Live scores glow flame, full-time stays bright like the app. */}
+              <TabularNum value={centerScore} fontSize={58} color={match.live ? FLAME : INK} />
+              <div style={{ display: "flex", fontSize: 18, fontWeight: 700, color: stateColor, marginTop: 8 }}>{stateLabel}</div>
             </div>
             <div style={{ display: "flex", width: MATCH_SIDE_W, justifyContent: "flex-start" }}>
               <div style={{ fontSize: 34, fontWeight: 700, color: INK, maxWidth: MATCH_SIDE_W, ...clip }}>
@@ -635,9 +744,7 @@ export async function renderMatchPng(board: MatchBoard): Promise<Uint8Array> {
     ),
     {
       ...size,
-      ...(font
-        ? { fonts: [{ name: "Noto Sans", data: font, weight: 400 as const, style: "normal" as const }] }
-        : {}),
+      ...(fonts.length ? { fonts } : {}),
     },
   );
   return new Uint8Array(await res.arrayBuffer());
@@ -649,7 +756,7 @@ export async function renderMatchPng(board: MatchBoard): Promise<Uint8Array> {
 // /s/<code>/p/<id>/og endpoint behind the same short CDN cache (these only move
 // as results confirm). Fixed 1200x630 — a compact card, not a growing list.
 
-const SUNBURST = "#f59e0b"; // exact-score accent (matches the on-page 🎯 chip)
+const SUNBURST = "#ffd23f"; // exact-score accent (--color-sunburst / text-sunburst, the on-page 🎯 chip)
 
 /** The PNG dimensions for the achievements card — a fixed link-unfurl frame. */
 export function achievementOgImageSize(): { width: number; height: number } {
@@ -688,7 +795,9 @@ function StatTile({
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         {icon && <img src={icon} width={44} height={52} alt="" />}
-        <div style={{ display: "flex", fontSize: 64, fontWeight: 700, color, lineHeight: 1 }}>{value}</div>
+        {/* The big stat: display face with fixed-pitch digits — the same
+            scoreboard numerals the app and the other share images use. */}
+        <TabularNum value={value} fontSize={64} color={color} />
       </div>
       <div style={{ display: "flex", fontSize: 20, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 1 }}>
         {label}
@@ -714,7 +823,7 @@ export async function renderAchievementsPng(data: {
   exact: number;
 }): Promise<Uint8Array> {
   const size = achievementOgImageSize();
-  const font = loadFont();
+  const fonts = loadFonts();
 
   const tiles: React.ReactNode[] = [
     <StatTile key="pts" value={`${data.points}`} label="Points" color={INK} />,
@@ -759,8 +868,9 @@ export async function renderAchievementsPng(data: {
             border: "1px solid rgba(255,255,255,0.10)",
           }}
         >
-          {/* Name + group */}
-          <div style={{ fontSize: 60, fontWeight: 700, color: "#c4b5fd", maxWidth: 1000, ...clip }}>
+          {/* Name + group — the player's name as the on-site hero headline:
+              display face carrying the flame→grape→ocean brand gradient. */}
+          <div style={{ fontFamily: DISPLAY, fontSize: 64, maxWidth: 1000, ...clip, ...gradientText() }}>
             {data.displayName}
           </div>
           <div style={{ fontSize: 24, fontWeight: 400, color: MUTED, marginTop: 4, maxWidth: 1000, ...clip }}>
@@ -781,9 +891,7 @@ export async function renderAchievementsPng(data: {
     ),
     {
       ...size,
-      ...(font
-        ? { fonts: [{ name: "Noto Sans", data: font, weight: 400 as const, style: "normal" as const }] }
-        : {}),
+      ...(fonts.length ? { fonts } : {}),
     },
   );
   return new Uint8Array(await res.arrayBuffer());
