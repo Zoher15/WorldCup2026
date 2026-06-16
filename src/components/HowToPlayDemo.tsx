@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "./Button";
+import { Icon, type IconName } from "./Icon";
 import { MatchCard } from "./MatchCard";
 import { scoreMatch, type MatchScore } from "@/lib/scoring";
 
@@ -18,7 +20,13 @@ const FRIENDS = [
   { name: "Sam", home: 0, away: 2 }, // wrong winner
 ];
 
-const MEDALS = ["🥇", "🥈", "🥉"];
+// The top three demo finishers wear medal icons (trophy for the winner),
+// tinted gold / silver / bronze; everyone below shows their plain rank number.
+const MEDALS: { name: IconName; tone: string }[] = [
+  { name: "trophy", tone: "text-amber-200" },
+  { name: "medal", tone: "text-zinc-100" },
+  { name: "medal", tone: "text-amber-300" },
+];
 
 function scoreOf(home: number, away: number): MatchScore {
   return scoreMatch(
@@ -81,12 +89,9 @@ export function HowToPlayDemo() {
           <p className="mb-3 text-sm font-medium text-stone-300">
             Tap the <strong>+/−</strong> to call the score, then lock it in.
           </p>
-          <button
-            onClick={() => setLocked(true)}
-            className="rounded-full glass px-6 py-3 font-bold text-emerald-400 transition active:scale-95"
-          >
+          <Button tone="pitch" size="lg" onClick={() => setLocked(true)}>
             Lock in my prediction →
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="mt-4">
@@ -100,12 +105,9 @@ export function HowToPlayDemo() {
           </div>
 
           <div className="mt-3 text-center">
-            <button
-              onClick={() => setLocked(false)}
-              className="rounded-full glass px-6 py-3 font-bold text-violet-300 transition active:scale-95"
-            >
+            <Button tone="grape" size="lg" onClick={() => setLocked(false)}>
               ↺ Try a different score
-            </button>
+            </Button>
           </div>
 
           <h3 className="mt-5 mb-2 text-center text-sm font-black uppercase tracking-wide text-stone-400">
@@ -122,8 +124,12 @@ export function HowToPlayDemo() {
                     : "glass"
                 }`}
               >
-                <span className="w-6 text-center text-lg font-black">
-                  {MEDALS[i] ?? <span className="text-stone-400">{i + 1}</span>}
+                <span className="flex w-6 justify-center text-lg font-black">
+                  {MEDALS[i] ? (
+                    <Icon name={MEDALS[i].name} className={MEDALS[i].tone} />
+                  ) : (
+                    <span className="text-stone-400">{i + 1}</span>
+                  )}
                 </span>
                 <span className="flex-1 truncate font-bold text-stone-100">
                   {r.name}

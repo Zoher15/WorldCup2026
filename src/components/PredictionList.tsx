@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Countdown } from "./Countdown";
+import { Icon } from "./Icon";
 import { MatchCard } from "./MatchCard";
 import { FOCUS_RING, LIVE_TEXT } from "./theme";
 import { useLiveRefresh } from "./useLiveRefresh";
@@ -131,7 +132,7 @@ export function PredictionList({
       {nextLock && (
         <div className="mb-6 flex items-center justify-center gap-2 rounded-2xl glass px-4 py-3 text-sm font-bold text-stone-100 ring-1 ring-flame/30">
           <span className="animate-pulse" aria-hidden>
-            ⏳
+            <Icon name="clock" />
           </span>
           <span>
             {nextLock.count} match{nextLock.count === 1 ? "" : "es"} lock
@@ -213,7 +214,9 @@ export function PredictionList({
                     ) : live ? (
                       <span className={LIVE_TEXT}>● Live</span>
                     ) : (
-                      <span className="text-stone-300">🔒 Locked</span>
+                      <span className="inline-flex items-center gap-1 text-stone-300">
+                        <Icon name="lock" /> Locked
+                      </span>
                     )
                   }
                 />

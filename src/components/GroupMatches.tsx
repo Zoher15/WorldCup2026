@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Icon } from "./Icon";
 import { LiveBadge, FullTimeBadge } from "./StatusBadge";
 import { FOCUS_RING } from "./theme";
 import { teamLabel } from "@/lib/fifa";
@@ -38,7 +39,9 @@ function MatchStatus({ match }: { match: BoardMatchSummary }) {
   }
   if (match.state === "open") {
     return (
-      <span className="text-xs font-bold text-flame">⏳ Open</span>
+      <span className="inline-flex items-center gap-1 text-xs font-bold text-flame">
+        <Icon name="clock" /> Open
+      </span>
     );
   }
   return (

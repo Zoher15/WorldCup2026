@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Icon } from "@/components/Icon";
 import { HowToPlayDemo } from "@/components/HowToPlayDemo";
 import { ADVANCE_BONUS, MAX_MATCH_POINTS } from "@/lib/scoring";
 import { BORINGBOT_NAME } from "@/lib/standings";
@@ -211,8 +212,8 @@ export default function HowToPlayPage() {
             shows the time left.
           </li>
           <li className="rounded-2xl glass px-4 py-3">
-            🔒 Everyone&apos;s picks stay hidden until kickoff, so there&apos;s no
-            peeking.
+            <Icon name="lock" className="mr-1 text-stone-300" /> Everyone&apos;s
+            picks stay hidden until kickoff, so there&apos;s no peeking.
           </li>
           <li className="rounded-2xl glass px-4 py-3">
             👨‍👩‍👧‍👦 In more than one group? You predict once and it counts in all of

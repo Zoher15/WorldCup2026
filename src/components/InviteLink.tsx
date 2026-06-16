@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Icon } from "./Icon";
 import { FOCUS_RING } from "./theme";
 
 /** "Copy invite link" button: copies a shareable /i/<code> URL to the clipboard. */
@@ -24,9 +25,15 @@ export function InviteLink({ code }: { code: string }) {
     <button
       onClick={copy}
       aria-label="Copy invite link to clipboard"
-      className={`rounded-full chrome px-4 py-2 text-sm font-bold text-violet-300 transition active:scale-95 ${FOCUS_RING}`}
+      className={`inline-flex items-center gap-1.5 rounded-full chrome px-4 py-2 text-sm font-bold text-violet-300 transition active:scale-95 ${FOCUS_RING}`}
     >
-      {copied ? "Link copied ✓" : "🔗 Copy invite link"}
+      {copied ? (
+        "Link copied ✓"
+      ) : (
+        <>
+          <Icon name="link" /> Copy invite link
+        </>
+      )}
     </button>
   );
 }

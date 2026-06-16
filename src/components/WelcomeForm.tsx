@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { saveNameAction } from "@/app/welcome/actions";
 import { INITIAL_WELCOME_STATE } from "@/app/welcome/welcome-state";
+import { Button } from "./Button";
 import { inputClasses as input } from "./form-styles";
 
 export function WelcomeForm({ next }: { next: string }) {
@@ -33,13 +34,15 @@ export function WelcomeForm({ next }: { next: string }) {
       {state.error && (
         <p className="text-sm font-bold text-flame">{state.error}</p>
       )}
-      <button
+      <Button
         type="submit"
+        tone="pitch"
+        size="lg"
         disabled={pending}
-        className="w-full rounded-full glass py-3.5 text-lg font-bold text-emerald-400 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+        className="w-full py-3.5 text-lg"
       >
         {pending ? "Saving…" : "Continue →"}
-      </button>
+      </Button>
     </form>
   );
 }
