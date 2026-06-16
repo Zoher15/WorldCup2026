@@ -47,7 +47,16 @@ export function AccountMenu({
         aria-label="Account menu"
         className={`-m-1.5 flex cursor-pointer items-center rounded-full p-1.5 ${FOCUS_RING}`}
       >
-        <span className="grid h-9 w-9 place-items-center rounded-full glass text-sm font-black text-violet-300">
+        {/* The initials wear the same living flame→grape→ocean wave as the
+            "World Cup 2026" wordmark (kept in phase by GradientSync), so the
+            header is gradient on both ends. The 🙂 signed-in-without-a-name
+            fallback stays solid violet — gradient-clipping would blank the
+            emoji (the same reason the wordmark's ⚽ sits outside the gradient). */}
+        <span
+          className={`grid h-9 w-9 place-items-center rounded-full glass text-sm font-black ${
+            name ? "gradient-text" : "text-violet-300"
+          }`}
+        >
           {initials}
         </span>
       </button>
