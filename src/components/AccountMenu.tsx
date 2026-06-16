@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useRef, useState } from "react";
 import { signOutAction } from "@/app/auth/actions";
+import { Button } from "./Button";
 import { FOCUS_RING } from "./theme";
 import { useDismissOnOutside } from "./useDismissOnOutside";
 
@@ -28,12 +29,9 @@ export function AccountMenu({
 
   if (!loggedIn) {
     return (
-      <Link
-        href="/login"
-        className={`rounded-full glass px-4 py-1.5 text-sm font-bold text-violet-300 ${FOCUS_RING}`}
-      >
+      <Button as="link" href="/login" tone="grape" size="sm">
         Sign in
-      </Link>
+      </Button>
     );
   }
 

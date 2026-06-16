@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { leaveGroupAction } from "@/app/g/[code]/actions";
+import { Button } from "./Button";
 
 /**
  * "Leave group" control for ordinary members. The creator can't leave (they
@@ -11,16 +12,17 @@ export function LeaveGroup({ code, name }: { code: string; name: string }) {
   const [pending, start] = useTransition();
 
   return (
-    <button
+    <Button
+      tone="flame"
+      size="md"
       disabled={pending}
       onClick={() => {
         if (confirm(`Leave “${name}”? You'll lose your spot on the board.`)) {
           start(() => leaveGroupAction(code));
         }
       }}
-      className="rounded-full glass px-4 py-2 text-sm font-bold text-flame transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
     >
       Leave group
-    </button>
+    </Button>
   );
 }

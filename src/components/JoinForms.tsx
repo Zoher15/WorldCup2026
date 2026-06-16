@@ -1,10 +1,11 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import Link from "next/link";
 import { createGroupAction, joinGroupAction } from "@/app/actions";
 import { INITIAL_JOIN_STATE, type JoinState } from "@/app/join-state";
+import { Button } from "./Button";
 import { inputClasses as input, labelClasses as label } from "./form-styles";
+import { FOCUS_RING } from "./theme";
 
 const TABS = [
   { key: "join", label: "Join a group" },
@@ -22,12 +23,15 @@ function Success({ state }: { state: JoinState }) {
       <div className="my-3 inline-block rounded-2xl glass px-6 py-3 text-3xl font-black tracking-[0.2em] text-violet-300">
         {state.groupCode}
       </div>
-      <Link
+      <Button
+        as="link"
         href={`/g/${state.groupCode}`}
-        className="mt-5 inline-block rounded-full glass px-6 py-3 font-bold text-emerald-400 transition active:scale-95"
+        tone="pitch"
+        size="lg"
+        className="mt-5 inline-block"
       >
         Go to the group →
-      </Link>
+      </Button>
     </div>
   );
 }
@@ -77,13 +81,15 @@ function CreateForm({ defaultName }: { defaultName: string }) {
       {state.status === "error" && (
         <p className="text-sm font-bold text-flame">{state.error}</p>
       )}
-      <button
+      <Button
         type="submit"
+        tone="pitch"
+        size="lg"
         disabled={pending}
-        className="w-full rounded-full glass py-3.5 text-lg font-bold text-emerald-400 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+        className="w-full py-3.5 text-lg"
       >
         {pending ? "Creating…" : "Create group"}
-      </button>
+      </Button>
     </form>
   );
 }
@@ -123,13 +129,15 @@ function JoinForm({ defaultName }: { defaultName: string }) {
       {state.status === "error" && (
         <p className="text-sm font-bold text-flame">{state.error}</p>
       )}
-      <button
+      <Button
         type="submit"
+        tone="grape"
+        size="lg"
         disabled={pending}
-        className="w-full rounded-full glass py-3.5 text-lg font-bold text-violet-300 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+        className="w-full py-3.5 text-lg"
       >
         {pending ? "Joining…" : "Join group"}
-      </button>
+      </Button>
     </form>
   );
 }
@@ -144,15 +152,17 @@ export function JoinForms({
   const [tab, setTab] = useState<"join" | "create">(initialTab);
   return (
     <div>
+      {/* Tabs match the Leaderboard's chrome tabs: the active tab is a solid
+          chrome pill, inactive tabs are muted text that brightens on hover. */}
       <div className="mb-6 flex gap-1 rounded-full glass p-1">
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex-1 rounded-full py-2 text-sm font-bold capitalize transition ${
+            className={`flex-1 rounded-full py-2 text-sm font-bold capitalize transition ${FOCUS_RING} ${
               tab === t.key
-                ? "glass text-stone-100"
-                : "text-stone-300"
+                ? "chrome text-violet-300"
+                : "text-stone-300 hover:text-white"
             }`}
           >
             {t.label}
