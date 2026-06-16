@@ -702,6 +702,8 @@ body[data-anim-paused] .countdown-tense {
     animation: none;
     box-shadow: 0 0 0 2px rgba(255, 90, 54, 0.45);
   }
+}
+
 /* ─── Tournament-phase ambient shift ────────────────────────────────────────
    The page-wide background glow tracks the live tournament phase (driven by
    `data-phase` on <html>, set from src/lib/tournament-phase.ts). `group` keeps
