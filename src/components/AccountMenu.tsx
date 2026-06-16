@@ -49,15 +49,16 @@ export function AccountMenu({
       >
         {/* The initials wear the same living flame→grape→ocean wave as the
             "World Cup 2026" wordmark (kept in phase by GradientSync), so the
-            header is gradient on both ends. The 🙂 signed-in-without-a-name
-            fallback stays solid violet — gradient-clipping would blank the
-            emoji (the same reason the wordmark's ⚽ sits outside the gradient). */}
-        <span
-          className={`grid h-9 w-9 place-items-center rounded-full glass text-sm font-black ${
-            name ? "gradient-text" : "text-violet-300"
-          }`}
-        >
-          {initials}
+            header is gradient on both ends. The gradient sits on an INNER span:
+            `.glass` and `.gradient-text` both paint `background`, so putting both
+            on one element clips the glass fill instead of the gradient and the
+            transparent text-fill blanks the letters. The 🙂 no-name fallback
+            stays solid violet (gradient-clipping would blank the emoji — the
+            same reason the wordmark's ⚽ sits outside its gradient). */}
+        <span className="grid h-9 w-9 place-items-center rounded-full glass text-sm font-black">
+          <span className={name ? "gradient-text" : "text-violet-300"}>
+            {initials}
+          </span>
         </span>
       </button>
 
