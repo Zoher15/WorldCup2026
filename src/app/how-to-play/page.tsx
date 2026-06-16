@@ -65,7 +65,7 @@ export default function HowToPlayPage() {
 
       {/* Scoring */}
       <section className="mb-10">
-        <h2 className="mb-3 text-center text-xl font-black text-violet-300">
+        <h2 className="gradient-text mb-3 text-center text-xl font-black">
           How points work
         </h2>
         <div className="rounded-3xl glass p-6 text-center">
@@ -112,7 +112,7 @@ export default function HowToPlayPage() {
 
       {/* Interactive walkthrough */}
       <section className="mb-10">
-        <h2 className="mb-1 text-center text-xl font-black text-violet-300">
+        <h2 className="gradient-text mb-1 text-center text-xl font-black">
           Try it yourself
         </h2>
         <p className="mx-auto mb-4 max-w-md text-center text-sm font-medium text-stone-300">
@@ -125,7 +125,7 @@ export default function HowToPlayPage() {
       {/* Knockouts */}
       <section className="mb-10 rounded-3xl glass p-6 text-center">
         <div className="text-2xl">🥊</div>
-        <h2 className="mt-1 text-lg font-black text-violet-300">
+        <h2 className="gradient-text mt-1 text-lg font-black">
           Knockout rounds
         </h2>
         <p className="mx-auto mt-1 max-w-md text-sm font-medium text-stone-200">
@@ -151,7 +151,7 @@ export default function HowToPlayPage() {
       {/* BoringBot */}
       <section className="mb-10 rounded-3xl glass p-6 text-center">
         <div className="text-2xl">🤖</div>
-        <h2 className="mt-1 text-lg font-black text-violet-300">
+        <h2 className="gradient-text mt-1 text-lg font-black">
           Beat {BORINGBOT_NAME}
         </h2>
         <p className="mx-auto mt-1 max-w-md text-sm font-medium text-stone-200">
@@ -168,7 +168,7 @@ export default function HowToPlayPage() {
 
       {/* Three boards */}
       <section className="mb-10">
-        <h2 className="mb-3 text-center text-xl font-black text-violet-300">
+        <h2 className="gradient-text mb-3 text-center text-xl font-black">
           Three ways to win
         </h2>
         <div className="grid gap-3 sm:grid-cols-3">
@@ -202,7 +202,7 @@ export default function HowToPlayPage() {
 
       {/* Good to know */}
       <section className="mb-10">
-        <h2 className="mb-3 text-center text-xl font-black text-violet-300">
+        <h2 className="gradient-text mb-3 text-center text-xl font-black">
           Good to know
         </h2>
         <ul className="mx-auto max-w-md space-y-2 text-sm font-medium text-stone-200">

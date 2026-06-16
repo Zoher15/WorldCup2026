@@ -79,7 +79,7 @@ export default async function GroupPage({
   return (
     <PageShell width="content" back={{ href: "/", label: "Home" }}>
       <header className="mb-6 rounded-3xl glass p-6 text-center">
-        <h1 className="text-3xl font-black text-violet-300">
+        <h1 className="gradient-text text-3xl font-black">
           {group.name}
         </h1>
         <p className="mt-1 text-sm font-medium text-stone-300">

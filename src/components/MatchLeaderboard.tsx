@@ -149,8 +149,11 @@ export function MatchBoardRows({ board }: { board: MatchBoard }) {
 
   return (
     <div className="rounded-3xl glass p-5">
-        <h2 className="mb-1 text-center text-xl font-black text-violet-300">
-          {revealed ? "🏅 This match" : "Who's locked in"}
+        <h2 className="mb-1 text-center text-xl font-black">
+          {revealed && "🏅 "}
+          <span className="gradient-text">
+            {revealed ? "This match" : "Who's locked in"}
+          </span>
         </h2>
         <p className="mb-4 text-center text-xs font-medium text-stone-300">
           {revealed

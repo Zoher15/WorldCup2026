@@ -170,7 +170,7 @@ export function AdminResults({ matches }: { matches: AdminMatch[] }) {
     <div>
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-black text-violet-300">Results</h1>
+          <h1 className="gradient-text text-2xl font-black">Results</h1>
           <p className="text-sm text-stone-300">
             {confirmed} of {matches.length} confirmed
           </p>

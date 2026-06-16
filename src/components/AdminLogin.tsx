@@ -7,7 +7,7 @@ export function AdminLogin() {
   const [state, action, pending] = useActionState(adminLoginAction, {});
   return (
     <div className="mx-auto max-w-sm rounded-3xl glass p-6">
-      <h1 className="mb-1 text-2xl font-black text-violet-300">Admin</h1>
+      <h1 className="gradient-text mb-1 text-2xl font-black">Admin</h1>
       <p className="mb-4 text-sm text-stone-300">
         Enter the admin passcode to record match results.
       </p>
