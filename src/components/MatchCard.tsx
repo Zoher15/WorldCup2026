@@ -675,7 +675,7 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
   // and live takes precedence: the moving light IS the urgency cue.
   let framed: React.ReactNode;
   if (data.state === "live") {
-    framed = <div className="live-ring rounded-[18px] p-[2px]">{card}</div>;
+    framed = <div className="live-ring rounded-[20px] p-[4px]">{card}</div>;
   } else if (hero) {
     framed = <div className="gradient-accent rounded-[19px] p-[3px]">{card}</div>;
   } else {
@@ -688,7 +688,7 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
     const radius = hero
       ? "rounded-[19px]"
       : data.state === "live"
-        ? "rounded-[18px]"
+        ? "rounded-[20px]"
         : "rounded-2xl";
     framed = <div className={`nag-pulse ${radius}`}>{framed}</div>;
   }
