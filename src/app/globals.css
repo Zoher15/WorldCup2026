@@ -209,6 +209,12 @@ body {
     ),
     rgba(255, 90, 54, 0.3);
   animation: live-ring-spin 2.8s linear infinite;
+  /* Phase pinned to the shared brand-wave clock by GradientSync (`--ring-delay`
+     set on the .live-ring host, inherited here). The spin period (2.8s) divides
+     the brand drift (14s) exactly 5×, so aligning both to the same epoch keeps
+     every live ring spinning in unison and harmonically locked to the wordmark/
+     heading wave. Defaults to 0s with no JS. */
+  animation-delay: var(--ring-delay, 0s);
 }
 @keyframes live-ring-spin {
   to { transform: rotate(360deg); }

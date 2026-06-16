@@ -2,56 +2,77 @@
 
 import { useEffect } from "react";
 
-/** Must match the `gradient-drift` duration in globals.css. */
-const PERIOD_MS = 14000;
-const SELECTOR = ".gradient-text, .gradient-accent";
+/**
+ * Brand-motion families pinned to ONE shared phase clock. Each entry is
+ * `[selector, periodMs, property]`:
+ *  - `periodMs` must match the animation duration in globals.css.
+ *  - `property` carries the negative delay — the element's own `animation-delay`
+ *    for the gradient wave, or the `--ring-delay` custom property that the
+ *    `.live-ring::before` pseudo-element reads (you can't set a pseudo-element's
+ *    delay inline, so it inherits the var from the host).
+ *
+ * The live ring's 2.8s spin divides the 14s brand drift exactly 5×, so aligning
+ * both to the same epoch makes the spinning match-card rings, the wordmark, the
+ * headings and the hero ring one coherent, harmonically-locked motion system —
+ * 5 spins per wave, re-aligning every 14s.
+ */
+const TARGETS: ReadonlyArray<readonly [string, number, string]> = [
+  [".gradient-text, .gradient-accent", 14000, "animation-delay"],
+  [".live-ring", 2800, "--ring-delay"],
+];
+const SELECTOR = TARGETS.map(([s]) => s).join(", ");
 
 /**
- * Keeps every drifting brand gradient — the top-left wordmark, page headings,
- * the hero card ring, the active leaderboard tab — waving in ONE shared phase,
- * so the World Cup wordmark always matches the page heading no matter which page
- * you're on.
+ * Keeps every drifting/spinning brand element waving in one shared phase, so the
+ * top-left wordmark, the account initials, page headings, the hero ring and the
+ * live match-card rings all move together — no matter which page you're on or
+ * when an element mounts.
  *
- * Each `.gradient-text`/`.gradient-accent` runs its own `gradient-drift`
- * animation whose clock starts when that element mounts. The layout wordmark
- * persists across navigation, but page headings remount and restart their wave
- * from zero, so they drift out of phase. We pin each element's `animation-delay`
- * to the negative of the current position within the cycle (measured from the
- * page's shared `performance` epoch), so an element mounting at any moment snaps
- * into the same phase as every other.
+ * Each animation's clock otherwise starts at its own mount; the layout wordmark
+ * persists across navigation while page headings remount, so they drift apart.
+ * We pin each element to the negative of the current position within its cycle
+ * (from the page's shared `performance` epoch), so anything mounting at any
+ * moment snaps into the shared phase.
  *
- * Mounted once globally (no per-element wiring). CSS still drives the animation,
- * so without JS you simply lose the cross-element sync, not the gradient.
+ * Mounted once globally. CSS still drives the animations, so without JS you only
+ * lose the cross-element sync, not the motion.
  */
 export function GradientSync() {
   useEffect(() => {
-    // The CSS already disables the drift under reduced motion — nothing to sync.
+    // The CSS already disables these under reduced motion — nothing to sync.
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
 
     const synced = new WeakSet<HTMLElement>();
-    const phase = () => `-${performance.now() % PERIOD_MS}ms`;
 
-    const sync = (el: HTMLElement, force = false) => {
-      if (!force && synced.has(el)) return;
-      el.style.animationDelay = phase();
-      synced.add(el);
+    const syncEl = (el: HTMLElement) => {
+      for (const [selector, period, prop] of TARGETS) {
+        if (el.matches(selector)) {
+          el.style.setProperty(prop, `-${performance.now() % period}ms`);
+        }
+      }
     };
     const syncWithin = (root: ParentNode, force = false) =>
-      root
-        .querySelectorAll<HTMLElement>(SELECTOR)
-        .forEach((el) => sync(el, force));
+      root.querySelectorAll<HTMLElement>(SELECTOR).forEach((el) => {
+        if (!force && synced.has(el)) return;
+        syncEl(el);
+        synced.add(el);
+      });
 
-    // Initial pass: the persistent wordmark + whatever's on the first page.
+    // Initial pass: the persistent wordmark/initials + whatever's on this page.
     syncWithin(document);
 
-    // Catch gradients added by client navigation / streamed content (new page
-    // headings). Only newly-seen elements are touched, so persistent ones never
-    // re-seek and visibly snap. Batched into a frame to stay cheap on busy DOMs.
+    // Catch elements added by client navigation / streamed content (new page
+    // headings, a match flipping live). Only newly-seen ones are touched, so
+    // persistent elements never re-seek and visibly snap. Batched per frame.
     let raf = 0;
     const pending = new Set<HTMLElement>();
     const flush = () => {
       raf = 0;
-      pending.forEach((el) => sync(el));
+      pending.forEach((el) => {
+        if (synced.has(el)) return;
+        syncEl(el);
+        synced.add(el);
+      });
       pending.clear();
     };
     const obs = new MutationObserver((records) => {
@@ -69,7 +90,7 @@ export function GradientSync() {
     obs.observe(document.body, { childList: true, subtree: true });
 
     // While the tab is hidden the loops freeze (data-anim-paused), so on return
-    // they trail the shared clock — realign every gradient to the current phase.
+    // they trail the shared clock — realign everything to the current phase.
     const onVisible = () => {
       if (!document.hidden) syncWithin(document, true);
     };
