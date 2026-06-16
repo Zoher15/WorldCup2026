@@ -189,10 +189,11 @@ body {
    the card's rim — the SAME colors as the wordmark/headings/initials/hero ring,
    so the live card spins the identical brand wave (and is already phase-locked
    to it via GradientSync). The wrapper is a padded, clipped frame (like the
-   hero's gradient ring); the ::before is an oversized square painted with a
-   mostly-transparent conic gradient over a faint grape base, spun by transform
-   so only the 2px rim ever shows the moving light. Reduced motion keeps a
-   static brand-gradient rim instead (matching the hero card's ring). */
+   hero's gradient ring); the ::before is an oversized square painted with a wide
+   flame→grape→ocean conic band over a grape base, spun by transform so only the
+   4px rim ever shows the moving light. The band is deliberately broad and the
+   base fairly opaque so the ring reads boldly, not as a hairline. Reduced motion
+   keeps a static brand-gradient rim instead (matching the hero card's ring). */
 .live-ring {
   position: relative;
   overflow: hidden;
@@ -205,13 +206,13 @@ body {
   background:
     conic-gradient(
       from 0deg,
-      transparent 0deg 250deg,
-      var(--color-flame) 290deg,
-      var(--color-grape) 320deg,
-      var(--color-ocean) 345deg,
+      transparent 0deg 170deg,
+      var(--color-flame) 230deg,
+      var(--color-grape) 300deg,
+      var(--color-ocean) 350deg,
       transparent 360deg
     ),
-    rgba(107, 47, 179, 0.3);
+    rgba(107, 47, 179, 0.45);
   animation: live-ring-spin 2.8s linear infinite;
   /* Phase pinned to the shared brand-wave clock by GradientSync (`--ring-delay`
      set on the .live-ring host, inherited here). The spin period (2.8s) divides
