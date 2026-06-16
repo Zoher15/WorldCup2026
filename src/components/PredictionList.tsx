@@ -94,7 +94,10 @@ export function PredictionList({
     startTransition(async () => {
       const res = await savePredictionsAction(items);
       if (!res.ok) {
-        setFlash({ kind: "error", text: res.error ?? "Save failed." });
+        setFlash({
+          kind: "error",
+          text: res.error ?? "Couldn't save — your picks are safe, give it another go.",
+        });
         return;
       }
       setSavedSnapshot((snap) => {

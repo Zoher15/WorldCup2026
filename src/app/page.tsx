@@ -76,13 +76,13 @@ export default async function Home() {
             href="/join?mode=create"
             className="rounded-full chrome px-6 py-3 font-bold text-emerald-400 transition active:scale-95"
           >
-            Create a group
+            Start a group
           </a>
           <a
             href="/join"
             className="rounded-full chrome px-6 py-3 font-bold text-violet-300 transition active:scale-95"
           >
-            Join a group
+            Got a code? Join
           </a>
         </div>
         <a

@@ -23,9 +23,9 @@ export default function Error({
   return (
     <main className="mx-auto max-w-md px-4 py-16 text-center">
       <div className="text-4xl">😵</div>
-      <h1 className="mt-3 text-xl font-black text-flame">Something went wrong</h1>
+      <h1 className="mt-3 text-xl font-black text-flame">Well, that was an own goal</h1>
       <p className="mt-2 text-sm font-medium text-stone-300">
-        Sorry — that didn&apos;t load.
+        Something tripped on our end — not you. Give it another go.
       </p>
 
       <div className="mt-4 break-words rounded-2xl glass p-4 text-left text-xs font-medium text-stone-200">

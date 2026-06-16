@@ -524,3 +524,37 @@ body {
     scale: none !important;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   HOUSE VOICE & TYPE NOTES (Track F — typography & share-image brand)
+   Documentation only; no rules emitted. Reference when writing UI copy or
+   touching the display/numeral faces so the product keeps one voice.
+
+   VOICE — cheeky but kind, plain-spoken, all-ages. The hero sets the tone:
+   "You think you know ball?" — confident, warm, never snarky at the user.
+     • Sentence case everywhere in UI (not Title Case, not ALL CAPS — caps are a
+       styling choice via `uppercase`, never baked into the copy).
+     • Loading: gerund + ellipsis, one word where possible — "Saving…",
+       "Creating…", "Joining…", "Sending…", "Preparing…". Always the real
+       ellipsis (…), never three dots.
+     • Success: short, past-tense, trailing check — "Saved ✓", "Renamed ✓",
+       "Shared ✓", "Link copied ✓".
+     • Friction (errors): blame the system, not the player; reassure, then point
+       at the next step — "Couldn't save — your picks are safe, give it another
+       go." Keep it light, never alarmist.
+     • CTAs: clear intent first, personality second. "Start a group",
+       "Got a code? Join" — a reader still instantly knows create vs. join.
+
+   TYPE — two faces, one system:
+     • Display face: Archivo Black, loaded via next/font (layout.tsx) → the
+       `--font-display` token → the `font-display` utility. Used for headlines
+       and big score numerals. It is inherently black-weight, so never pair it
+       with `font-black` (that only synthesises a faux bold on top).
+     • Numerals: `tabular-nums` is the convention for any number that changes or
+       stacks (scores, points, ranks, countdowns) so digits sit on a fixed pitch
+       and never jitter. The share images (Satori, no font-variant-numeric) fake
+       this with fixed-width digit cells — see TabularNum in src/lib/og-render.tsx.
+     • Body/UI text stays on the system stack. The share images substitute Noto
+       Sans for it (Satori has no system stack), keeping Archivo Black for the
+       headline + numerals so the PNGs read as the same app.
+   ───────────────────────────────────────────────────────────────────────── */
