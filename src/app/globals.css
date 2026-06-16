@@ -585,3 +585,36 @@ body {
        Sans for it (Satori has no system stack), keeping Archivo Black for the
        headline + numerals so the PNGs read as the same app.
    ───────────────────────────────────────────────────────────────────────── */
+
+/* ─── Tournament-phase ambient shift ────────────────────────────────────────
+   The page-wide background glow tracks the live tournament phase (driven by
+   `data-phase` on <html>, set from src/lib/tournament-phase.ts). `group` keeps
+   the base `body` background untouched (default), so nothing changes during the
+   group stage. The knockouts cool and deepen the stage as the field narrows,
+   then the final weekend warms it back up with gold — the month's emotional arc
+   as ambient light. Only the body glow shifts; text and glass/chrome materials
+   are untouched, so legibility is unaffected. Reduced-motion is irrelevant here
+   (these are static gradients, not animations). */
+[data-phase="r32"] body,
+[data-phase="r16"] body {
+  background:
+    radial-gradient(1100px 600px at 8% -10%, rgba(30, 143, 213, 0.16), transparent 60%),
+    radial-gradient(1000px 600px at 112% 8%, rgba(107, 47, 179, 0.18), transparent 55%),
+    radial-gradient(900px 500px at 50% 112%, rgba(30, 143, 213, 0.10), transparent 60%),
+    linear-gradient(160deg, #161a1f 0%, #15131f 45%, #14171c 100%);
+}
+[data-phase="qf"] body,
+[data-phase="sf"] body {
+  background:
+    radial-gradient(1100px 620px at 10% -12%, rgba(30, 143, 213, 0.20), transparent 58%),
+    radial-gradient(1000px 600px at 110% 8%, rgba(107, 47, 179, 0.22), transparent 55%),
+    radial-gradient(900px 520px at 50% 114%, rgba(107, 47, 179, 0.12), transparent 60%),
+    linear-gradient(160deg, #121519 0%, #131022 45%, #0f1318 100%);
+}
+[data-phase="final"] body {
+  background:
+    radial-gradient(1200px 640px at 10% -12%, rgba(255, 210, 63, 0.26), transparent 60%),
+    radial-gradient(1000px 600px at 112% 6%, rgba(255, 90, 54, 0.22), transparent 55%),
+    radial-gradient(900px 520px at 50% 114%, rgba(255, 210, 63, 0.14), transparent 62%),
+    linear-gradient(160deg, #1f1a12 0%, #1c1622 45%, #1b1410 100%);
+}
