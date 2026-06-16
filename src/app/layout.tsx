@@ -6,6 +6,7 @@ import "./globals.css";
 import { getAuthUser } from "@/lib/identity";
 import { getProfile, initials } from "@/lib/profile";
 import { appBaseUrl } from "@/lib/app-url";
+import { currentPhase } from "@/lib/tournament-phase";
 import { AccountMenu } from "@/components/AccountMenu";
 import { BottomNav } from "@/components/BottomNav";
 import { GlassGlow } from "@/components/GlassGlow";
@@ -33,7 +34,12 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0b8a3e",
+  // The browser-chrome tint. Matches the dark stadium base (the body
+  // background's top stop and the favicon's frame, ≈#1c1917) so the browser
+  // bar blends into the page edge rather than flashing the old pitch-green —
+  // the brand signature now lives in the gradient wordmark and disc icon, not
+  // a flat chrome colour.
+  themeColor: "#1c1917",
   width: "device-width",
   initialScale: 1,
 };
@@ -48,7 +54,11 @@ export default async function RootLayout({
   const name = profile?.name ?? null;
 
   return (
-    <html lang="en" className={archivoBlack.variable}>
+    <html
+      lang="en"
+      className={archivoBlack.variable}
+      data-phase={currentPhase()}
+    >
       <body className="text-stone-100 antialiased">
         <GlassGlow />
         {/* Header aligns to the PageShell `wide` width token (max-w-5xl) so it
@@ -56,9 +66,17 @@ export default async function RootLayout({
         <header className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
           <Link
             href="/"
-            className={`inline-flex items-center gap-1.5 rounded-full glass px-3 py-1.5 text-sm font-black tracking-tight text-emerald-400 ${FOCUS_RING}`}
+            className={`inline-flex items-center gap-1.5 rounded-full glass px-3 py-1.5 text-sm font-black tracking-tight ${FOCUS_RING}`}
           >
-            ⚽ World Cup 2026
+            {/* The brand signature: the living flame→grape→ocean drift
+                (.gradient-text) on the one element present on every page. The
+                ⚽ keeps its own emoji colours (text-fill-color doesn't touch
+                emoji glyphs), so it stays legible inside the glass pill while
+                the wordmark carries the gradient. The class's solid violet
+                fallback (set on `color`) keeps it readable if an extension
+                strips the clipped background. */}
+            <span aria-hidden>⚽</span>
+            <span className="gradient-text">World Cup 2026</span>
           </Link>
           <AccountMenu
             loggedIn={Boolean(user)}
