@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, useTransition, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { Countdown } from "./Countdown";
 import { Icon } from "./Icon";
@@ -134,6 +134,33 @@ export function PredictionList({
     return groups[0]?.items.find((m) => m.state === "open")?.id ?? null;
   }, [matches, groups]);
 
+  // The save bar earns its space only when there's something to save or a result
+  // to show — otherwise it just stacks dead "All caught up" chrome on top of the
+  // mobile tab bar. Show it while there are unsaved picks, or briefly while a
+  // save/error message is up.
+  const barVisible = dirtyIds.length > 0 || flash != null;
+
+  // Reclaim the reserved space when the bar is hidden: collapse the shared
+  // `--save-bar-h` to 0 so `.pb-nav-savebar` (on the host page — predict and the
+  // embedded home predictor both read it) shrinks to just the tab-bar clearance.
+  // Restored to its stylesheet default on unmount.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty("--save-bar-h", barVisible ? "4.5rem" : "0px");
+    return () => {
+      root.style.removeProperty("--save-bar-h");
+    };
+  }, [barVisible]);
+
+  // A successful save keeps the bar up just long enough to register the
+  // "Saved ✓" tick, then clears the message so the bar slides away. (An error
+  // leaves the picks dirty, so the bar stays put on its own until you retry.)
+  useEffect(() => {
+    if (flash?.kind !== "ok") return;
+    const t = setTimeout(() => setFlash(null), 2500);
+    return () => clearTimeout(t);
+  }, [flash]);
+
   return (
     // The host page now reserves the save-bar + tab-bar clearance via the shared
     // `.pb-nav-savebar` utility (see PageShell / globals.css) — both standalone
@@ -252,12 +279,16 @@ export function PredictionList({
         </section>
       ))}
 
-      {/* Sticky save bar. Floats just above the mobile tab bar (z-20 > the
-          nav's z-30? no — the nav owns the very bottom, so the bar sits at
+      {/* Sticky save bar. Floats just above the mobile tab bar (it sits at
           `bottom: var(--bottom-nav-h)`, which is 0 at md+ where there's no nav).
-          The host page clears both via `.pb-nav-savebar`. */}
+          Hidden (slid down + faded, non-interactive) until there's something to
+          save or a message to show — see `barVisible`; the page reclaims the
+          space via the `--save-bar-h` toggle above. */}
       <div
-        className="fixed inset-x-0 z-20 glass glass-frost px-4 py-3"
+        aria-hidden={!barVisible}
+        className={`fixed inset-x-0 z-20 glass glass-frost px-4 py-3 transition-[transform,opacity] duration-300 ${
+          barVisible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-full opacity-0"
+        }`}
         style={{ bottom: "var(--bottom-nav-h)" }}
       >
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
