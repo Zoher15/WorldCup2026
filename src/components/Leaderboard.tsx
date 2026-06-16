@@ -130,11 +130,17 @@ export function Leaderboard({
           ? `${lead} ${tiedOthers[0].displayName}`
           : `${lead} ${tiedOthers.length} others`;
     } else if (viewerIdx === 0) {
-      viewerDelta = "👑 Top of the group";
+      // Leader: give them a lead to defend — the gap to the nearest chaser.
+      const chaser = rows[viewerIdx + 1];
+      const lead = chaser ? mine - chaser.points : 0;
+      viewerDelta = chaser
+        ? `👑 Top — ${lead} pt${lead === 1 ? "" : "s"} clear of ${chaser.displayName}`
+        : "👑 Top of the group";
     } else {
+      // Behind: name the gap, but point forward — it's one good round away.
       const ahead = rows[viewerIdx - 1];
       const gap = ahead.points - mine;
-      viewerDelta = `${gap} pt${gap === 1 ? "" : "s"} behind ${ahead.displayName}`;
+      viewerDelta = `${gap} pt${gap === 1 ? "" : "s"} behind ${ahead.displayName} — one good round closes it`;
     }
   }
   // Show the top 10 (podium + 7) by default so the share button stays in reach;

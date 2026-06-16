@@ -334,6 +334,9 @@ function DualScore({
   // Nailed the scoreline exactly (only celebrated once the result is final —
   // a live "exact" can still slip away).
   const exact = !live && pick.home === result.home && pick.away === result.away;
+  // A heartbreak-close finish — right idea, just shy of a perfect 10. Worth a
+  // gentle "so close" instead of silence (final and not exact).
+  const nearMiss = !live && !exact && b.total >= 8;
   // Recap tone once it's full time: a strong call glows green, a middling one
   // reads neutral blue, a miss cools to flame — so a finished card carries the
   // celebrate/commiserate verdict at a glance.
@@ -400,6 +403,11 @@ function DualScore({
               <CountUp value={b.total} /> pt{b.total === 1 ? "" : "s"}
             </span>
           </div>
+          {nearMiss && (
+            <p className="mt-1.5 text-center text-[11px] font-bold text-sunburst">
+              💔 So close — {10 - b.total} off a perfect 10
+            </p>
+          )}
         </div>
       )}
     </div>

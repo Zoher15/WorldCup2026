@@ -89,7 +89,7 @@ export default async function GroupPage({
           {group.code}
         </div>
         <div className="mt-3 flex justify-center">
-          <InviteLink code={group.code} />
+          <InviteLink code={group.code} groupName={group.name} />
         </div>
         <p className="mt-3 text-xs text-stone-400">
           {group.memberCount}{" "}
