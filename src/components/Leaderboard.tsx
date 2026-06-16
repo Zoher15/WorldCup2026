@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Icon } from "./Icon";
 import { InfoBadge } from "./InfoBadge";
 import { PlayerLink } from "./PlayerLink";
 import { ShareLeaderboard } from "./ShareLeaderboard";
@@ -14,31 +15,43 @@ const TABS = [
   { key: "scoreline", label: "Scoreline" },
 ] as const;
 
-// Medal, colour and height are all indexed by rank (0 = 1st), never by podium
-// position — so tied places match: two co-leaders both stand on equal-height
-// gold steps, two tied for 2nd on matching silver, and so on.
-const MEDALS = ["🥇", "🥈", "🥉"];
+// Medal tone, colour and height are all indexed by rank (0 = 1st), never by
+// podium position — so tied places match: two co-leaders both stand on
+// equal-height gold steps, two tied for 2nd on matching silver, and so on.
+
+// The medal glyph: a trophy on the gold step (the prize), a medal on the rest.
+// Indexed by rank, so a tie at the top hands both leaders the trophy.
+const MEDAL_ICON = ["trophy", "medal", "medal"] as const;
+// The icon's metal tint, again by rank.
+const MEDAL_TONE = ["text-amber-200", "text-zinc-100", "text-amber-300"];
+// Each metal as a vertical gradient *plus* a radial sheen highlight, so the
+// step reads as a curved bar of polished metal catching the light rather than a
+// flat swatch. Silver is a true bright nickel (light top, mid-grey foot) so it
+// reads as proud metal, not a disabled grey. Bronze stays deep copper so it
+// never looks like a second gold.
 const PODIUM_BG = [
-  "from-sunburst to-flame",
-  "from-stone-200 to-stone-400",
-  // Deep copper, not bright orange, so bronze never reads as a second gold.
-  "from-amber-700 to-amber-900",
+  "bg-[radial-gradient(120%_90%_at_30%_0%,#fde68a_0%,#f59e0b_45%,#b45309_100%)]",
+  "bg-[radial-gradient(120%_90%_at_30%_0%,#ffffff_0%,#cbd5e1_45%,#64748b_100%)]",
+  "bg-[radial-gradient(120%_90%_at_30%_0%,#fcd9a8_0%,#b45309_45%,#7c2d12_100%)]",
 ];
 // Render order places #1 in the middle, #2 left, #3 right.
 const PODIUM_ORDER = [1, 0, 2];
 // The winner's bar is tallest, descending from there (by rank, so ties match).
 const PODIUM_HEIGHT = ["h-28", "h-20", "h-16"];
 
+/** Rank movement since the last digest. The server emits 0 today
+ *  (`buildStandings` doesn't diff snapshots) and a live climb is shown by the
+ *  `overtake-flash` wash instead — so a real arrow is drawn ONLY when the value
+ *  is actually non-zero, rather than a dead grey dash on every row. */
 function Movement({ value }: { value: number }) {
-  if (value === 0)
-    return <span className="text-xs font-bold text-stone-300">—</span>;
+  if (value === 0) return null;
   const up = value > 0;
   return (
     <span
-      className={`text-xs font-bold ${up ? "text-emerald-400" : "text-flame"}`}
+      className={`inline-flex items-center gap-0.5 text-xs font-bold ${up ? "text-emerald-400" : "text-flame"}`}
       title={`${up ? "Up" : "Down"} ${Math.abs(value)}`}
     >
-      {up ? "▲" : "▼"} {Math.abs(value)}
+      <Icon name={up ? "arrow-up" : "arrow-down"} /> {Math.abs(value)}
     </span>
   );
 }
@@ -205,8 +218,9 @@ export function Leaderboard({
               <div key={slot} className="w-20 max-sm:max-w-24 max-sm:flex-1 max-sm:w-auto" />
             );
           // Rank (not podium position) drives the medal, colour and height, so
-          // tied places match — two level at the top are both 🥇 on equal-height
-          // gold steps, and the player below them takes 🥉.
+          // tied places match — two level at the top both wear the gold trophy
+          // on equal-height gold steps, and the player below them takes bronze.
+          const rank = ranks[idx];
           return (
             <div
               key={slot}
@@ -218,11 +232,11 @@ export function Leaderboard({
               title={isTied(idx) ? `Tied at ${r.points} pts` : undefined}
             >
               <div
-                className={`mb-1 drop-shadow-[0_2px_3px_rgba(0,0,0,0.35)] ${
-                  ranks[idx] === 1 ? "text-3xl" : "text-2xl"
+                className={`mb-1 drop-shadow-[0_2px_3px_rgba(0,0,0,0.35)] ${MEDAL_TONE[rank - 1]} ${
+                  rank === 1 ? "text-3xl" : "text-2xl"
                 }`}
               >
-                {MEDALS[ranks[idx] - 1]}
+                <Icon name={MEDAL_ICON[rank - 1]} />
               </div>
               {/* No profile to link to without a group (BoringBot has a synthetic one). */}
               <PlayerLink
@@ -233,13 +247,13 @@ export function Leaderboard({
               >
                 {r.displayName}
               </PlayerLink>
-              {/* Glass sheet floating over the vibrant medal gradient — the
-                  gold/silver/bronze glows through the frost, matching the
-                  "glass over flags" treatment on the match cards. */}
-              <div className={`relative w-full ${PODIUM_HEIGHT[ranks[idx] - 1]}`}>
+              {/* Glass sheet floating over the metallic medal gradient — the
+                  polished gold/silver/bronze glows through the frost, matching
+                  the "glass over flags" treatment on the match cards. */}
+              <div className={`relative w-full ${PODIUM_HEIGHT[rank - 1]}`}>
                 <div
-                  className={`absolute inset-0 overflow-hidden rounded-t-xl bg-gradient-to-b ${PODIUM_BG[ranks[idx] - 1]}${
-                    ranks[idx] === 1 ? " shine" : ""
+                  className={`absolute inset-0 overflow-hidden rounded-t-xl ${PODIUM_BG[rank - 1]}${
+                    rank === 1 ? " shine" : ""
                   }`}
                 />
                 <div className="absolute inset-0 rounded-t-xl glass" />

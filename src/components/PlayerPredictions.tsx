@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { Button } from "./Button";
+import { Icon } from "./Icon";
 import { MatchCard, toMatchCardData } from "./MatchCard";
 import { PREDICTION_TEXT, RESULT_TEXT } from "./theme";
 import { useLiveRefresh } from "./useLiveRefresh";
@@ -83,7 +84,11 @@ function FutureStatus({ row, isBot }: { row: PlayerPredictionRow; isBot: boolean
   if (isBot) return <span className={PREDICTION_TEXT}>Predicts 0–0</span>;
   if (row.pick) return <span className="text-emerald-400">✓ Entered</span>;
   if (row.hasPrediction)
-    return <span className="text-stone-300">🔒 Hidden</span>;
+    return (
+      <span className="inline-flex items-center gap-1 text-stone-300">
+        <Icon name="lock" /> Hidden
+      </span>
+    );
   return <span className="text-stone-400">Not entered</span>;
 }
 
@@ -200,12 +205,9 @@ export function PlayerPredictions({
       />
 
       {profile.player.isViewer && (
-        <Link
-          href="/predict"
-          className="mt-2 inline-block rounded-full glass px-6 py-3 font-bold text-emerald-400 transition active:scale-95"
-        >
+        <Button as="link" href="/predict" tone="pitch" size="lg" className="mt-2 inline-block">
           ⚽ Edit your predictions
-        </Link>
+        </Button>
       )}
     </div>
   );

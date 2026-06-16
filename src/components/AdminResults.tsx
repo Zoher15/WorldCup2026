@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { Button } from "./Button";
 import { Flag } from "./Flag";
-import { inputClassesGrape } from "./form-styles";
+import { inputClassesGrape, inputCompactGrape } from "./form-styles";
 import { teamLabel } from "@/lib/fifa";
 import { formatKickoffDateTime, formatStageLabel } from "@/lib/format";
 import { isKnockoutStage } from "@/lib/polling";
@@ -14,10 +15,10 @@ import {
 } from "@/app/admin/actions";
 import type { AdminMatch } from "@/lib/results";
 
-// The two score inputs share one styling; kept a complete static string so
-// Tailwind v4's source scan can see the class names.
-const scoreInputClasses =
-  "w-12 rounded-lg border border-stone-600 px-2 py-1.5 text-center font-bold bg-stone-900 text-stone-100";
+// The two score inputs share the compact admin field token (border / surface /
+// grape focus), plus their own width + centring. Kept a complete static string
+// so Tailwind v4's source scan can see the class names.
+const scoreInputClasses = `w-12 px-2 py-1.5 text-center font-bold ${inputCompactGrape}`;
 
 function Row({ m }: { m: AdminMatch }) {
   const [home, setHome] = useState(m.homeGoals != null ? String(m.homeGoals) : "");
@@ -111,27 +112,31 @@ function Row({ m }: { m: AdminMatch }) {
           value={adv}
           onChange={(e) => setAdv(e.target.value)}
           placeholder="Advanced team code (e.g. ARG)"
-          className="mt-2 w-full rounded-lg border border-stone-600 px-2 py-1.5 text-sm bg-stone-900 text-stone-100 placeholder:text-stone-500"
+          className={`mt-2 w-full px-2 py-1.5 text-sm ${inputCompactGrape}`}
         />
       )}
       <div className="mt-2 flex items-center justify-end gap-2">
         {msg && <span className="mr-auto text-xs font-bold text-stone-300">{msg}</span>}
         {m.resultConfirmed && (
-          <button
+          <Button
+            tone="muted"
+            size="sm"
             onClick={clear}
             disabled={pending}
-            className="rounded-full glass px-3 py-1.5 text-xs font-bold text-stone-200 disabled:cursor-not-allowed disabled:opacity-50"
+            className="px-3 py-1.5 text-xs"
           >
             Clear
-          </button>
+          </Button>
         )}
-        <button
+        <Button
+          tone="pitch"
+          size="sm"
           onClick={confirm}
           disabled={pending}
-          className="rounded-full glass px-4 py-1.5 text-xs font-bold text-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
+          className="text-xs"
         >
           {m.resultConfirmed ? "Update" : "Confirm result"}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -171,17 +176,13 @@ export function AdminResults({ matches }: { matches: AdminMatch[] }) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={syncNow}
-            disabled={syncing}
-            className="rounded-full glass px-4 py-2 text-sm font-bold text-sky-400 disabled:cursor-not-allowed disabled:opacity-50"
-          >
+          <Button tone="ocean" size="md" onClick={syncNow} disabled={syncing}>
             {syncing ? "Syncing…" : "Sync live scores"}
-          </button>
+          </Button>
           <form action={adminLogoutAction}>
-            <button className="rounded-full glass px-4 py-2 text-sm font-bold text-stone-200">
+            <Button type="submit" tone="muted" size="md">
               Sign out
-            </button>
+            </Button>
           </form>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { getUserId } from "@/lib/identity";
 import { getGroupStandings } from "@/lib/groups";
 import { listBoardMatches } from "@/lib/match-leaderboard";
 import { BORINGBOT_ID } from "@/lib/standings";
+import { Icon } from "@/components/Icon";
 import { Leaderboard } from "@/components/Leaderboard";
 import { GroupMatches } from "@/components/GroupMatches";
 import { GroupAdmin } from "@/components/GroupAdmin";
@@ -41,7 +42,9 @@ export default async function GroupPage({
   if (!data.viewer.isMember) {
     return (
       <main className="mx-auto max-w-md px-4 py-16 text-center">
-        <div className="text-4xl">🔒</div>
+        <div className="flex justify-center text-4xl text-stone-300">
+          <Icon name="lock" />
+        </div>
         <h1 className="mt-3 text-xl font-black text-stone-100">
           You&apos;re not in this group
         </h1>

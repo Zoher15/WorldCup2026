@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { BreakdownRow } from "./BreakdownRow";
 import { CountUp } from "./CountUp";
+import { Icon } from "./Icon";
 import { InfoBadge } from "./InfoBadge";
 import { MatchCard, toMatchCardData } from "./MatchCard";
 import { PlayerLink } from "./PlayerLink";
@@ -66,8 +67,8 @@ function RevealedScore({ row }: { row: MatchBoardRow }) {
           {row.provisional ? "~" : ""}
           <CountUp value={row.points} /> pt{row.points === 1 ? "" : "s"}
         </span>
-        <span className="text-[10px] font-bold text-stone-400">
-          {open ? "▲" : "▼"}
+        <span className="text-stone-400">
+          <Icon name={open ? "chevron-up" : "chevron-down"} className="text-[10px]" />
         </span>
       </button>
       {open && (
