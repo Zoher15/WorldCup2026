@@ -585,3 +585,121 @@ body {
        Sans for it (Satori has no system stack), keeping Archivo Black for the
        headline + numerals so the PNGs read as the same app.
    ───────────────────────────────────────────────────────────────────────── */
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   TRACK C — MOTION & LIVE MOMENTS (appended)
+   Battery-aware looping animations, the GOAL! beat, the leaderboard FLIP
+   reorder, and the saved-prediction micro-celebration. Every new @keyframes
+   gates under prefers-reduced-motion individually (per the house rule); the
+   JS-driven motion (FLIP, vibrate, confetti origin) gates in its component.
+   New motion references the foundation easing/duration tokens where it can.
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* MUST-HAVE 1 — Pause the infinite loops when the tab is hidden or the page is
+   scrolled away. `usePauseOffscreen` (mounted once in GlassGlow) sets
+   `data-anim-paused` on <body> whenever `document.hidden` is true, so the
+   conic `live-ring-spin` (the most expensive — a blurred glass card under a
+   spinning gradient), the pulses, the shimmer and the drifts all freeze
+   instead of burning battery on a backgrounded phone. Pausing (not removing)
+   keeps each loop's phase, so they resume seamlessly when the tab returns.
+   Listed explicitly rather than with a universal selector so only our own
+   loops are touched — no third-party or utility animation is affected. */
+body[data-anim-paused] .live-ring::before,
+body[data-anim-paused] .live-dot,
+body[data-anim-paused] .shine::after,
+body[data-anim-paused] .gradient-text,
+body[data-anim-paused] .gradient-accent,
+body[data-anim-paused] .float-bob,
+body[data-anim-paused] .nag-pulse,
+body[data-anim-paused] .countdown-tense {
+  animation-play-state: paused !important;
+}
+
+/* Secondary live cards (every live match that isn't the single most-urgent one)
+   carry a static flame rim instead of the spinning conic gradient: same heat,
+   no per-frame repaint of a blurred surface. The most-urgent card keeps the
+   moving light as the urgency cue (MatchCard passes `liveSpin`). This matches
+   what reduced-motion already shows for `.live-ring`. */
+.live-ring.live-ring-static::before {
+  animation: none;
+  background: rgba(255, 90, 54, 0.45);
+}
+
+/* MUST-HAVE 2 — The GOAL! beat. Layered onto the existing `goal-flash` wash:
+   a crisp scale "punch" on the score digits (reusing the digit-bump feel via
+   the emphasis easing token), so a confirmed live goal lands with a kick. The
+   confetti burst (Confetti.tsx, now palette/origin-parameterised) and the
+   guarded navigator.vibrate fire from MatchCard. Ends at rest, no fill. */
+@keyframes goal-punch {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.28); }
+  70% { transform: scale(0.94); }
+  100% { transform: scale(1); }
+}
+.goal-punch {
+  animation: goal-punch var(--dur-base) var(--ease-emphasis);
+  transform-origin: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .goal-punch { animation: none; }
+}
+
+/* MUST-HAVE 3 — Leaderboard FLIP reorder. The row positions are measured before
+   and after a live refresh; a climber/faller is painted at its OLD spot
+   (`--flip-dy` translate) on the next frame, then this transition releases it
+   to its new resting position so an overtake is SEEN as movement. The gold
+   `overtake-flash` lands as the row settles. Reduced motion skips the JS that
+   sets `--flip-dy`, so rows never move — just the flash. */
+.flip-move {
+  transition: transform var(--dur-slow) var(--ease-emphasis);
+}
+
+/* MUST-HAVE 4 — Saved micro-celebration. The plain "Saved ✓" text becomes a
+   stroke-drawn checkmark that pops in: the SVG path is dash-offset to hidden,
+   then drawn on, while the badge gives a quick spring. A guarded
+   navigator.vibrate(15) fires from PredictionList. Reduced motion shows the
+   finished tick with no draw or pop. */
+@keyframes check-draw {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes check-pop {
+  0% { transform: scale(0.4); opacity: 0; }
+  60% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.check-pop {
+  animation: check-pop var(--dur-base) var(--ease-emphasis) both;
+}
+.check-draw {
+  stroke-dasharray: var(--check-len, 24);
+  stroke-dashoffset: var(--check-len, 24);
+  animation: check-draw var(--dur-base) var(--ease-standard) forwards;
+  /* A beat behind the pop so the badge springs in, then the tick is drawn. */
+  animation-delay: 90ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .check-pop { animation: none; }
+  .check-draw {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
+
+/* STRETCH — Window-closing tension. As an open card's kickoff countdown nears
+   zero (<60s) the card's nag/ring pulse tightens to a faster, sharper beat so
+   "lock in now" reads at a glance. Applied to the card wrapper by MatchCard
+   when the countdown crosses the threshold. Reduced motion swaps the loop for a
+   steady flame ring (no movement). */
+@keyframes countdown-tense {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(255, 90, 54, 0.25); }
+  50% { box-shadow: 0 0 0 4px rgba(255, 90, 54, 0.6); }
+}
+.countdown-tense {
+  animation: countdown-tense 0.9s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .countdown-tense {
+    animation: none;
+    box-shadow: 0 0 0 2px rgba(255, 90, 54, 0.45);
+  }
+}
