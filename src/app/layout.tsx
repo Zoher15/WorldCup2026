@@ -10,6 +10,7 @@ import { currentPhase } from "@/lib/tournament-phase";
 import { AccountMenu } from "@/components/AccountMenu";
 import { BottomNav } from "@/components/BottomNav";
 import { GlassGlow } from "@/components/GlassGlow";
+import { GradientSync } from "@/components/GradientSync";
 import { FOCUS_RING } from "@/components/theme";
 
 /* Punchy display face for headlines and big score digits. Exposed as a CSS
@@ -61,6 +62,7 @@ export default async function RootLayout({
     >
       <body className="text-stone-100 antialiased">
         <GlassGlow />
+        <GradientSync />
         {/* Header aligns to the PageShell `wide` width token (max-w-5xl) so it
             no longer overhangs narrower pages — those centre inside it. */}
         <header className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
