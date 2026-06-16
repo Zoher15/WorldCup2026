@@ -1,11 +1,10 @@
 "use client";
 
 import { use, useActionState, useEffect, useState } from "react";
-import Link from "next/link";
 import { sendMagicLinkAction, verifyEmailOtpAction } from "./actions";
 import { INITIAL_LOGIN_STATE, INITIAL_VERIFY_STATE } from "./login-state";
 import { inputClasses } from "@/components/form-styles";
-import { FOCUS_RING } from "@/components/theme";
+import { PageShell } from "@/components/PageShell";
 
 // The OTP field is a one-off (big centered digits), styled dark-only like
 // form-styles.ts since the app forces dark mode.
@@ -48,11 +47,8 @@ export default function LoginPage({
   const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
   return (
-    <main className="mx-auto max-w-md px-4 py-12">
-      <Link href="/" className={`rounded-md text-sm font-bold text-stone-400 ${FOCUS_RING}`}>
-        ← Home
-      </Link>
-      <h1 className="mt-3 mb-2 gradient-text font-display pb-1 text-3xl leading-tight tracking-tight">
+    <PageShell width="narrow" back={{ href: "/", label: "Home" }}>
+      <h1 className="mb-2 gradient-text font-display pb-1 text-3xl leading-tight tracking-tight">
         Sign in
       </h1>
       <p className="mb-6 text-sm font-medium text-stone-300">
@@ -157,6 +153,6 @@ export default function LoginPage({
           </button>
         </form>
       )}
-    </main>
+    </PageShell>
   );
 }

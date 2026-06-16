@@ -17,6 +17,12 @@ export const inputClasses = `${inputBase} text-base focus:border-pitch focus:rin
 /** Admin inputs: same field, grape (purple) focus accent. */
 export const inputClassesGrape = `${inputBase} focus:border-grape focus:ring-2 focus:ring-grape/50`;
 
+/** A compact admin input that shares the field's border / surface / focus
+ *  tokens but drops the full-width + heavy padding — for the inline score boxes
+ *  on the results page. Width/extra classes are supplied per use. */
+export const inputCompactGrape =
+  "rounded-lg border border-stone-600 bg-stone-800 text-stone-100 outline-none placeholder:text-stone-500 focus:border-grape focus:ring-2 focus:ring-grape/50";
+
 export const labelClasses = "mb-1 block text-sm font-bold text-stone-200";
 
 /**
@@ -36,6 +42,10 @@ export const BUTTON_TONES = {
   grape: "text-violet-300",
   ocean: "text-sky-400",
   neutral: "text-stone-100",
+  /** Muted neutral, for low-emphasis controls (e.g. "Sign out", "Clear"). */
+  muted: "text-stone-200",
+  /** Destructive / urgent actions — leave, remove, delete. */
+  flame: "text-flame",
 } as const;
 
 export type ButtonTone = keyof typeof BUTTON_TONES;

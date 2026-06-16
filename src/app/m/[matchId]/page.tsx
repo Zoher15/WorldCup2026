@@ -4,6 +4,7 @@ import { getUserId } from "@/lib/identity";
 import { getCrossGroupMatchBoards } from "@/lib/match-leaderboard";
 import { CrossGroupMatchHub } from "@/components/CrossGroupMatchHub";
 import { LoadError } from "@/components/LoadError";
+import { PageShell } from "@/components/PageShell";
 
 export const dynamic = "force-dynamic";
 
@@ -34,12 +35,8 @@ export default async function MatchHubPage({
   if (!data) notFound();
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8">
-      <Link href="/predict" className="text-sm font-bold text-stone-400">
-        ← My predictions
-      </Link>
-
-      <h1 className="mt-3 mb-6 gradient-text font-display pb-1 text-3xl leading-tight tracking-tight">
+    <PageShell width="content" back={{ href: "/predict", label: "My predictions" }}>
+      <h1 className="mb-6 gradient-text font-display pb-1 text-3xl leading-tight tracking-tight">
         Match predictions
       </h1>
 
@@ -65,6 +62,6 @@ export default async function MatchHubPage({
           </Link>
         </div>
       )}
-    </main>
+    </PageShell>
   );
 }

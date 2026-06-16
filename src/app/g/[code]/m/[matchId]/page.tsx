@@ -7,7 +7,7 @@ import { teamLabel } from "@/lib/fifa";
 import { MatchLeaderboard } from "@/components/MatchLeaderboard";
 import { ShareMatch } from "@/components/ShareMatch";
 import { LoadError } from "@/components/LoadError";
-import { FOCUS_RING } from "@/components/theme";
+import { PageShell } from "@/components/PageShell";
 
 export const dynamic = "force-dynamic";
 
@@ -40,15 +40,11 @@ export default async function MatchBoardPage({
   if (!board) notFound();
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8">
-      <Link
-        href={`/g/${board.group.code}`}
-        className={`rounded-md text-sm font-bold text-stone-400 ${FOCUS_RING}`}
-      >
-        ← {board.group.name}
-      </Link>
-
-      <div className="mt-3 mb-6 flex items-start justify-between gap-3">
+    <PageShell
+      width="content"
+      back={{ href: `/g/${board.group.code}`, label: board.group.name }}
+    >
+      <div className="mb-6 flex items-start justify-between gap-3">
         <h1 className="gradient-text font-display pb-1 text-3xl leading-tight tracking-tight">
           Match predictions
         </h1>
@@ -77,6 +73,6 @@ export default async function MatchBoardPage({
       <p className="mt-8 text-center text-xs text-stone-400">
         Picks unlock at kickoff · points are confirmed once the result is final.
       </p>
-    </main>
+    </PageShell>
   );
 }

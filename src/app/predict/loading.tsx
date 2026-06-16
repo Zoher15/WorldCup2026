@@ -2,7 +2,7 @@
  *  two-column run of match-card-shaped blocks, mirroring the page layout. */
 export default function Loading() {
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8" aria-busy>
+    <main className="mx-auto max-w-3xl px-4 pt-8 pb-nav-savebar" aria-busy>
       <span className="sr-only">Loading your predictions…</span>
       <div className="animate-pulse" aria-hidden>
         <div className="h-4 w-16 rounded-full glass" />
@@ -15,8 +15,12 @@ export default function Loading() {
           <div className="h-36 rounded-2xl glass" />
           <div className="h-36 rounded-2xl glass" />
         </div>
-        {/* The sticky save bar: status text and save-button placeholders. */}
-        <div className="fixed inset-x-0 bottom-0 z-10 glass glass-frost px-4 py-3">
+        {/* The sticky save bar: status text and save-button placeholders.
+            Floats above the mobile tab bar, matching PredictionList. */}
+        <div
+          className="fixed inset-x-0 z-20 glass glass-frost px-4 py-3"
+          style={{ bottom: "var(--bottom-nav-h)" }}
+        >
           <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
             <div className="h-4 w-24 rounded-full glass" />
             <div className="h-12 w-44 rounded-full glass" />

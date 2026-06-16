@@ -6,6 +6,7 @@ import { derivePlayerBadges, getPlayerProfile } from "@/lib/player";
 import { PlayerPredictions } from "@/components/PlayerPredictions";
 import { ShareAchievements } from "@/components/ShareAchievements";
 import { LoadError } from "@/components/LoadError";
+import { PageShell } from "@/components/PageShell";
 import { FOCUS_RING } from "@/components/theme";
 
 export const dynamic = "force-dynamic";
@@ -42,15 +43,8 @@ export default async function PlayerPage({
   const badges = derivePlayerBadges(profile.rows);
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8">
-      <Link
-        href={`/g/${group.code}`}
-        className={`rounded-md text-sm font-bold text-stone-400 ${FOCUS_RING}`}
-      >
-        ← {group.name}
-      </Link>
-
-      <header className="mt-3 mb-6 rounded-3xl glass p-6 text-center">
+    <PageShell width="content" back={{ href: `/g/${group.code}`, label: group.name }}>
+      <header className="mb-6 rounded-3xl glass p-6 text-center">
         <h1 className="text-3xl font-black text-violet-300">
           {player.displayName}
           {player.isViewer && (
@@ -141,6 +135,6 @@ export default async function PlayerPage({
       </header>
 
       <PlayerPredictions profile={profile} />
-    </main>
+    </PageShell>
   );
 }

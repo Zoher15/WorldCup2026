@@ -6,6 +6,7 @@ import {
   removeMemberAction,
   renameGroupAction,
 } from "@/app/g/[code]/actions";
+import { Button } from "./Button";
 import { inputClasses } from "./form-styles";
 
 interface Member {
@@ -47,12 +48,9 @@ export function GroupAdmin({
 
   return (
     <div className="mt-6">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="rounded-full glass px-4 py-2 text-sm font-bold text-stone-200 transition active:scale-95"
-      >
+      <Button tone="muted" size="md" onClick={() => setOpen((o) => !o)}>
         {open ? "Done managing" : "⚙️ Manage group"}
-      </button>
+      </Button>
 
       {open && (
         <div className="mt-3 rounded-2xl glass p-4">
@@ -69,13 +67,15 @@ export function GroupAdmin({
               maxLength={80}
               className={inputClasses}
             />
-            <button
+            <Button
+              tone="pitch"
+              size="md"
               onClick={rename}
               disabled={renameDisabled}
-              className="shrink-0 rounded-full glass px-4 py-3 text-sm font-bold text-emerald-400 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+              className="shrink-0 py-3 disabled:opacity-40"
             >
               Rename
-            </button>
+            </Button>
           </div>
           {renameMsg && (
             <p className="mt-1.5 text-xs font-bold text-stone-300">
@@ -101,24 +101,28 @@ export function GroupAdmin({
                   )}
                 </span>
                 {m.userId !== creatorId && (
-                  <button
+                  <Button
+                    tone="flame"
+                    size="sm"
                     disabled={pending}
                     onClick={() => {
                       if (confirm(`Remove ${m.displayName} from the group?`)) {
                         start(() => removeMemberAction(code, m.userId));
                       }
                     }}
-                    className="rounded-full glass px-3 py-1 text-xs font-bold text-flame transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="px-3 py-1 text-xs"
                   >
                     Remove
-                  </button>
+                  </Button>
                 )}
               </li>
             ))}
           </ul>
 
           <div className="mt-4 border-white/10 pt-3">
-            <button
+            <Button
+              tone="flame"
+              size="md"
               disabled={pending}
               onClick={() => {
                 if (
@@ -129,10 +133,9 @@ export function GroupAdmin({
                   start(() => deleteGroupAction(code));
                 }
               }}
-              className="rounded-full glass px-4 py-2 text-sm font-bold text-flame transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Delete group
-            </button>
+            </Button>
           </div>
         </div>
       )}

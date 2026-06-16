@@ -3,6 +3,7 @@ import { getUserId } from "@/lib/identity";
 import { getProfile } from "@/lib/profile";
 import { safeNextPath } from "@/lib/redirect";
 import { WelcomeForm } from "@/components/WelcomeForm";
+import { PageShell } from "@/components/PageShell";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ export default async function WelcomePage({
   if (profile?.name) redirect(dest);
 
   return (
-    <main className="mx-auto max-w-md px-4 py-12">
+    <PageShell width="narrow">
       <h1 className="mb-2 gradient-text font-display pb-1 text-3xl leading-tight tracking-tight">
         One last thing
       </h1>
@@ -33,6 +34,6 @@ export default async function WelcomePage({
         pick a different nickname for each group when you join.
       </p>
       <WelcomeForm next={dest} />
-    </main>
+    </PageShell>
   );
 }

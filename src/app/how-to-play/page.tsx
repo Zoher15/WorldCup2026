@@ -1,8 +1,9 @@
 import Link from "next/link";
+import { Icon } from "@/components/Icon";
 import { HowToPlayDemo } from "@/components/HowToPlayDemo";
 import { ADVANCE_BONUS, MAX_MATCH_POINTS } from "@/lib/scoring";
 import { BORINGBOT_NAME } from "@/lib/standings";
-import { FOCUS_RING } from "@/components/theme";
+import { PageShell } from "@/components/PageShell";
 
 export const metadata = {
   title: "How to play · World Cup 2026 Predictions",
@@ -35,12 +36,8 @@ function Step({
 
 export default function HowToPlayPage() {
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8">
-      <Link href="/" className={`rounded-md text-sm font-bold text-stone-400 ${FOCUS_RING}`}>
-        ← Home
-      </Link>
-
-      <header className="mt-3 mb-8 text-center">
+    <PageShell width="content" back={{ href: "/", label: "Home" }}>
+      <header className="mb-8 text-center">
         <div className="inline-flex items-center gap-2 rounded-full glass px-4 py-1.5 text-sm font-bold text-emerald-400">
           ⚽ How to play
         </div>
@@ -215,8 +212,8 @@ export default function HowToPlayPage() {
             shows the time left.
           </li>
           <li className="rounded-2xl glass px-4 py-3">
-            🔒 Everyone&apos;s picks stay hidden until kickoff, so there&apos;s no
-            peeking.
+            <Icon name="lock" className="mr-1 text-stone-300" /> Everyone&apos;s
+            picks stay hidden until kickoff, so there&apos;s no peeking.
           </li>
           <li className="rounded-2xl glass px-4 py-3">
             👨‍👩‍👧‍👦 In more than one group? You predict once and it counts in all of
@@ -240,6 +237,6 @@ export default function HowToPlayPage() {
           Join a group
         </Link>
       </div>
-    </main>
+    </PageShell>
   );
 }

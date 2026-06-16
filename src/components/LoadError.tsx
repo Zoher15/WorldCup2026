@@ -1,4 +1,4 @@
-import { FOCUS_RING } from "./theme";
+import { Button } from "./Button";
 
 /**
  * Friendly full-page fallback for a server-side data-load failure. We render the
@@ -20,12 +20,9 @@ export function LoadError({
       <p className="mt-3 break-words rounded-2xl glass p-4 text-left text-sm font-medium text-stone-200">
         {message}
       </p>
-      <a
-        href="/"
-        className={`mt-6 inline-block rounded-full glass px-6 py-3 font-bold text-emerald-400 transition active:scale-95 ${FOCUS_RING}`}
-      >
+      <Button as="link" href="/" tone="pitch" size="lg" className="mt-6 inline-block">
         ← Back home
-      </a>
+      </Button>
     </main>
   );
 }

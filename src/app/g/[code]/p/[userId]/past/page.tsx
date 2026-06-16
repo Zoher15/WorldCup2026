@@ -1,11 +1,10 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getUserId } from "@/lib/identity";
 import { getViewerMembership } from "@/lib/groups";
 import { getPlayerProfile } from "@/lib/player";
 import { PlayerPredictions } from "@/components/PlayerPredictions";
 import { LoadError } from "@/components/LoadError";
-import { FOCUS_RING } from "@/components/theme";
+import { PageShell } from "@/components/PageShell";
 
 export const dynamic = "force-dynamic";
 
@@ -53,14 +52,11 @@ export default async function PlayerPastPage({
     : { has: `${player.displayName} has`, call: "their" };
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8">
-      <Link
-        href={`/g/${group.code}/p/${userId}`}
-        className={`rounded-md text-sm font-bold text-stone-400 ${FOCUS_RING}`}
-      >
-        ← {player.displayName}
-      </Link>
-      <h1 className="mt-3 mb-1 gradient-text font-display pb-1 text-3xl leading-tight tracking-tight">
+    <PageShell
+      width="content"
+      back={{ href: `/g/${group.code}/p/${userId}`, label: player.displayName }}
+    >
+      <h1 className="mb-1 gradient-text font-display pb-1 text-3xl leading-tight tracking-tight">
         Past results
       </h1>
       <p className="mb-6 text-sm font-medium text-stone-300">
@@ -73,6 +69,6 @@ export default async function PlayerPastPage({
         view="past"
         highlightIds={highlightIds}
       />
-    </main>
+    </PageShell>
   );
 }

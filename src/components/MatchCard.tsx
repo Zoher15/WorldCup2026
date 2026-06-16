@@ -8,6 +8,7 @@ import { BreakdownRow } from "./BreakdownRow";
 import { Confetti } from "./Confetti";
 import { CountUp } from "./CountUp";
 import { LiveBadge, FullTimeBadge } from "./StatusBadge";
+import { Icon } from "./Icon";
 import { FOCUS_RING, LIVE_TEXT, PREDICTION_TEXT, RESULT_TEXT } from "./theme";
 import { teamByCode, teamColor, teamLabel } from "@/lib/fifa";
 import { formatHostCity, formatKickoffDateCompact, formatKickoffTime, formatStageLabel, shortHostCity } from "@/lib/format";
@@ -179,14 +180,18 @@ function StatusPill({
     case "final":
       return <FullTimeBadge className={`${base} glass`}>FULL TIME</FullTimeBadge>;
     case "locked":
-      return <span className={`${base} ${GLASS} text-stone-300`}>🔒 Locked</span>;
+      return (
+        <span className={`${base} ${GLASS} inline-flex items-center gap-1 text-stone-300`}>
+          <Icon name="lock" /> Locked
+        </span>
+      );
     case "open":
       return (
         <span
           title="Closes at kickoff"
           className={`${base} glass inline-flex items-center gap-1 text-flame`}
         >
-          ⏳ <Countdown target={data.kickoffAt} expiredLabel="closed" onExpire={onExpire} />
+          <Icon name="clock" /> <Countdown target={data.kickoffAt} expiredLabel="closed" onExpire={onExpire} />
         </span>
       );
     case "upcoming": {
@@ -201,7 +206,7 @@ function StatusPill({
           title={cityFull ?? undefined}
           className={`${base} ${GLASS} inline-flex items-center gap-1 text-sky-400`}
         >
-          {city ? <>📍 {city}</> : "Upcoming"}
+          {city ? <><Icon name="map-pin" /> {city}</> : "Upcoming"}
         </span>
       );
     }
@@ -363,9 +368,13 @@ function DualScore({
             {live ? "~" : ""}<CountUp value={b.total} /> pt{b.total === 1 ? "" : "s"}
           </span>
           {exact && (
-            <span className="font-black normal-case text-sunburst">🎯 Exact!</span>
+            <span className="inline-flex items-center gap-1 font-black normal-case text-sunburst">
+              <Icon name="target" /> Exact!
+            </span>
           )}
-          <span>· tap for math {open ? "▲" : "▼"}</span>
+          <span className="inline-flex items-center gap-1">
+            · tap for math <Icon name={open ? "chevron-up" : "chevron-down"} />
+          </span>
         </div>
       </button>
 
@@ -492,7 +501,7 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
     focal = (
       <div className={`rounded-xl px-4 py-1.5 ${GLASS}`}>
         <div className="flex items-center justify-center gap-2 text-2xl font-black tabular-nums text-stone-300">
-          <span className="text-xl leading-none">🔒</span>
+          <Icon name="lock" className="text-xl leading-none" />
           <span>{entry.home}</span>
           <span className="text-stone-600">:</span>
           <span>{entry.away}</span>
@@ -538,9 +547,10 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
   }
 
   // The header pill truncates on narrow cards, so it carries its full text as a
-  // hover title too.
+  // hover title too. A practice (trial) match wears a target icon before the
+  // word; the title stays plain text since `title` can't hold an icon.
   const stageLabel = data.trial
-    ? "🎯 Practice"
+    ? "Practice"
     : formatStageLabel(data.groupLabel, data.stage);
 
   // The hero is the next match to act on. Flag it with a chip *above* the card
@@ -583,8 +593,9 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
         <div className="relative flex items-center justify-between gap-2">
           <span
             title={stageLabel}
-            className={`min-w-0 truncate rounded-full px-2.5 py-0.5 ${GLASS} text-stone-200`}
+            className={`inline-flex min-w-0 items-center gap-1 truncate rounded-full px-2.5 py-0.5 ${GLASS} text-stone-200`}
           >
+            {data.trial && <Icon name="target" />}
             {stageLabel}
           </span>
           {status && (
