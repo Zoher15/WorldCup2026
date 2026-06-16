@@ -1,9 +1,8 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getUserId } from "@/lib/identity";
 import { getProfile } from "@/lib/profile";
 import { JoinForms } from "@/components/JoinForms";
-import { FOCUS_RING } from "@/components/theme";
+import { PageShell } from "@/components/PageShell";
 
 export const dynamic = "force-dynamic";
 
@@ -25,17 +24,14 @@ export default async function JoinPage({
   const profile = await getProfile(userId);
 
   return (
-    <main className="mx-auto max-w-md px-4 py-10">
-      <Link href="/" className={`rounded-md text-sm font-bold text-stone-400 ${FOCUS_RING}`}>
-        ← Back
-      </Link>
-      <h1 className="mt-3 mb-6 gradient-text font-display pb-1 text-3xl leading-tight tracking-tight">
+    <PageShell width="narrow" back={{ href: "/", label: "Back" }}>
+      <h1 className="mb-6 gradient-text font-display pb-1 text-3xl leading-tight tracking-tight">
         Join the fun
       </h1>
       <JoinForms
         initialTab={mode === "create" ? "create" : "join"}
         defaultName={profile?.name ?? ""}
       />
-    </main>
+    </PageShell>
   );
 }

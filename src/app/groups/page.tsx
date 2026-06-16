@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getUserId } from "@/lib/identity";
 import { getUserGroups } from "@/lib/groups";
 import { EmptyState } from "@/components/EmptyState";
+import { PageShell } from "@/components/PageShell";
 import { FOCUS_RING } from "@/components/theme";
 
 export const dynamic = "force-dynamic";
@@ -14,14 +15,8 @@ export default async function GroupsPage() {
   const groups = await getUserGroups(userId);
 
   return (
-    <main className="mx-auto max-w-md px-4 py-8">
-      <Link
-        href="/"
-        className={`rounded-md text-sm font-bold text-stone-400 ${FOCUS_RING}`}
-      >
-        ← Home
-      </Link>
-      <h1 className="mt-3 mb-1 gradient-text font-display pb-1 text-3xl leading-tight tracking-tight">
+    <PageShell width="narrow" back={{ href: "/", label: "Home" }}>
+      <h1 className="mb-1 gradient-text font-display pb-1 text-3xl leading-tight tracking-tight">
         Your groups
       </h1>
       <p className="mb-6 text-sm font-medium text-stone-300">
@@ -71,6 +66,6 @@ export default async function GroupsPage() {
           </Link>
         </>
       )}
-    </main>
+    </PageShell>
   );
 }

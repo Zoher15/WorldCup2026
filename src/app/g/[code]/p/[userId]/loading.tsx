@@ -2,7 +2,7 @@
  *  run of match-card-shaped blocks, mirroring the page layout. */
 export default function Loading() {
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8" aria-busy>
+    <main className="mx-auto max-w-3xl px-4 pt-8 pb-nav" aria-busy>
       <span className="sr-only">Loading this player…</span>
       <div className="animate-pulse" aria-hidden>
         <div className="h-4 w-24 rounded-full glass" />

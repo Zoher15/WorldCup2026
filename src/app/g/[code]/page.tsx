@@ -10,6 +10,7 @@ import { GroupAdmin } from "@/components/GroupAdmin";
 import { LeaveGroup } from "@/components/LeaveGroup";
 import { InviteLink } from "@/components/InviteLink";
 import { LoadError } from "@/components/LoadError";
+import { PageShell } from "@/components/PageShell";
 import { FOCUS_RING } from "@/components/theme";
 
 export const dynamic = "force-dynamic";
@@ -40,7 +41,7 @@ export default async function GroupPage({
   // Only members may see a group's standings.
   if (!data.viewer.isMember) {
     return (
-      <main className="mx-auto max-w-md px-4 py-16 text-center">
+      <PageShell width="narrow" className="text-center">
         <div className="text-4xl">🔒</div>
         <h1 className="mt-3 text-xl font-black text-stone-100">
           You&apos;re not in this group
@@ -62,7 +63,7 @@ export default async function GroupPage({
             My groups
           </Link>
         </div>
-      </main>
+      </PageShell>
     );
   }
 
@@ -73,15 +74,8 @@ export default async function GroupPage({
   const boardMatches = await listBoardMatches();
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8">
-      <Link
-        href="/"
-        className={`rounded-md text-sm font-bold text-stone-400 ${FOCUS_RING}`}
-      >
-        ← Home
-      </Link>
-
-      <header className="mt-3 mb-6 rounded-3xl glass p-6 text-center">
+    <PageShell width="content" back={{ href: "/", label: "Home" }}>
+      <header className="mb-6 rounded-3xl glass p-6 text-center">
         <h1 className="text-3xl font-black text-violet-300">
           {group.name}
         </h1>
@@ -137,6 +131,6 @@ export default async function GroupPage({
       <p className="mt-8 text-center text-xs text-stone-400">
         Standings update as match results are confirmed.
       </p>
-    </main>
+    </PageShell>
   );
 }

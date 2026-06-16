@@ -48,6 +48,33 @@
 :root {
   /* Dark-only: keep form controls, scrollbars and other UA widgets dark. */
   color-scheme: dark;
+
+  /* Bottom-bar layout coordination — one source of truth so content never
+     hides behind the fixed bars, and the save bar always stacks above the nav.
+     - `--bottom-nav-h`: height of the mobile tab bar (BottomNav), including the
+       iOS home-indicator safe area. Zeroed at md+ where the nav is hidden.
+     - `--save-bar-h`: nominal height of the predict save bar (≈4.5rem). Pages
+       carrying the save bar add this on top of the nav inset.
+     Use the `.pb-nav` / `.pb-nav-savebar` utilities below for page clearance,
+     and `bottom: var(--bottom-nav-h)` to float the save bar above the nav. */
+  --bottom-nav-h: calc(3.75rem + env(safe-area-inset-bottom, 0px));
+  --save-bar-h: 4.5rem;
+}
+@media (min-width: 768px) {
+  :root {
+    /* The tab bar is md:hidden, so it reserves no space on larger screens. */
+    --bottom-nav-h: 0px;
+  }
+}
+
+/* Page bottom clearance. `.pb-nav` clears just the mobile tab bar; pages that
+   also mount the fixed save bar use `.pb-nav-savebar` to clear both. A little
+   breathing room (1rem) keeps the last element off the bar. */
+.pb-nav {
+  padding-bottom: calc(var(--bottom-nav-h) + 1rem);
+}
+.pb-nav-savebar {
+  padding-bottom: calc(var(--bottom-nav-h) + var(--save-bar-h) + 1rem);
 }
 
 /* Clip stray horizontal overflow at the viewport too, not just <body>: on iOS

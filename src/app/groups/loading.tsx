@@ -2,7 +2,7 @@
  *  row-shaped blocks, mirroring the page layout. */
 export default function Loading() {
   return (
-    <main className="mx-auto max-w-md px-4 py-8" aria-busy>
+    <main className="mx-auto max-w-md px-4 pt-8 pb-nav" aria-busy>
       <span className="sr-only">Loading your groups…</span>
       <div className="animate-pulse" aria-hidden>
         <div className="h-9 w-44 rounded-xl glass" />

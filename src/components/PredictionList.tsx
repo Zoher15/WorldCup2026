@@ -122,9 +122,10 @@ export function PredictionList({
   }, [matches, groups]);
 
   return (
-    // pb-28 clears the fixed save bar on the standalone page; when embedded the
-    // host page reserves that space below its own last section instead.
-    <div className={embedded ? undefined : "pb-28"}>
+    // The host page now reserves the save-bar + tab-bar clearance via the shared
+    // `.pb-nav-savebar` utility (see PageShell / globals.css) — both standalone
+    // and embedded — so this wrapper adds none of its own.
+    <div>
       {/* Urgency hero: the next lock moment, ticking down. Refreshing on expiry
           re-derives match states so the banner (and the locked cards) update. */}
       {nextLock && (
@@ -236,8 +237,14 @@ export function PredictionList({
         </section>
       ))}
 
-      {/* Sticky save bar */}
-      <div className="fixed inset-x-0 bottom-0 z-10 glass glass-frost px-4 py-3">
+      {/* Sticky save bar. Floats just above the mobile tab bar (z-20 > the
+          nav's z-30? no — the nav owns the very bottom, so the bar sits at
+          `bottom: var(--bottom-nav-h)`, which is 0 at md+ where there's no nav).
+          The host page clears both via `.pb-nav-savebar`. */}
+      <div
+        className="fixed inset-x-0 z-20 glass glass-frost px-4 py-3"
+        style={{ bottom: "var(--bottom-nav-h)" }}
+      >
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
           {flash ? (
             <span

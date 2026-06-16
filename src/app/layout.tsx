@@ -7,6 +7,7 @@ import { getAuthUser } from "@/lib/identity";
 import { getProfile, initials } from "@/lib/profile";
 import { appBaseUrl } from "@/lib/app-url";
 import { AccountMenu } from "@/components/AccountMenu";
+import { BottomNav } from "@/components/BottomNav";
 import { GlassGlow } from "@/components/GlassGlow";
 import { FOCUS_RING } from "@/components/theme";
 
@@ -50,6 +51,8 @@ export default async function RootLayout({
     <html lang="en" className={archivoBlack.variable}>
       <body className="text-stone-100 antialiased">
         <GlassGlow />
+        {/* Header aligns to the PageShell `wide` width token (max-w-5xl) so it
+            no longer overhangs narrower pages — those centre inside it. */}
         <header className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
           <Link
             href="/"
@@ -64,6 +67,9 @@ export default async function RootLayout({
           />
         </header>
         {children}
+        {/* Persistent mobile tab bar (md:hidden); coexists with the predict save
+            bar, which floats just above it. */}
+        <BottomNav loggedIn={Boolean(user)} userId={user?.id ?? null} />
       </body>
     </html>
   );
