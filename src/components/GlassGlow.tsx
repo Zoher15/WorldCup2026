@@ -121,5 +121,23 @@ export function GlassGlow() {
     };
   }, []);
 
+  // Battery: freeze the always-on looping animations (the conic live-ring, the
+  // pulses, the brand-gradient drift, the shimmer…) whenever the tab is hidden,
+  // by toggling `data-anim-paused` on <body> — the matching `animation-play-state:
+  // paused` rules live in globals.css. Pausing keeps each loop's phase, so they
+  // resume seamlessly when the tab returns. Mounted here since GlassGlow is the
+  // one component already present on every page.
+  useEffect(() => {
+    const sync = () => {
+      document.body.toggleAttribute("data-anim-paused", document.hidden);
+    };
+    sync();
+    document.addEventListener("visibilitychange", sync);
+    return () => {
+      document.removeEventListener("visibilitychange", sync);
+      document.body.removeAttribute("data-anim-paused");
+    };
+  }, []);
+
   return null;
 }
