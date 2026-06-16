@@ -14,7 +14,9 @@ import { useEffect } from "react";
  * The live ring's 2.8s spin divides the 14s brand drift exactly 5×, so aligning
  * both to the same epoch makes the spinning match-card rings, the wordmark, the
  * headings and the hero ring one coherent, harmonically-locked motion system —
- * 5 spins per wave, re-aligning every 14s.
+ * 5 spins per wave, re-aligning every 14s. The live ring also paints the same
+ * flame→grape→ocean brand gradient as the rest (see `.live-ring` in globals.css),
+ * so the whole system is one wave in both color and phase.
  */
 const TARGETS: ReadonlyArray<readonly [string, number, string]> = [
   [".gradient-text, .gradient-accent", 14000, "animation-delay"],
