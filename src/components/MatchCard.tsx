@@ -667,11 +667,12 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
     </div>
   );
 
-  // Card chrome. A live match wears the animated flame ring (a band of light
-  // sweeping the rim, see .live-ring); the hero wears a static 3px brand-gradient
-  // ring (a padded wrapper, since `border-image` can't follow rounded corners —
-  // outer radius = card's 16px + 3px pad). Live takes precedence: the moving
-  // light IS the urgency cue.
+  // Card chrome. A live match wears the animated brand-wave ring (a band of the
+  // flame→grape→ocean brand gradient sweeping the rim, see .live-ring); the hero
+  // wears the same brand gradient as a static 3px ring (a padded wrapper, since
+  // `border-image` can't follow rounded corners — outer radius = card's 16px +
+  // 3px pad). Both are the one brand wave — live spins it, hero holds it still —
+  // and live takes precedence: the moving light IS the urgency cue.
   let framed: React.ReactNode;
   if (data.state === "live") {
     framed = <div className="live-ring rounded-[18px] p-[2px]">{card}</div>;

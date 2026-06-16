@@ -185,11 +185,14 @@ body {
   }
 }
 
-/* Live match ring: a band of flame→gold light sweeping around the card's rim.
-   The wrapper is a padded, clipped frame (like the hero's gradient ring); the
-   ::before is an oversized square painted with a mostly-transparent conic
-   gradient over a faint flame base, spun by transform so only the 2px rim ever
-   shows the moving light. Reduced motion keeps a static flame rim instead. */
+/* Live match ring: a band of the brand flame→grape→ocean wave sweeping around
+   the card's rim — the SAME colors as the wordmark/headings/initials/hero ring,
+   so the live card spins the identical brand wave (and is already phase-locked
+   to it via GradientSync). The wrapper is a padded, clipped frame (like the
+   hero's gradient ring); the ::before is an oversized square painted with a
+   mostly-transparent conic gradient over a faint grape base, spun by transform
+   so only the 2px rim ever shows the moving light. Reduced motion keeps a
+   static brand-gradient rim instead (matching the hero card's ring). */
 .live-ring {
   position: relative;
   overflow: hidden;
@@ -203,11 +206,12 @@ body {
     conic-gradient(
       from 0deg,
       transparent 0deg 250deg,
-      var(--color-flame) 310deg,
-      var(--color-sunburst) 332deg,
+      var(--color-flame) 290deg,
+      var(--color-grape) 320deg,
+      var(--color-ocean) 345deg,
       transparent 360deg
     ),
-    rgba(255, 90, 54, 0.3);
+    rgba(107, 47, 179, 0.3);
   animation: live-ring-spin 2.8s linear infinite;
   /* Phase pinned to the shared brand-wave clock by GradientSync (`--ring-delay`
      set on the .live-ring host, inherited here). The spin period (2.8s) divides
@@ -221,8 +225,17 @@ body {
 }
 @media (prefers-reduced-motion: reduce) {
   .live-ring::before {
+    /* No spin: fill the padded frame (inset 0, so the 2px rim shows it) with a
+       static left→right flame→grape→ocean brand gradient — the same ring the
+       hero card (.gradient-accent) wears, so the wave is present even at rest. */
+    inset: 0;
     animation: none;
-    background: rgba(255, 90, 54, 0.45);
+    background: linear-gradient(
+      to right,
+      var(--color-flame),
+      var(--color-grape),
+      var(--color-ocean)
+    );
   }
 }
 
@@ -622,13 +635,19 @@ body[data-anim-paused] .countdown-tense {
 }
 
 /* Secondary live cards (every live match that isn't the single most-urgent one)
-   carry a static flame rim instead of the spinning conic gradient: same heat,
-   no per-frame repaint of a blurred surface. The most-urgent card keeps the
-   moving light as the urgency cue (MatchCard passes `liveSpin`). This matches
-   what reduced-motion already shows for `.live-ring`. */
+   carry a static brand-gradient rim instead of the spinning conic gradient: the
+   same brand colors, no per-frame repaint of a blurred surface. The most-urgent
+   card keeps the moving light as the urgency cue (MatchCard passes `liveSpin`).
+   This matches what reduced-motion already shows for `.live-ring`. */
 .live-ring.live-ring-static::before {
+  inset: 0;
   animation: none;
-  background: rgba(255, 90, 54, 0.45);
+  background: linear-gradient(
+    to right,
+    var(--color-flame),
+    var(--color-grape),
+    var(--color-ocean)
+  );
 }
 
 /* MUST-HAVE 2 — The GOAL! beat. Layered onto the existing `goal-flash` wash:
