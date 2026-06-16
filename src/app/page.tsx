@@ -3,12 +3,54 @@ import { EmptyState } from "@/components/EmptyState";
 import { MatchCard, type MatchCardData } from "@/components/MatchCard";
 import { Leaderboard } from "@/components/Leaderboard";
 import { PredictionList } from "@/components/PredictionList";
+import { PageShell } from "@/components/PageShell";
 import { FOCUS_RING } from "@/components/theme";
 import { DEMO_LEADERBOARD } from "@/lib/mock";
 import { getUserId } from "@/lib/identity";
 import { getPredictionBoard } from "@/lib/predictions";
-import { getUserGroups } from "@/lib/groups";
+import { getUserGroups, getViewerStanding, type ViewerStanding } from "@/lib/groups";
 import { FIXTURES } from "@/data/fixtures";
+
+/** Rank-first mobile strip: the viewer's best standing across their groups,
+ *  leading the dashboard so rank isn't buried below the six prediction cards.
+ *  Mobile-only (`lg:hidden`) — at lg+ the two-column rail surfaces groups
+ *  directly. Composes the precomputed standing; no heavy component duplicated. */
+function StandingStrip({ standing }: { standing: ViewerStanding }) {
+  return (
+    <Link
+      href={`/g/${standing.code}`}
+      className={`mb-6 flex items-center gap-4 rounded-2xl glass px-4 py-3 transition active:scale-[0.99] lg:hidden ${FOCUS_RING}`}
+    >
+      <span className="flex flex-col items-center leading-none">
+        <span className="font-display text-3xl text-emerald-400 tabular-nums">
+          #{standing.rank}
+        </span>
+        <span className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-stone-400">
+          of {standing.total}
+        </span>
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-black text-stone-100">
+          {standing.name}
+          {standing.live && (
+            <span className="ml-1.5 align-middle text-xs font-bold text-flame">
+              ● live
+            </span>
+          )}
+        </span>
+        {standing.delta && (
+          <span className="block truncate text-xs font-medium text-stone-400">
+            {standing.delta}
+          </span>
+        )}
+      </span>
+      <span className="shrink-0 font-display text-lg text-violet-300 tabular-nums">
+        {standing.points}
+        <span className="ml-0.5 text-xs font-bold text-stone-400">pts</span>
+      </span>
+    </Link>
+  );
+}
 
 // The schedule (and a signed-in visitor's board) must track the clock, not the
 // build — otherwise yesterday's games linger here.
@@ -40,11 +82,14 @@ export default async function Home() {
   // /predict. Signed out: a preview of the schedule plus a login nudge.
   let board: Awaited<ReturnType<typeof getPredictionBoard>> | null = null;
   let groups: Awaited<ReturnType<typeof getUserGroups>> = [];
+  let standing: ViewerStanding | null = null;
   if (userId) {
     try {
-      [board, groups] = await Promise.all([
+      [board, groups, standing] = await Promise.all([
         getPredictionBoard(userId),
         getUserGroups(userId),
+        // Rank-first mobile strip; never let it sink the page.
+        getViewerStanding(userId).catch(() => null),
       ]);
     } catch {
       // Home must never hard-fail on a data hiccup — fall back to the preview.
@@ -53,13 +98,14 @@ export default async function Home() {
   }
   const boardMatches = board?.matches.slice(0, 6) ?? [];
   const upcoming = board ? [] : upcomingFixtures();
-  // The embedded predictor renders a fixed save bar; pad the page bottom so it
-  // clears the last section (the groups) instead of covering it.
+  // The embedded predictor renders a fixed save bar; reserve clearance for it
+  // (plus the mobile tab bar) only when it's actually shown.
   const showsSaveBar = board != null && boardMatches.length > 0;
 
   return (
-    <main
-      className={`mx-auto max-w-5xl px-4 pt-8 ${showsSaveBar ? "pb-28" : "pb-8"}`}
+    <PageShell
+      width="wide"
+      bottomInset={showsSaveBar ? "nav-savebar" : "nav"}
     >
       <header className="mb-8 text-center">
         {/* Display face (Archivo Black) is inherently black-weight, so no
@@ -92,6 +138,10 @@ export default async function Home() {
           New here? How to play →
         </a>
       </header>
+
+      {/* Rank-first on mobile: the viewer's best standing leads, above the
+          predictor and groups (hidden at lg+, where the rail shows groups). */}
+      {standing && <StandingStrip standing={standing} />}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.2fr_1fr]">
         <section>
@@ -201,6 +251,6 @@ export default async function Home() {
           Leaderboard shown with sample data — log in to see the real thing.
         </p>
       )}
-    </main>
+    </PageShell>
   );
 }

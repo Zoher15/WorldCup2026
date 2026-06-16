@@ -245,6 +245,94 @@ export async function getCrossGroupPlayer(opts: {
   };
 }
 
+export interface ViewerStanding {
+  /** The group the viewer ranks best in (their headline standing). */
+  code: string;
+  name: string;
+  /** 1-based standard competition rank in that group's overall board. */
+  rank: number;
+  /** Competitors on the board (incl. the baseline bot). */
+  total: number;
+  points: number;
+  /** True while an in-play match is moving that board. */
+  live: boolean;
+  /** The one-line "you vs them" motivator, mirroring Leaderboard.tsx: crown on
+   *  top, "tied with …", else "N pts behind …". Null if it can't be derived. */
+  delta: string | null;
+}
+
+/**
+ * The viewer's single best standing across all their groups — the "rank-first"
+ * strip that leads the mobile home dashboard. Composes the existing standings
+ * pipeline (getGroupStandings) and reuses Leaderboard.tsx's viewer-delta logic
+ * rather than duplicating either; returns null when the viewer is in no group
+ * with a board yet. */
+export async function getViewerStanding(
+  userId: string,
+): Promise<ViewerStanding | null> {
+  const mine = await getUserGroups(userId);
+  if (mine.length === 0) return null;
+
+  const standingsList = await Promise.all(
+    mine.map((g) => getGroupStandings(g.code, userId)),
+  );
+
+  let best: ViewerStanding | null = null;
+  for (let i = 0; i < mine.length; i++) {
+    const s = standingsList[i];
+    if (!s) continue;
+    const board = s.standings.overall;
+    const idx = board.findIndex((r) => r.userId === userId);
+    if (idx < 0) continue;
+    const minePts = board[idx].points;
+    // Standard competition rank: one more than the number strictly ahead.
+    const rank = board.filter((r) => r.points > minePts).length + 1;
+
+    // Same "you vs them" line the leaderboard shows on the viewer's row.
+    let delta: string | null = null;
+    const tiedOthers = board.filter(
+      (r, j) => j !== idx && r.points === minePts,
+    );
+    if (tiedOthers.length > 0) {
+      const lead = rank === 1 ? "Tied for the lead with" : "Tied with";
+      delta =
+        tiedOthers.length === 1
+          ? `${lead} ${tiedOthers[0].displayName}`
+          : `${lead} ${tiedOthers.length} others`;
+    } else if (rank === 1) {
+      delta = "👑 Top of the group";
+    } else {
+      const ahead = board[idx - 1];
+      const gap = ahead.points - minePts;
+      delta = `${gap} pt${gap === 1 ? "" : "s"} behind ${ahead.displayName}`;
+    }
+
+    const candidate: ViewerStanding = {
+      code: mine[i].code,
+      name: mine[i].name,
+      rank,
+      total: board.length,
+      points: minePts,
+      live: s.live,
+      delta,
+    };
+    // "Best" = lowest rank number; ties broken by more points, then more
+    // competitors beaten (a #1 of 12 beats a #1 of 3).
+    if (
+      !best ||
+      candidate.rank < best.rank ||
+      (candidate.rank === best.rank && candidate.points > best.points) ||
+      (candidate.rank === best.rank &&
+        candidate.points === best.points &&
+        candidate.total > best.total)
+    ) {
+      best = candidate;
+    }
+  }
+
+  return best;
+}
+
 export interface GroupStandings {
   group: {
     code: string;

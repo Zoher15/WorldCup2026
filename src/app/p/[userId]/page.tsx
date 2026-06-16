@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getUserId } from "@/lib/identity";
 import { getCrossGroupPlayer } from "@/lib/groups";
 import { LoadError } from "@/components/LoadError";
+import { PageShell } from "@/components/PageShell";
 
 export const dynamic = "force-dynamic";
 
@@ -36,12 +37,8 @@ export default async function PlayerHubPage({
     : player.displayName || "This player";
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8">
-      <Link href="/groups" className="text-sm font-bold text-stone-400">
-        ← My groups
-      </Link>
-
-      <header className="mt-3 mb-6 rounded-3xl glass p-6 text-center">
+    <PageShell width="content" back={{ href: "/groups", label: "My groups" }}>
+      <header className="mb-6 rounded-3xl glass p-6 text-center">
         <h1 className="text-3xl font-black text-violet-300">
           {title}
           {player.isViewer && (
@@ -95,6 +92,6 @@ export default async function PlayerHubPage({
           ))}
         </ul>
       )}
-    </main>
+    </PageShell>
   );
 }

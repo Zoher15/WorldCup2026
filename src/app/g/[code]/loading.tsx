@@ -2,7 +2,7 @@
  *  card (podium bars and rows) and the match list, mirroring the page layout. */
 export default function Loading() {
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8" aria-busy>
+    <main className="mx-auto max-w-3xl px-4 pt-8 pb-nav" aria-busy>
       <span className="sr-only">Loading this group…</span>
       <div className="animate-pulse" aria-hidden>
         <div className="h-4 w-16 rounded-full glass" />
