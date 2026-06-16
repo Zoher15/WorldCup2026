@@ -157,7 +157,14 @@ function useGoalFlash(data: MatchCardData): number {
     if (prev === score) return;
     if (lastLiveScores.size > 200) lastLiveScores.clear();
     lastLiveScores.set(key, score);
-    if (prev !== undefined) setFlash((n) => n + 1);
+    if (prev !== undefined) {
+      setFlash((n) => n + 1);
+      // A goal is the most exciting beat in football — give it a short haptic
+      // (guarded; a no-op on devices/browsers without the Vibration API).
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+        navigator.vibrate(30);
+      }
+    }
   }, [active, key, score]);
   return flash;
 }
@@ -624,7 +631,9 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
             behind the translucent tile, glowing through the frost. */}
         <div className="flex min-h-[4.25rem] items-center justify-center">
           <div key={goalFlash} className={goalFlash > 0 ? "goal-flash rounded-xl" : undefined}>
-            {focal}
+            {/* On a confirmed live goal the digits get a sharp scale "punch"
+                (inner element, so it never fights the wrapper's wash scale). */}
+            <div className={goalFlash > 0 ? "goal-punch" : undefined}>{focal}</div>
           </div>
         </div>
 

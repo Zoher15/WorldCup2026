@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { Countdown } from "./Countdown";
 import { Icon } from "./Icon";
@@ -49,6 +49,9 @@ export function PredictionList({
   const [flash, setFlash] = useState<{
     kind: "ok" | "error";
     text: string;
+    // A nonce so the success checkmark replays its draw on every save, even if
+    // the message text is identical to the previous one.
+    n: number;
   } | null>(null);
 
   const openIds = useMemo(
@@ -98,6 +101,7 @@ export function PredictionList({
         setFlash({
           kind: "error",
           text: res.error ?? "Couldn't save — your picks are safe, give it another go.",
+          n: Date.now(),
         });
         return;
       }
@@ -108,8 +112,13 @@ export function PredictionList({
       });
       setFlash({
         kind: "ok",
-        text: `Saved ${res.saved}${res.skipped ? ` · ${res.skipped} skipped` : ""} ✓`,
+        text: `Saved ${res.saved}${res.skipped ? ` · ${res.skipped} skipped` : ""}`,
+        n: Date.now(),
       });
+      // A tiny tactile reward on the app's most-repeated success.
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+        navigator.vibrate(15);
+      }
     });
   }
 
@@ -254,12 +263,25 @@ export function PredictionList({
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
           {flash ? (
             <span
-              className={`text-sm font-bold ${
-                flash.kind === "ok"
-                  ? "text-emerald-400"
-                  : "text-flame"
+              className={`flex items-center gap-1.5 text-sm font-bold ${
+                flash.kind === "ok" ? "text-emerald-400" : "text-flame"
               }`}
             >
+              {flash.kind === "ok" && (
+                <svg
+                  key={flash.n}
+                  viewBox="0 0 24 24"
+                  className="check-pop h-4 w-4 shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={3}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                >
+                  <path className="check-draw" style={{ "--check-len": 24 } as CSSProperties} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
               {flash.text}
             </span>
           ) : (
