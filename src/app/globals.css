@@ -224,11 +224,11 @@ body {
   );
   filter: blur(16px);
   opacity: 0.85;
-  /* Slow turn — one full hue cycle every 10s. (10s isn't an exact divisor of the
-     14s brand drift, so the glow and the header wave drift in and out of phase
-     rather than staying tightly locked; GradientSync still keeps every live card
-     glowing in unison, and its period for `.live-ring` must match this 10s.) */
-  animation: live-ring-spin 10s linear infinite;
+  /* Slow turn — one full hue cycle every 14s, exactly matching the 14s brand
+     drift, so the glow is locked 1:1 with the wordmark/heading wave and the whole
+     system re-aligns every cycle (GradientSync's period for `.live-ring` must
+     match this 14s). */
+  animation: live-ring-spin 14s linear infinite;
   /* Phase pinned to the shared brand-wave clock by GradientSync (`--ring-delay`
      set on the .live-ring host, inherited here). Defaults to 0s with no JS. */
   animation-delay: var(--ring-delay, 0s);
