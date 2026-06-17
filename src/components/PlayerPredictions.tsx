@@ -3,8 +3,9 @@
 import { Button } from "./Button";
 import { Icon } from "./Icon";
 import { MatchCard, toMatchCardData } from "./MatchCard";
-import { PREDICTION_TEXT, RESULT_TEXT } from "./theme";
+import { LIVE_TEXT, PREDICTION_TEXT, RESULT_TEXT } from "./theme";
 import { useLiveRefresh } from "./useLiveRefresh";
+import { computeBreakdown } from "@/lib/score-breakdown";
 import { isFinal, isInPlay, isLive } from "@/lib/match-predicates";
 import type { PlayerPredictionRow, PlayerProfile } from "@/lib/player";
 
@@ -51,29 +52,32 @@ function PlayerCard({
 }
 
 /**
- * Past (kicked-off) match: the pick is revealed, so the header chip shows their
- * call alongside the points earned (the focal tile carries the actual result).
+ * Past (kicked-off) match: the pick and the actual score both live in the focal
+ * tile, so this header chip stays out of their way and just reports the POINTS —
+ * the earned total at full time, or a live projection (the same "~" the tile
+ * uses) while the match is still in play. (It used to repeat the pick scoreline,
+ * which the tile already shows.)
  */
 function PastStatus({ row }: { row: PlayerPredictionRow }) {
   if (row.pick && row.points != null) {
-    return (
-      <span className="inline-flex items-center gap-1.5">
-        <span className={PREDICTION_TEXT}>
-          {row.pick.home}–{row.pick.away}
-        </span>
-        <span className={`font-black ${RESULT_TEXT}`}>+{row.points}</span>
-      </span>
-    );
+    return <span className={`font-black ${RESULT_TEXT}`}>+{row.points} pts</span>;
   }
   if (!row.pick) return <span className="text-stone-400">No pick</span>;
-  // Live: the pick is revealed (the match has kicked off); the running points
-  // live in the tappable tile, so the chip just shows their call.
-  if (isLive(row)) {
-    return (
-      <span className={PREDICTION_TEXT}>
-        {row.pick.home}–{row.pick.away}
-      </span>
-    );
+  // Live: no confirmed points yet — project the running total from their pick
+  // against the in-play score, matching the tile's provisional "~N pts".
+  if (isLive(row) && row.live) {
+    const b = computeBreakdown({
+      pick: {
+        home: row.pick.home,
+        away: row.pick.away,
+        advancePick: row.pick.advancePick,
+      },
+      result: { home: row.live.home, away: row.live.away },
+      stage: row.stage,
+      homeCode: row.homeCode,
+      awayCode: row.awayCode,
+    });
+    return <span className={`font-black ${LIVE_TEXT}`}>~{b.total} pts</span>;
   }
   if (row.result == null) return <span className="text-stone-400">Awaiting</span>;
   return <span className="text-stone-400">Pre-join</span>;
@@ -99,7 +103,7 @@ function Section({
   isBot,
   pickLabel,
 }: {
-  title: string;
+  title: React.ReactNode;
   rows: PlayerPredictionRow[];
   empty: string;
   isBot: boolean;
@@ -187,7 +191,20 @@ export function PlayerPredictions({
   return (
     <div>
       {inPlay.length > 0 && (
-        <Section title="🔴 Live now" rows={inPlay} empty="" isBot={isBot} pickLabel={pickLabel} />
+        <Section
+          title={
+            // Blinking flame dot — the same live cue as the match card's
+            // top-right LIVE pill — in place of the static 🔴 emoji.
+            <span className="inline-flex items-center gap-1.5">
+              <span className="live-dot h-2 w-2 rounded-full bg-flame" />
+              Live now
+            </span>
+          }
+          rows={inPlay}
+          empty=""
+          isBot={isBot}
+          pickLabel={pickLabel}
+        />
       )}
       <Section
         title="Open now"
