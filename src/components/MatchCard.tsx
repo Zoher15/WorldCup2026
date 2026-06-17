@@ -669,15 +669,15 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
 
   // Card chrome. A live match radiates a soft, slowly-rotating brand-wave GLOW
   // (no hard rim — a blurred conic colour wheel blooming around the card, see
-  // .live-ring); the hero wears the same brand gradient as a crisp static 3px
-  // ring (a padded wrapper, since `border-image` can't follow rounded corners —
-  // outer radius = card's 16px + 3px pad). Both are the one brand wave — live
-  // glows it, hero holds it still — and live takes precedence as the urgency cue.
+  // .live-ring); the hero ("Next up") wears the same brand gradient as a crisp
+  // static 5px ring (a padded wrapper, since `border-image` can't follow rounded
+  // corners — outer radius = card's 16px + 5px pad). Both are the one brand wave —
+  // live glows it, hero holds it still — and live takes precedence as the cue.
   let framed: React.ReactNode;
   if (data.state === "live") {
     framed = <div className="live-ring">{card}</div>;
   } else if (hero) {
-    framed = <div className="gradient-accent rounded-[19px] p-[3px]">{card}</div>;
+    framed = <div className="gradient-accent rounded-[21px] p-[5px]">{card}</div>;
   } else {
     framed = card;
   }
@@ -686,7 +686,7 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
   // radius so it stays concentric with the card (or the hero's gradient ring).
   // The live glow has no rim, so a live card's nag ring sits at the card radius.
   if (nag) {
-    const radius = hero ? "rounded-[19px]" : "rounded-2xl";
+    const radius = hero ? "rounded-[21px]" : "rounded-2xl";
     framed = <div className={`nag-pulse ${radius}`}>{framed}</div>;
   }
 
