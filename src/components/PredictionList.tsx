@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Countdown } from "./Countdown";
 import { Icon } from "./Icon";
 import { MatchCard } from "./MatchCard";
-import { FOCUS_RING, LIVE_TEXT } from "./theme";
+import { FOCUS_RING } from "./theme";
 import { useLiveRefresh } from "./useLiveRefresh";
 import { groupByDate } from "@/lib/group-by-date";
 import { isLiveMatch } from "@/lib/match-predicates";
@@ -250,9 +250,11 @@ export function PredictionList({
                       ) : (
                         <span className="text-stone-300">Unsaved</span>
                       )
-                    ) : live ? (
-                      <span className={LIVE_TEXT}>● Live</span>
                     ) : (
+                      // Live/locked/final: the right-hand pill already reports the
+                      // match state (LIVE / Full time / Locked), so this chip
+                      // reports YOUR prediction — which is locked in once the
+                      // window has shut. (Previously this duplicated "Live".)
                       <span className="inline-flex items-center gap-1 text-stone-300">
                         <Icon name="lock" /> Locked
                       </span>
