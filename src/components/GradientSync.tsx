@@ -11,16 +11,17 @@ import { useEffect } from "react";
  *    `.live-ring::before` pseudo-element reads (you can't set a pseudo-element's
  *    delay inline, so it inherits the var from the host).
  *
- * The live-card glow's 7s rotation divides the 14s brand drift exactly 2×, so
- * aligning both to the same epoch makes the live-card glow, the wordmark, the
- * headings and the hero ring one coherent, harmonically-locked motion system —
- * 2 turns per wave, re-aligning every 14s. The glow also paints the same
- * flame→grape→ocean brand colours as the rest (see `.live-ring` in globals.css),
- * so the whole system is one wave in both colour and phase.
+ * The live-card glow rotates its hues every 10s. Pinning it to the same epoch as
+ * the 14s brand drift starts everything in phase and keeps every live card
+ * glowing in unison; 10s isn't an exact divisor of 14s, though, so the glow and
+ * the header wave drift apart and only fully re-align every 70s (their LCM)
+ * rather than every cycle. The glow still paints the same flame→grape→ocean brand
+ * colours as the rest (see `.live-ring` in globals.css), so it's the same wave in
+ * colour, and every live card stays in step with the others.
  */
 const TARGETS: ReadonlyArray<readonly [string, number, string]> = [
   [".gradient-text, .gradient-accent", 14000, "animation-delay"],
-  [".live-ring", 7000, "--ring-delay"],
+  [".live-ring", 10000, "--ring-delay"],
 ];
 const SELECTOR = TARGETS.map(([s]) => s).join(", ");
 
