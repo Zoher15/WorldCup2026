@@ -11,23 +11,23 @@ import { useEffect } from "react";
  *    `.live-ring::before` pseudo-element reads (you can't set a pseudo-element's
  *    delay inline, so it inherits the var from the host).
  *
- * The live ring's 2.8s spin divides the 14s brand drift exactly 5×, so aligning
- * both to the same epoch makes the spinning match-card rings, the wordmark, the
+ * The live-card glow's 7s rotation divides the 14s brand drift exactly 2×, so
+ * aligning both to the same epoch makes the live-card glow, the wordmark, the
  * headings and the hero ring one coherent, harmonically-locked motion system —
- * 5 spins per wave, re-aligning every 14s. The live ring also paints the same
- * flame→grape→ocean brand gradient as the rest (see `.live-ring` in globals.css),
- * so the whole system is one wave in both color and phase.
+ * 2 turns per wave, re-aligning every 14s. The glow also paints the same
+ * flame→grape→ocean brand colours as the rest (see `.live-ring` in globals.css),
+ * so the whole system is one wave in both colour and phase.
  */
 const TARGETS: ReadonlyArray<readonly [string, number, string]> = [
   [".gradient-text, .gradient-accent", 14000, "animation-delay"],
-  [".live-ring", 2800, "--ring-delay"],
+  [".live-ring", 7000, "--ring-delay"],
 ];
 const SELECTOR = TARGETS.map(([s]) => s).join(", ");
 
 /**
  * Keeps every drifting/spinning brand element waving in one shared phase, so the
  * top-left wordmark, the account initials, page headings, the hero ring and the
- * live match-card rings all move together — no matter which page you're on or
+ * live match-card glow all move together — no matter which page you're on or
  * when an element mounts.
  *
  * Each animation's clock otherwise starts at its own mount; the layout wordmark

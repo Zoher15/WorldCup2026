@@ -667,15 +667,15 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
     </div>
   );
 
-  // Card chrome. A live match wears the animated brand-wave ring (a band of the
-  // flame→grape→ocean brand gradient sweeping the rim, see .live-ring); the hero
-  // wears the same brand gradient as a static 3px ring (a padded wrapper, since
-  // `border-image` can't follow rounded corners — outer radius = card's 16px +
-  // 3px pad). Both are the one brand wave — live spins it, hero holds it still —
-  // and live takes precedence: the moving light IS the urgency cue.
+  // Card chrome. A live match radiates a soft, slowly-rotating brand-wave GLOW
+  // (no hard rim — a blurred conic colour wheel blooming around the card, see
+  // .live-ring); the hero wears the same brand gradient as a crisp static 3px
+  // ring (a padded wrapper, since `border-image` can't follow rounded corners —
+  // outer radius = card's 16px + 3px pad). Both are the one brand wave — live
+  // glows it, hero holds it still — and live takes precedence as the urgency cue.
   let framed: React.ReactNode;
   if (data.state === "live") {
-    framed = <div className="live-ring rounded-[20px] p-[4px]">{card}</div>;
+    framed = <div className="live-ring">{card}</div>;
   } else if (hero) {
     framed = <div className="gradient-accent rounded-[19px] p-[3px]">{card}</div>;
   } else {
@@ -683,13 +683,10 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
   }
 
   // The "no pick yet" nag ring hugs whatever frame the card has, matching its
-  // radius so it stays concentric with the live/hero ring.
+  // radius so it stays concentric with the card (or the hero's gradient ring).
+  // The live glow has no rim, so a live card's nag ring sits at the card radius.
   if (nag) {
-    const radius = hero
-      ? "rounded-[19px]"
-      : data.state === "live"
-        ? "rounded-[20px]"
-        : "rounded-2xl";
+    const radius = hero ? "rounded-[19px]" : "rounded-2xl";
     framed = <div className={`nag-pulse ${radius}`}>{framed}</div>;
   }
 
