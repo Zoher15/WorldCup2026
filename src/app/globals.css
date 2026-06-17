@@ -185,40 +185,41 @@ body {
   }
 }
 
-/* Live match ring: a band of the brand flame→grape→ocean wave sweeping around
-   the card's rim — the SAME colors as the wordmark/headings/initials/hero ring,
-   so the live card spins the identical brand wave (and is already phase-locked
-   to it via GradientSync). The wrapper is a padded, clipped frame (like the
-   hero's gradient ring); the ::before is an oversized square painted with a wide
-   flame→grape→ocean conic band over a grape base, spun by transform so only the
-   4px rim ever shows the moving light. The band is deliberately broad and the
-   base fairly opaque so the ring reads boldly, not as a hairline. Reduced motion
-   keeps a static brand-gradient rim instead (matching the hero card's ring). */
+/* Live match glow: a soft, slowly-rotating bloom of the brand flame→grape→ocean
+   wave around a live card — the SAME colors as the wordmark/headings/initials/
+   hero ring, and phase-locked to the brand clock via GradientSync. There's no
+   hard rim: the ::before is a heavily-blurred conic colour wheel that sits just
+   behind the card and spills a little past every edge, so the card reads as if
+   it's radiating the brand wave. The opaque card covers the centre, leaving only
+   the soft aura around the rounded edges (no `overflow: hidden`, so the bloom can
+   escape). Reduced motion (and secondary live cards) keep the glow but hold it
+   still. */
 .live-ring {
   position: relative;
-  overflow: hidden;
 }
 .live-ring::before {
   content: "";
   position: absolute;
-  /* Big enough that the square still covers the corners mid-rotation. */
-  inset: -100%;
-  background:
-    conic-gradient(
-      from 0deg,
-      transparent 0deg 170deg,
-      var(--color-flame) 230deg,
-      var(--color-grape) 300deg,
-      var(--color-ocean) 350deg,
-      transparent 360deg
-    ),
-    rgba(107, 47, 179, 0.45);
-  animation: live-ring-spin 2.8s linear infinite;
+  /* Bloom just past the card on every side; the blur feathers it into a halo. */
+  inset: -8px;
+  border-radius: 1.5rem;
+  /* A full brand colour wheel so the slow rotation drifts the hues around the
+     halo (rather than a band with transparent gaps), blurred into a soft glow. */
+  background: conic-gradient(
+    from 0deg,
+    var(--color-flame),
+    var(--color-grape),
+    var(--color-ocean),
+    var(--color-flame)
+  );
+  filter: blur(16px);
+  opacity: 0.85;
+  /* Slow turn — one rotation every 7s, which still divides the 14s brand drift
+     exactly 2×, so the glow stays harmonically locked to the wordmark/heading
+     wave (GradientSync's period for `.live-ring` must match this 7s). */
+  animation: live-ring-spin 7s linear infinite;
   /* Phase pinned to the shared brand-wave clock by GradientSync (`--ring-delay`
-     set on the .live-ring host, inherited here). The spin period (2.8s) divides
-     the brand drift (14s) exactly 5×, so aligning both to the same epoch keeps
-     every live ring spinning in unison and harmonically locked to the wordmark/
-     heading wave. Defaults to 0s with no JS. */
+     set on the .live-ring host, inherited here). Defaults to 0s with no JS. */
   animation-delay: var(--ring-delay, 0s);
 }
 @keyframes live-ring-spin {
@@ -226,17 +227,8 @@ body {
 }
 @media (prefers-reduced-motion: reduce) {
   .live-ring::before {
-    /* No spin: fill the padded frame (inset 0, so the 2px rim shows it) with a
-       static left→right flame→grape→ocean brand gradient — the same ring the
-       hero card (.gradient-accent) wears, so the wave is present even at rest. */
-    inset: 0;
+    /* Hold the glow still — the soft brand-colour halo stays, just no rotation. */
     animation: none;
-    background: linear-gradient(
-      to right,
-      var(--color-flame),
-      var(--color-grape),
-      var(--color-ocean)
-    );
   }
 }
 
@@ -618,8 +610,8 @@ body {
 /* MUST-HAVE 1 — Pause the infinite loops when the tab is hidden or the page is
    scrolled away. `usePauseOffscreen` (mounted once in GlassGlow) sets
    `data-anim-paused` on <body> whenever `document.hidden` is true, so the
-   conic `live-ring-spin` (the most expensive — a blurred glass card under a
-   spinning gradient), the pulses, the shimmer and the drifts all freeze
+   conic `live-ring-spin` (the most expensive — a heavily-blurred, rotating
+   gradient glow), the pulses, the shimmer and the drifts all freeze
    instead of burning battery on a backgrounded phone. Pausing (not removing)
    keeps each loop's phase, so they resume seamlessly when the tab returns.
    Listed explicitly rather than with a universal selector so only our own
@@ -636,19 +628,12 @@ body[data-anim-paused] .countdown-tense {
 }
 
 /* Secondary live cards (every live match that isn't the single most-urgent one)
-   carry a static brand-gradient rim instead of the spinning conic gradient: the
-   same brand colors, no per-frame repaint of a blurred surface. The most-urgent
-   card keeps the moving light as the urgency cue (MatchCard passes `liveSpin`).
-   This matches what reduced-motion already shows for `.live-ring`. */
+   hold the glow still instead of rotating it: the same soft brand-colour bloom,
+   no per-frame repaint of a heavily-blurred surface. The most-urgent card keeps
+   the slow rotation as the urgency cue. This matches what reduced-motion already
+   shows for `.live-ring`. */
 .live-ring.live-ring-static::before {
-  inset: 0;
   animation: none;
-  background: linear-gradient(
-    to right,
-    var(--color-flame),
-    var(--color-grape),
-    var(--color-ocean)
-  );
 }
 
 /* MUST-HAVE 2 — The GOAL! beat. Layered onto the existing `goal-flash` wash:
