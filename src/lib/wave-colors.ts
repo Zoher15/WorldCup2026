@@ -112,27 +112,69 @@ export function legibleWaveColor(hex: string): string {
   );
 }
 
-/** Drop runs of the same colour so adjacent stops never sit flat. */
-function dedupeAdjacent(stops: string[]): string[] {
-  return stops.filter((c, i) => i === 0 || c !== stops[i - 1]);
+/** A wave colour with its share of the wave's width (its band size). */
+export interface WaveStop {
+  color: string;
+  weight: number;
+}
+
+/** Merge runs of the same colour into one band, summing their weights, so
+ *  adjacent stops never sit flat (e.g. two flags meeting on white). */
+function mergeAdjacent(stops: WaveStop[]): WaveStop[] {
+  const out: WaveStop[] = [];
+  for (const s of stops) {
+    const last = out[out.length - 1];
+    if (last && last.color === s.color) last.weight += s.weight;
+    else out.push({ ...s });
+  }
+  return out;
+}
+
+/** Rescale a set of weights so they sum to `total`. */
+function scaleTo(stops: WaveStop[], total: number): WaveStop[] {
+  const sum = stops.reduce((a, s) => a + s.weight, 0) || 1;
+  return stops.map((s) => ({ color: s.color, weight: (s.weight / sum) * total }));
 }
 
 /**
  * A team's flag colours, lifted to the legibility floor and ordered as the flag
- * is (most-prominent first). Falls back to the single representative colour for
- * a code with no flag palette (knockout placeholders), or a neutral grey if even
- * that is unknown.
+ * is (most-prominent first), each carrying its share of the flag's area. Falls
+ * back to the single representative colour for a code with no flag palette
+ * (knockout placeholders), or a neutral grey if even that is unknown.
  */
-export function teamWaveColors(code: string): string[] {
-  const palette = FLAG_COLORS[code.toUpperCase()] ?? [teamColor(code)];
-  return dedupeAdjacent(palette.map(legibleWaveColor));
+export function teamWaveColors(code: string): WaveStop[] {
+  const palette = FLAG_COLORS[code.toUpperCase()];
+  if (!palette) return [{ color: legibleWaveColor(teamColor(code)), weight: 1 }];
+  return mergeAdjacent(
+    palette.map(([hex, weight]) => ({ color: legibleWaveColor(hex), weight })),
+  );
+}
+
+/** Turn weighted bands into positioned CSS stops (`#rrggbb p%`): each colour is
+ *  pinned at the centre of its band, so a colour's dwell across the wave matches
+ *  its share — a flag's dominant field spreads wide, a thin stripe just flashes
+ *  past, instead of every colour getting an equal slice. */
+function positionedStops(stops: WaveStop[]): string[] {
+  const sum = stops.reduce((a, s) => a + s.weight, 0) || 1;
+  const out: string[] = [];
+  let cumulative = 0;
+  for (const s of stops) {
+    const w = s.weight / sum;
+    const pos = Math.round((cumulative + w / 2) * 1000) / 10;
+    out.push(`${s.color} ${pos}%`);
+    cumulative += w;
+  }
+  return out;
 }
 
 /**
- * The wave's gradient stops for a matchup: the home team's flag colours then the
- * away team's, each lifted to the legibility floor. With no match (or unknown
+ * The wave's positioned gradient stops for a matchup: the home team's flag
+ * colours then the away team's, each lifted to the legibility floor and sized to
+ * its share of the flag. Each team owns half the wave so the matchup stays
+ * balanced regardless of how many colours its flag has. With no match (or unknown
  * codes on both sides) it returns the brand flame→grape→ocean fallback; a single
- * known team is padded to at least two stops so it always renders as a sweep.
+ * known team fills the whole wave, padded to at least two stops so it always
+ * renders as a sweep.
  */
 export function waveStopsForMatch(
   homeCode: string | null | undefined,
@@ -140,8 +182,20 @@ export function waveStopsForMatch(
 ): string[] {
   const home = homeCode ? teamWaveColors(homeCode) : [];
   const away = awayCode ? teamWaveColors(awayCode) : [];
-  const stops = dedupeAdjacent([...home, ...away]);
-  if (stops.length === 0) return [...WAVE_FALLBACK];
-  if (stops.length === 1) return [stops[0], WAVE_FALLBACK[WAVE_FALLBACK.length - 1]];
-  return stops;
+
+  let stops: WaveStop[];
+  if (home.length && away.length) {
+    // Split the wave down the middle: each flag fills its half, its colours
+    // sized within it by area.
+    stops = mergeAdjacent([...scaleTo(home, 0.5), ...scaleTo(away, 0.5)]);
+  } else {
+    stops = mergeAdjacent([...home, ...away]);
+  }
+
+  if (stops.length === 0) {
+    stops = WAVE_FALLBACK.map((color) => ({ color, weight: 1 }));
+  } else if (stops.length === 1) {
+    stops = [stops[0], { color: WAVE_FALLBACK[WAVE_FALLBACK.length - 1], weight: stops[0].weight }];
+  }
+  return positionedStops(stops);
 }
