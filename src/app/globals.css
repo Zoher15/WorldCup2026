@@ -185,24 +185,14 @@ body {
   }
 }
 
-/* Live match glow: a soft bloom of the brand flame→grape→ocean wave around a
-   live card — the SAME colors as the wordmark/headings/initials/hero ring, and
-   phase-locked to the brand clock via GradientSync. There's no hard rim: the
-   ::before is a heavily-blurred conic colour wheel that sits just behind the card
-   and spills a little past every edge, so the card reads as if it's radiating the
-   brand wave. The bloom's SHAPE never moves — we animate the conic gradient's
-   ANGLE (`--glow-angle`) rather than rotating the element, so the hues slowly
-   orbit a fixed halo instead of a rounded rectangle visibly spinning. The opaque
-   card covers the centre, leaving only the soft aura around the rounded edges (no
-   `overflow: hidden`, so the bloom can escape). Reduced motion (and secondary
-   live cards) keep the glow but hold it still. */
-/* Registered so the conic glow's start angle can be animated — an unregistered
-   custom property is just a string and won't interpolate. Mirrors `--g-on`. */
-@property --glow-angle {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
-}
+/* Live match glow: a soft bloom of the brand wave around a live card. It paints
+   the EXACT same linear flame→grape→ocean gradient as the wordmark, headings and
+   rims (`.gradient-accent`) and runs the EXACT same `gradient-drift` animation —
+   just heavily blurred into a halo — so the glow, the rim and the text wave share
+   one colour, one motion and (via GradientSync) one phase. The ::before sits
+   behind the card+rim and spills a little past every edge (no `overflow: hidden`,
+   so the bloom can escape); the opaque card covers the centre, leaving only the
+   soft aura. Reduced motion (and secondary live cards) hold it still. */
 .live-ring {
   position: relative;
 }
@@ -212,35 +202,27 @@ body {
   /* Bloom just past the rim on every side; the blur feathers it into a halo. */
   inset: -4px;
   border-radius: 1.5rem;
-  /* A full brand colour wheel whose START ANGLE animates (see the keyframes), so
-     the hues orbit a fixed halo — the element itself never rotates, so there's no
-     spinning-rectangle silhouette. Blurred into a soft glow. */
-  background: conic-gradient(
-    from var(--glow-angle, 0deg),
+  /* Identical to `.gradient-accent`: the brand linear gradient on a double-wide
+     track, drifted left↔right by `gradient-drift`. Blurred into a soft glow. */
+  background: linear-gradient(
+    to right,
     var(--color-flame),
     var(--color-grape),
-    var(--color-ocean),
-    var(--color-flame)
+    var(--color-ocean)
   );
+  background-size: 200% 100%;
   filter: blur(16px);
   opacity: 0.85;
-  /* Slow turn — one full hue cycle every 14s, exactly matching the 14s brand
-     drift, so the glow is locked 1:1 with the wordmark/heading wave and the whole
-     system re-aligns every cycle (GradientSync's period for `.live-ring` must
-     match this 14s). */
-  animation: live-ring-spin 14s linear infinite;
+  /* Same 14s drift as the wordmark / heading / rim wave, so the glow tracks the
+     rim exactly (GradientSync's period for `.live-ring` must match this 14s). */
+  animation: gradient-drift 14s ease-in-out infinite;
   /* Phase pinned to the shared brand-wave clock by GradientSync (`--ring-delay`
      set on the .live-ring host, inherited here). Defaults to 0s with no JS. */
   animation-delay: var(--ring-delay, 0s);
 }
-@keyframes live-ring-spin {
-  /* Animate the gradient's ANGLE, not the element's transform — the halo stays
-     put while the brand hues rotate through it. */
-  to { --glow-angle: 360deg; }
-}
 @media (prefers-reduced-motion: reduce) {
   .live-ring::before {
-    /* Hold the glow still — the soft brand-colour halo stays, just no rotation. */
+    /* Hold the glow still — the soft brand-colour halo stays, just no drift. */
     animation: none;
   }
 }
@@ -624,8 +606,8 @@ body {
 /* MUST-HAVE 1 — Pause the infinite loops when the tab is hidden or the page is
    scrolled away. `usePauseOffscreen` (mounted once in GlassGlow) sets
    `data-anim-paused` on <body> whenever `document.hidden` is true, so the
-   conic `live-ring-spin` (the most expensive — a heavily-blurred, rotating
-   gradient glow), the pulses, the shimmer and the drifts all freeze
+   live glow (the most expensive — a heavily-blurred, full-card gradient drift),
+   the pulses, the shimmer and the text/rim drifts all freeze
    instead of burning battery on a backgrounded phone. Pausing (not removing)
    keeps each loop's phase, so they resume seamlessly when the tab returns.
    Listed explicitly rather than with a universal selector so only our own
