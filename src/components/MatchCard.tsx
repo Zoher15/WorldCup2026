@@ -667,7 +667,8 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
     </div>
   );
 
-  // Card chrome — all the one brand wave (flame→grape→ocean, 14s phase-locked):
+  // Card chrome — all the one brand wave (the live/next-up matchup's home→away
+  // colours, 14s phase-locked):
   //  • Hero ("Next up"): a crisp static 5px gradient rim (a padded wrapper, since
   //    `border-image` can't follow rounded corners — outer radius = card 16px +
   //    5px pad).

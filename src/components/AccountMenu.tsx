@@ -47,8 +47,9 @@ export function AccountMenu({
         aria-label="Account menu"
         className={`-m-1.5 flex cursor-pointer items-center rounded-full p-1.5 ${FOCUS_RING}`}
       >
-        {/* The initials wear the same living flame→grape→ocean wave as the
-            "World Cup 2026" wordmark (kept in phase by GradientSync), so the
+        {/* The initials wear the same living matchup wave (home→away team
+            colours) as the "World Cup 2026" wordmark, kept in phase by
+            GradientSync, so the
             header is gradient on both ends. The gradient sits on an INNER span:
             `.glass` and `.gradient-text` both paint `background`, so putting both
             on one element clips the glass fill instead of the gradient and the

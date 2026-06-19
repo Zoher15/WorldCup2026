@@ -185,9 +185,45 @@ body {
   }
 }
 
+/* ─── Brand wave colours ─────────────────────────────────────────────────────
+   The wordmark, page headings, the hero/live card rim and the live-card glow all
+   paint ONE gradient: the home team's colour on the left sweeping through a crest
+   into the away team's on the right, for whichever match is live (or next up).
+   The three colours are resolved server-side and set on <html> by the layout
+   (see wave-colors.ts / wave-match.ts) and cascade here as `--wave-from` /
+   `--wave-mid` / `--wave-to`. For a normal matchup the mid is the plain midpoint
+   (so the sweep looks two-colour-smooth); for a same-colour matchup it's a soft
+   neutral crest so the wave stays legible.
+
+   Registering them as <color> (defaulting to the brand flame→grape→ocean) lets
+   the whole UI cross-fade when the driving match — and so the colours — change,
+   instead of snapping. `inherits: true` so the value set on <html> reaches every
+   element using the wave. Reduced motion drops the cross-fade. */
+@property --wave-from {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #ff5a36;
+}
+@property --wave-mid {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #6b2fb3;
+}
+@property --wave-to {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #1e8fd5;
+}
+html {
+  transition: --wave-from 0.6s ease, --wave-mid 0.6s ease, --wave-to 0.6s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  html { transition: none; }
+}
+
 /* Live match glow: a soft bloom of the brand wave around a live card. It paints
-   the EXACT same linear flame→grape→ocean gradient as the wordmark, headings and
-   rims (`.gradient-accent`) and runs the EXACT same `gradient-drift` animation —
+   the EXACT same linear home→away gradient as the wordmark, headings and rims
+   (`.gradient-accent`) and runs the EXACT same `gradient-drift` animation —
    just heavily blurred into a halo — so the glow, the rim and the text wave share
    one colour, one motion and (via GradientSync) one phase. The ::before sits
    behind the card+rim and spills a little past every edge (no `overflow: hidden`,
@@ -206,9 +242,9 @@ body {
      track, drifted left↔right by `gradient-drift`. Blurred into a soft glow. */
   background: linear-gradient(
     to right,
-    var(--color-flame),
-    var(--color-grape),
-    var(--color-ocean)
+    var(--wave-from),
+    var(--wave-mid),
+    var(--wave-to)
   );
   background-size: 200% 100%;
   filter: blur(16px);
@@ -235,25 +271,25 @@ body {
   color: #c4b5fd;
   background-image: linear-gradient(
     to right,
-    var(--color-flame),
-    var(--color-grape),
-    var(--color-ocean)
+    var(--wave-from),
+    var(--wave-mid),
+    var(--wave-to)
   );
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
-/* The same flame→grape→ocean sweep as a paintable background — echoes the hero
+/* The same home→away matchup sweep as a paintable background — echoes the hero
    headline on small accents: the active leaderboard-tab indicator and the hero
    match card's 2px ring (a padded wrapper, since `border-image` can't follow
    rounded corners). */
 .gradient-accent {
   background-image: linear-gradient(
     to right,
-    var(--color-flame),
-    var(--color-grape),
-    var(--color-ocean)
+    var(--wave-from),
+    var(--wave-mid),
+    var(--wave-to)
   );
 }
 

@@ -7,6 +7,8 @@ import { getAuthUser } from "@/lib/identity";
 import { getProfile, initials } from "@/lib/profile";
 import { appBaseUrl } from "@/lib/app-url";
 import { currentPhase } from "@/lib/tournament-phase";
+import { getWaveMatch } from "@/lib/wave-match";
+import { waveColorsForMatch } from "@/lib/wave-colors";
 import { AccountMenu } from "@/components/AccountMenu";
 import { BottomNav } from "@/components/BottomNav";
 import { GlassGlow } from "@/components/GlassGlow";
@@ -54,11 +56,27 @@ export default async function RootLayout({
   const profile = user ? await getProfile(user.id) : null;
   const name = profile?.name ?? null;
 
+  // The brand wave wears the live (or next-up) matchup: the home team's colour
+  // sweeps through a crest into the away team's across the wordmark, headings,
+  // card rim and live glow. Set once on <html> so the shared
+  // `--wave-from`/`--wave-mid`/`--wave-to` custom properties cascade to all three
+  // (see globals.css); CSS handles the cross-fade when the match — and the
+  // colours — change.
+  const waveMatch = await getWaveMatch();
+  const wave = waveColorsForMatch(waveMatch?.homeCode, waveMatch?.awayCode);
+
   return (
     <html
       lang="en"
       className={archivoBlack.variable}
       data-phase={currentPhase()}
+      style={
+        {
+          "--wave-from": wave.from,
+          "--wave-mid": wave.mid,
+          "--wave-to": wave.to,
+        } as React.CSSProperties
+      }
     >
       <body className="text-stone-100 antialiased">
         <GlassGlow />
@@ -70,8 +88,9 @@ export default async function RootLayout({
             href="/"
             className={`inline-flex items-center gap-1.5 rounded-full glass px-3 py-1.5 text-sm font-black tracking-tight ${FOCUS_RING}`}
           >
-            {/* The brand signature: the living flame→grape→ocean drift
-                (.gradient-text) on the one element present on every page. The
+            {/* The brand signature: the living matchup wave (home→away team
+                colours, .gradient-text) on the one element present on every
+                page. The
                 ⚽ keeps its own emoji colours (text-fill-color doesn't touch
                 emoji glyphs), so it stays legible inside the glass pill while
                 the wordmark carries the gradient. The class's solid violet
