@@ -1,9 +1,10 @@
 /**
- * Derives the brand wave's two colours from the teams of the match that's
- * currently "on" (live, or next up — see wave-match.ts). The wave is the single
- * gradient shared by the wordmark, page headings, the hero/live card rim and the
- * live-card glow (see `--wave-from` / `--wave-to` in globals.css): the left team's
- * colour sweeps into the right team's colour, so the whole UI wears the matchup.
+ * Derives the brand wave's colours from the teams of the match that's currently
+ * "on" (live, or next up — see wave-match.ts). The wave is the single gradient
+ * shared by the wordmark, page headings, the hero/live card rim and the live-card
+ * glow (see `--wave-from` / `--wave-mid` / `--wave-to` in globals.css): the left
+ * team's colour sweeps through a crest into the right team's colour, so the whole
+ * UI wears the matchup.
  *
  * Flag colours aren't chosen for a near-black UI — many are deep navy or blood
  * red (USA #0A3161, Germany #DD0000) that would vanish as gradient-clipped text
@@ -30,6 +31,18 @@ export const WAVE_FALLBACK = { from: "#ff5a36", to: "#1e8fd5" } as const;
 const MIN_LIGHTNESS = 0.55;
 const MAX_LIGHTNESS = 0.72;
 const MIN_SATURATION = 0.5;
+
+/**
+ * How close two wave colours must be (Euclidean distance in 0–1 RGB, where 0 is
+ * identical and ~1.73 is the max) before the midpoint is treated as a "same
+ * colour" matchup and lifted into a crest instead of a flat band.
+ */
+const SIMILAR_THRESHOLD = 0.3;
+/** Crest shaping for a same-colour matchup: lighten and desaturate the midpoint
+ *  into a soft neutral highlight (capped so it never blows out to white). */
+const CREST_LIGHTEN = 0.18;
+const CREST_MAX_LIGHTNESS = 0.82;
+const CREST_SATURATION_SCALE = 0.5;
 
 /** Parse `#rgb` / `#rrggbb` into [r, g, b] in 0–1, or null if malformed. */
 function parseHex(hex: string): [number, number, number] | null {
@@ -96,19 +109,61 @@ export function legibleWaveColor(hex: string): string {
   return hslToHex(h, clampedS, clampedL);
 }
 
+/** Linear sRGB midpoint of two colours — exactly what CSS paints at the 50% mark
+ *  of a two-stop `from → to` gradient, so using it as the middle stop leaves a
+ *  distinct matchup looking identical to a smooth two-colour sweep. */
+function mixHex(a: string, b: string): string {
+  const ra = parseHex(a);
+  const rb = parseHex(b);
+  if (!ra || !rb) return a;
+  const to = (i: number) =>
+    Math.round(((ra[i] + rb[i]) / 2) * 255)
+      .toString(16)
+      .padStart(2, "0");
+  return `#${to(0)}${to(1)}${to(2)}`;
+}
+
+/** Euclidean distance between two colours in 0–1 RGB; 0 means identical. */
+function rgbDistance(a: string, b: string): number {
+  const ra = parseHex(a);
+  const rb = parseHex(b);
+  if (!ra || !rb) return Infinity;
+  return Math.hypot(ra[0] - rb[0], ra[1] - rb[1], ra[2] - rb[2]);
+}
+
 /**
- * The wave's `{ from, to }` for a matchup: the home team's colour on the left,
- * the away team's on the right, each lifted to the legibility floor. With no
- * match (or unknown codes on both sides) it returns the brand flame → ocean
- * fallback so the UI still reads as branded.
+ * The wave's middle stop. For a normal matchup it's the plain midpoint of
+ * `from → to`, so the three-stop gradient renders identically to a smooth
+ * two-stop sweep. When the two flag colours are close (e.g. two reds — Egypt vs
+ * Iraq), that midpoint would be a near-flat band, so it's lifted into a soft,
+ * desaturated crest: a neutral highlight that keeps the wave legible and lets the
+ * drift catch the light, without inventing a foreign hue.
+ */
+function waveMid(from: string, to: string): string {
+  const blend = mixHex(from, to);
+  if (rgbDistance(from, to) >= SIMILAR_THRESHOLD) return blend;
+  const rgb = parseHex(blend);
+  if (!rgb) return blend;
+  const [h, s, l] = rgbToHsl(...rgb);
+  return hslToHex(
+    h,
+    s * CREST_SATURATION_SCALE,
+    Math.min(l + CREST_LIGHTEN, CREST_MAX_LIGHTNESS),
+  );
+}
+
+/**
+ * The wave's `{ from, mid, to }` for a matchup: the home team's colour on the
+ * left, the away team's on the right, each lifted to the legibility floor, with a
+ * midpoint that crests when the two are too alike (see `waveMid`). With no match
+ * (or unknown codes on both sides) it returns the brand flame → ocean fallback so
+ * the UI still reads as branded.
  */
 export function waveColorsForMatch(
   homeCode: string | null | undefined,
   awayCode: string | null | undefined,
-): { from: string; to: string } {
-  if (!homeCode && !awayCode) return { ...WAVE_FALLBACK };
-  return {
-    from: homeCode ? legibleWaveColor(teamColor(homeCode)) : WAVE_FALLBACK.from,
-    to: awayCode ? legibleWaveColor(teamColor(awayCode)) : WAVE_FALLBACK.to,
-  };
+): { from: string; mid: string; to: string } {
+  const from = homeCode ? legibleWaveColor(teamColor(homeCode)) : WAVE_FALLBACK.from;
+  const to = awayCode ? legibleWaveColor(teamColor(awayCode)) : WAVE_FALLBACK.to;
+  return { from, mid: waveMid(from, to), to };
 }

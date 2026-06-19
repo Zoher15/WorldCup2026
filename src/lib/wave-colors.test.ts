@@ -6,16 +6,25 @@ import {
   WAVE_FALLBACK,
 } from "./wave-colors.ts";
 
-/** Parse `#rrggbb` → channels in 0–1 and the HSL lightness, for assertions. */
-function inspect(hex: string): { r: number; g: number; b: number; l: number } {
+/** Parse `#rrggbb` → channels in 0–1 plus HSL lightness/saturation, for asserts. */
+function inspect(hex: string): {
+  r: number;
+  g: number;
+  b: number;
+  l: number;
+  s: number;
+} {
   const m = /^#([0-9a-fA-F]{6})$/.exec(hex);
   assert.ok(m, `not a #rrggbb colour: ${hex}`);
   const n = parseInt(m![1], 16);
   const r = ((n >> 16) & 255) / 255;
   const g = ((n >> 8) & 255) / 255;
   const b = (n & 255) / 255;
-  const l = (Math.max(r, g, b) + Math.min(r, g, b)) / 2;
-  return { r, g, b, l };
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  const s = max === min ? 0 : (max - min) / (1 - Math.abs(2 * l - 1));
+  return { r, g, b, l, s };
 }
 
 // Lightness band the floor enforces (MIN 0.55 / MAX 0.72), with rounding slack.
@@ -46,9 +55,15 @@ test("malformed input falls back to the brand flame", () => {
   assert.equal(legibleWaveColor("#12"), WAVE_FALLBACK.from);
 });
 
-test("no match → brand flame→ocean fallback", () => {
-  assert.deepEqual(waveColorsForMatch(null, null), WAVE_FALLBACK);
-  assert.deepEqual(waveColorsForMatch(undefined, undefined), WAVE_FALLBACK);
+test("no match → brand flame→ocean fallback ends", () => {
+  for (const w of [
+    waveColorsForMatch(null, null),
+    waveColorsForMatch(undefined, undefined),
+  ]) {
+    assert.equal(w.from, WAVE_FALLBACK.from);
+    assert.equal(w.to, WAVE_FALLBACK.to);
+    inspect(w.mid); // a valid colour
+  }
 });
 
 test("a full matchup colours both ends from the flags", () => {
@@ -59,6 +74,23 @@ test("a full matchup colours both ends from the flags", () => {
   const away = inspect(to);
   assert.ok(home.g > home.r && home.g > home.b, "home should read green");
   assert.ok(away.b >= away.r && away.b >= away.g, "away should read blue");
+});
+
+test("distinct colours get a plain midpoint between the two ends", () => {
+  const { from, mid, to } = waveColorsForMatch("BRA", "ARG");
+  const lo = Math.min(inspect(from).l, inspect(to).l);
+  const hi = Math.max(inspect(from).l, inspect(to).l);
+  const m = inspect(mid).l;
+  assert.ok(m >= lo - EPS && m <= hi + EPS, `midpoint ${m} not between ends`);
+});
+
+test("a same-colour matchup lifts the midpoint into a neutral crest", () => {
+  // Belgium and Austria share #C8102E — the midpoint would be a flat red band.
+  const { from, mid } = waveColorsForMatch("BEL", "AUT");
+  const end = inspect(from);
+  const crest = inspect(mid);
+  assert.ok(crest.l > end.l + EPS, "crest should be lighter than the ends");
+  assert.ok(crest.s < end.s, "crest should be less saturated (neutral)");
 });
 
 test("a missing side keeps the brand colour for that end", () => {

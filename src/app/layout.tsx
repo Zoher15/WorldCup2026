@@ -57,10 +57,11 @@ export default async function RootLayout({
   const name = profile?.name ?? null;
 
   // The brand wave wears the live (or next-up) matchup: the home team's colour
-  // sweeps into the away team's across the wordmark, headings, card rim and live
-  // glow. Set once on <html> so the shared `--wave-from`/`--wave-to` custom
-  // properties cascade to all three (see globals.css); CSS handles the cross-fade
-  // when the match — and the colours — change.
+  // sweeps through a crest into the away team's across the wordmark, headings,
+  // card rim and live glow. Set once on <html> so the shared
+  // `--wave-from`/`--wave-mid`/`--wave-to` custom properties cascade to all three
+  // (see globals.css); CSS handles the cross-fade when the match — and the
+  // colours — change.
   const waveMatch = await getWaveMatch();
   const wave = waveColorsForMatch(waveMatch?.homeCode, waveMatch?.awayCode);
 
@@ -72,6 +73,7 @@ export default async function RootLayout({
       style={
         {
           "--wave-from": wave.from,
+          "--wave-mid": wave.mid,
           "--wave-to": wave.to,
         } as React.CSSProperties
       }
