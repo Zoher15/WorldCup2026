@@ -209,8 +209,8 @@ body {
 .live-ring::before {
   content: "";
   position: absolute;
-  /* Bloom just past the card on every side; the blur feathers it into a halo. */
-  inset: -2px;
+  /* Bloom just past the rim on every side; the blur feathers it into a halo. */
+  inset: -4px;
   border-radius: 1.5rem;
   /* A full brand colour wheel whose START ANGLE animates (see the keyframes), so
      the hues orbit a fixed halo — the element itself never rotates, so there's no

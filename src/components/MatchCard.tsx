@@ -667,15 +667,22 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
     </div>
   );
 
-  // Card chrome. A live match radiates a soft, slowly-rotating brand-wave GLOW
-  // (no hard rim — a blurred conic colour wheel blooming around the card, see
-  // .live-ring); the hero ("Next up") wears the same brand gradient as a crisp
-  // static 5px ring (a padded wrapper, since `border-image` can't follow rounded
-  // corners — outer radius = card's 16px + 5px pad). Both are the one brand wave —
-  // live glows it, hero holds it still — and live takes precedence as the cue.
+  // Card chrome — all the one brand wave (flame→grape→ocean, 14s phase-locked):
+  //  • Hero ("Next up"): a crisp static 5px gradient rim (a padded wrapper, since
+  //    `border-image` can't follow rounded corners — outer radius = card 16px +
+  //    5px pad).
+  //  • Live: the SAME 5px gradient rim, plus a soft glow blooming around it — the
+  //    `.live-ring` wrapper's blurred conic ::before sits behind the rim and
+  //    spills past every edge. The rim div is positioned (`relative`) so it paints
+  //    over the glow, keeping the rim crisp and the glow only in the bloom beyond.
+  //  • A live hero hits the live branch first, so it gets the rim + glow.
   let framed: React.ReactNode;
   if (data.state === "live") {
-    framed = <div className="live-ring">{card}</div>;
+    framed = (
+      <div className="live-ring">
+        <div className="relative gradient-accent rounded-[21px] p-[5px]">{card}</div>
+      </div>
+    );
   } else if (hero) {
     framed = <div className="gradient-accent rounded-[21px] p-[5px]">{card}</div>;
   } else {
