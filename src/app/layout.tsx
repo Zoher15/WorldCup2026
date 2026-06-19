@@ -8,7 +8,7 @@ import { getProfile, initials } from "@/lib/profile";
 import { appBaseUrl } from "@/lib/app-url";
 import { currentPhase } from "@/lib/tournament-phase";
 import { getWaveMatch } from "@/lib/wave-match";
-import { waveColorsForMatch } from "@/lib/wave-colors";
+import { waveStopsForMatch } from "@/lib/wave-colors";
 import { AccountMenu } from "@/components/AccountMenu";
 import { BottomNav } from "@/components/BottomNav";
 import { GlassGlow } from "@/components/GlassGlow";
@@ -56,27 +56,20 @@ export default async function RootLayout({
   const profile = user ? await getProfile(user.id) : null;
   const name = profile?.name ?? null;
 
-  // The brand wave wears the live (or next-up) matchup: the home team's colour
-  // sweeps through a crest into the away team's across the wordmark, headings,
-  // card rim and live glow. Set once on <html> so the shared
-  // `--wave-from`/`--wave-mid`/`--wave-to` custom properties cascade to all three
-  // (see globals.css); CSS handles the cross-fade when the match — and the
-  // colours — change.
+  // The brand wave wears the live (or next-up) matchup: the home team's flag
+  // colours sweep into the away team's across the wordmark, headings, card rim
+  // and live glow. Set once on <html> as a single comma-separated stop list so
+  // the shared `--wave-stops` custom property cascades to all three (see
+  // globals.css).
   const waveMatch = await getWaveMatch();
-  const wave = waveColorsForMatch(waveMatch?.homeCode, waveMatch?.awayCode);
+  const waveStops = waveStopsForMatch(waveMatch?.homeCode, waveMatch?.awayCode);
 
   return (
     <html
       lang="en"
       className={archivoBlack.variable}
       data-phase={currentPhase()}
-      style={
-        {
-          "--wave-from": wave.from,
-          "--wave-mid": wave.mid,
-          "--wave-to": wave.to,
-        } as React.CSSProperties
-      }
+      style={{ "--wave-stops": waveStops.join(", ") } as React.CSSProperties}
     >
       <body className="text-stone-100 antialiased">
         <GlassGlow />
