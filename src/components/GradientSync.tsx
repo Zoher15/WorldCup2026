@@ -14,8 +14,9 @@ import { useEffect } from "react";
  * The live-card glow rotates its hues every 14s — the same period as the brand
  * drift — so pinning both to the same epoch locks them 1:1: the glow, the
  * wordmark, the headings and the hero ring all re-align every cycle. The glow
- * also paints the same flame→grape→ocean brand colours (see `.live-ring` in
- * globals.css), so the whole system is one wave in both colour and phase.
+ * also paints the same matchup colours — the live/next-up teams' home→away wave
+ * (see `--wave-from`/`--wave-to` and `.live-ring` in globals.css), so the whole
+ * system is one wave in both colour and phase.
  */
 const TARGETS: ReadonlyArray<readonly [string, number, string]> = [
   [".gradient-text, .gradient-accent", 14000, "animation-delay"],
