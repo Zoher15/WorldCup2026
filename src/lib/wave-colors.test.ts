@@ -2,7 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   legibleWaveColor,
-  waveColorsForMatch,
+  teamWaveColors,
+  waveStopsForMatch,
   WAVE_FALLBACK,
 } from "./wave-colors.ts";
 
@@ -27,73 +28,79 @@ function inspect(hex: string): {
   return { r, g, b, l, s };
 }
 
-// Lightness band the floor enforces (MIN 0.55 / MAX 0.72), with rounding slack.
 const EPS = 0.01;
 
 test("lifts a deep navy into the legible band, keeping it blue", () => {
-  // USA #0A3161 is far too dark to read as clipped text on the dark UI.
-  const { b, r, g, l } = inspect(legibleWaveColor("#0A3161"));
-  assert.ok(l >= 0.55 - EPS, `lightness ${l} below floor`);
-  assert.ok(l <= 0.72 + EPS, `lightness ${l} above ceiling`);
+  // USA canton #1a305e is far too dark to read as clipped text on the dark UI.
+  const { b, r, g, l } = inspect(legibleWaveColor("#1a305e"));
+  assert.ok(l >= 0.52 - EPS, `lightness ${l} below floor`);
+  assert.ok(l <= 0.85 + EPS, `lightness ${l} above ceiling`);
   assert.ok(b > r && b > g, "blue should still dominate");
 });
 
-test("pulls an over-bright flag down to the ceiling", () => {
-  // Ecuador #FFDD00 (yellow, L≈0.5) — already legible, but capped, not washed.
-  const { l } = inspect(legibleWaveColor("#FFDD00"));
-  assert.ok(l <= 0.72 + EPS, `lightness ${l} above ceiling`);
+test("keeps a flag's white as white, not a capped grey", () => {
+  const { l, s } = inspect(legibleWaveColor("#ffffff"));
+  assert.ok(l > 0.9, `white should stay light, got ${l}`);
+  assert.ok(s < 0.05, "white should stay neutral");
+});
+
+test("lifts a flag's black into a visible neutral, not a hue", () => {
+  // The extractor reports near-black as e.g. #000001; it must read as silver.
+  const { l, s } = inspect(legibleWaveColor("#000001"));
+  assert.ok(l >= 0.62 - EPS, `black should be floored to visible, got ${l}`);
+  assert.ok(s < 0.05, "lifted black should be neutral, not a colour");
 });
 
 test("preserves a vivid red's hue while floored", () => {
-  const { r, g, b, l } = inspect(legibleWaveColor("#DD0000"));
-  assert.ok(l >= 0.55 - EPS);
+  const { r, g, b, l } = inspect(legibleWaveColor("#bd3d44"));
+  assert.ok(l >= 0.52 - EPS);
   assert.ok(r > g && r > b, "red should still dominate");
 });
 
 test("malformed input falls back to the brand flame", () => {
-  assert.equal(legibleWaveColor("not-a-colour"), WAVE_FALLBACK.from);
-  assert.equal(legibleWaveColor("#12"), WAVE_FALLBACK.from);
+  assert.equal(legibleWaveColor("not-a-colour"), WAVE_FALLBACK[0]);
+  assert.equal(legibleWaveColor("#12"), WAVE_FALLBACK[0]);
 });
 
-test("no match → brand flame→ocean fallback ends", () => {
-  for (const w of [
-    waveColorsForMatch(null, null),
-    waveColorsForMatch(undefined, undefined),
-  ]) {
-    assert.equal(w.from, WAVE_FALLBACK.from);
-    assert.equal(w.to, WAVE_FALLBACK.to);
-    inspect(w.mid); // a valid colour
-  }
+test("the USA wave carries red, white AND blue", () => {
+  const stops = teamWaveColors("USA").map(inspect);
+  assert.ok(
+    stops.some((c) => c.r > c.g && c.r > c.b),
+    "expected a red stop",
+  );
+  assert.ok(
+    stops.some((c) => c.l > 0.9 && c.s < 0.05),
+    "expected a white stop",
+  );
+  assert.ok(
+    stops.some((c) => c.b > c.r && c.b > c.g),
+    "expected a blue stop",
+  );
 });
 
-test("a full matchup colours both ends from the flags", () => {
-  // Brazil (green) at home, Argentina (light blue) away.
-  const { from, to } = waveColorsForMatch("BRA", "ARG");
-  assert.notEqual(from, to);
-  const home = inspect(from);
-  const away = inspect(to);
-  assert.ok(home.g > home.r && home.g > home.b, "home should read green");
-  assert.ok(away.b >= away.r && away.b >= away.g, "away should read blue");
+test("a matchup concatenates home then away flag colours", () => {
+  const usa = teamWaveColors("USA");
+  const bra = teamWaveColors("BRA");
+  const stops = waveStopsForMatch("USA", "BRA");
+  assert.ok(stops.length >= 4, "both palettes should contribute");
+  assert.equal(stops[0], usa[0], "home's lead colour comes first");
+  assert.ok(stops.some((c) => bra.includes(c)), "away colours appear too");
 });
 
-test("distinct colours get a plain midpoint between the two ends", () => {
-  const { from, mid, to } = waveColorsForMatch("BRA", "ARG");
-  const lo = Math.min(inspect(from).l, inspect(to).l);
-  const hi = Math.max(inspect(from).l, inspect(to).l);
-  const m = inspect(mid).l;
-  assert.ok(m >= lo - EPS && m <= hi + EPS, `midpoint ${m} not between ends`);
+test("no match → brand flame→grape→ocean fallback", () => {
+  assert.deepEqual(waveStopsForMatch(null, null), [...WAVE_FALLBACK]);
+  assert.deepEqual(waveStopsForMatch(undefined, undefined), [...WAVE_FALLBACK]);
 });
 
-test("a same-colour matchup lifts the midpoint into a neutral crest", () => {
-  // Belgium and Austria share #C8102E — the midpoint would be a flat red band.
-  const { from, mid } = waveColorsForMatch("BEL", "AUT");
-  const end = inspect(from);
-  const crest = inspect(mid);
-  assert.ok(crest.l > end.l + EPS, "crest should be lighter than the ends");
-  assert.ok(crest.s < end.s, "crest should be less saturated (neutral)");
+test("a lone known team still yields a usable sweep", () => {
+  const stops = waveStopsForMatch("USA", null);
+  assert.equal(stops[0], teamWaveColors("USA")[0]);
+  assert.ok(stops.length >= 2, "a single side must still be a gradient");
 });
 
-test("a missing side keeps the brand colour for that end", () => {
-  assert.equal(waveColorsForMatch("BRA", null).to, WAVE_FALLBACK.to);
-  assert.equal(waveColorsForMatch(null, "ARG").from, WAVE_FALLBACK.from);
+test("an unknown code falls back without throwing", () => {
+  // Knockout placeholder code: no flag palette, no team colour → neutral.
+  const stops = waveStopsForMatch("W49", "L50");
+  assert.ok(stops.length >= 2);
+  for (const c of stops) inspect(c); // all valid colours
 });
