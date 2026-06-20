@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  legibleWaveColor,
+  normalizeWaveColor,
   teamWaveColors,
   waveStopsForMatch,
   WAVE_FALLBACK,
@@ -28,38 +28,23 @@ function inspect(hex: string): {
   return { r, g, b, l, s };
 }
 
-const EPS = 0.01;
-
-test("lifts a deep navy into the legible band, keeping it blue", () => {
-  // USA canton #1a305e is far too dark to read as clipped text on the dark UI.
-  const { b, r, g, l } = inspect(legibleWaveColor("#1a305e"));
-  assert.ok(l >= 0.52 - EPS, `lightness ${l} below floor`);
-  assert.ok(l <= 0.85 + EPS, `lightness ${l} above ceiling`);
-  assert.ok(b > r && b > g, "blue should still dominate");
+test("uses the real flag colour unchanged — no floor", () => {
+  // Deep navy, vivid red, and literal black all pass straight through; we want
+  // the honest flag colour even when it's dark on the dark UI.
+  assert.equal(normalizeWaveColor("#1a305e"), "#1a305e");
+  assert.equal(normalizeWaveColor("#bd3d44"), "#bd3d44");
+  assert.equal(normalizeWaveColor("#000001"), "#000001");
+  assert.equal(normalizeWaveColor("#ffffff"), "#ffffff");
 });
 
-test("keeps a flag's white as white, not a capped grey", () => {
-  const { l, s } = inspect(legibleWaveColor("#ffffff"));
-  assert.ok(l > 0.9, `white should stay light, got ${l}`);
-  assert.ok(s < 0.05, "white should stay neutral");
-});
-
-test("lifts a flag's black into a visible neutral, not a hue", () => {
-  // The extractor reports near-black as e.g. #000001; it must read as silver.
-  const { l, s } = inspect(legibleWaveColor("#000001"));
-  assert.ok(l >= 0.62 - EPS, `black should be floored to visible, got ${l}`);
-  assert.ok(s < 0.05, "lifted black should be neutral, not a colour");
-});
-
-test("preserves a vivid red's hue while floored", () => {
-  const { r, g, b, l } = inspect(legibleWaveColor("#bd3d44"));
-  assert.ok(l >= 0.52 - EPS);
-  assert.ok(r > g && r > b, "red should still dominate");
+test("normalizes shorthand and casing to #rrggbb", () => {
+  assert.equal(normalizeWaveColor("#ABC"), "#aabbcc");
+  assert.equal(normalizeWaveColor("0A3161"), "#0a3161");
 });
 
 test("malformed input falls back to the brand flame", () => {
-  assert.equal(legibleWaveColor("not-a-colour"), WAVE_FALLBACK[0]);
-  assert.equal(legibleWaveColor("#12"), WAVE_FALLBACK[0]);
+  assert.equal(normalizeWaveColor("not-a-colour"), WAVE_FALLBACK[0]);
+  assert.equal(normalizeWaveColor("#12"), WAVE_FALLBACK[0]);
 });
 
 /** Parse a `#rrggbb p%` CSS stop into its colour and position. */
