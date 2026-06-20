@@ -10,14 +10,23 @@
  */
 
 import { createAdminClient } from "./supabase/admin";
-import { liveWindowExpired } from "./polling";
 import { FIXTURES } from "../data/fixtures";
-import type { Stage } from "./types";
 
 export interface WaveMatch {
   homeCode: string | null;
   awayCode: string | null;
 }
+
+/**
+ * How stale a `status='live'` row can be before the wave ignores it. Mirrors the
+ * predict board's `liveFloorIso` (getPredictionBoard, predictions.ts): the board
+ * keeps showing a match as live until its kickoff ages past this floor, so the
+ * wave must use the SAME bound — otherwise the colours would move on to the next
+ * match while the card still renders the old one live. We deliberately do NOT use
+ * the tighter `liveWindowExpired` (expected-end) guard here: it fires before the
+ * feed reports FINISHED, which is exactly what made the two disagree.
+ */
+const LIVE_STALE_FLOOR_MS = 4 * 60 * 60 * 1000;
 
 /** The earliest fixture still ahead of `now` (static schedule, no DB). */
 function nextUpcoming(now: number): WaveMatch | null {
@@ -34,9 +43,9 @@ function nextUpcoming(now: number): WaveMatch | null {
 
 /**
  * The match driving the wave: the live match (earliest kickoff if several feeds
- * report live at once, ignoring any whose live window has long elapsed so a
- * stale "live" can't hijack the colours), else the next fixture up. Null only
- * when nothing is live and the schedule is exhausted.
+ * report live at once, ignoring any stale beyond the board's live floor so an
+ * ancient stuck-"live" row can't hijack the colours), else the next fixture up.
+ * Null only when nothing is live and the schedule is exhausted.
  */
 export async function getWaveMatch(now: Date = new Date()): Promise<WaveMatch | null> {
   const nowMs = now.getTime();
@@ -44,12 +53,12 @@ export async function getWaveMatch(now: Date = new Date()): Promise<WaveMatch | 
     const db = createAdminClient();
     const { data } = await db
       .from("matches")
-      .select("home_code, away_code, kickoff_at, stage")
+      .select("home_code, away_code, kickoff_at")
       .eq("status", "live")
       .order("kickoff_at", { ascending: true });
     const live = (data ?? []).find(
-      (m: { kickoff_at: string; stage: Stage }) =>
-        !liveWindowExpired({ kickoffAt: m.kickoff_at, stage: m.stage }, now),
+      (m: { kickoff_at: string }) =>
+        Date.parse(m.kickoff_at) >= nowMs - LIVE_STALE_FLOOR_MS,
     );
     if (live) return { homeCode: live.home_code, awayCode: live.away_code };
   } catch {
