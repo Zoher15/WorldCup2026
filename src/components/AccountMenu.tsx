@@ -47,19 +47,12 @@ export function AccountMenu({
         aria-label="Account menu"
         className={`-m-1.5 flex cursor-pointer items-center rounded-full p-1.5 ${FOCUS_RING}`}
       >
-        {/* The initials wear the same living matchup wave (home→away team
-            colours) as the "World Cup 2026" wordmark, kept in phase by
-            GradientSync, so the
-            header is gradient on both ends. The gradient sits on an INNER span:
-            `.glass` and `.gradient-text` both paint `background`, so putting both
-            on one element clips the glass fill instead of the gradient and the
-            transparent text-fill blanks the letters. The 🙂 no-name fallback
-            stays solid violet (gradient-clipping would blank the emoji — the
-            same reason the wordmark's ⚽ sits outside its gradient). */}
+        {/* The initials match the lilac wordmark at the other end of the header
+            (.gradient-text is flat lilac now; the matchup wave is reserved for
+            the home hero title). Lilac sits on an inner span so it doesn't fight
+            the pill's `.glass` background. */}
         <span className="grid h-9 w-9 place-items-center rounded-full glass text-sm font-black">
-          <span className={name ? "gradient-text" : "text-violet-300"}>
-            {initials}
-          </span>
+          <span className="gradient-text">{initials}</span>
         </span>
       </button>
 

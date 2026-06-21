@@ -12,29 +12,28 @@ import { useEffect } from "react";
  *    delay inline, so it inherits the var from the host).
  *
  * The live-card glow rotates its hues every 14s — the same period as the brand
- * drift — so pinning both to the same epoch locks them 1:1: the glow, the
- * wordmark, the headings and the hero ring all re-align every cycle. The glow
+ * drift — so pinning both to the same epoch locks them 1:1: the glow, the home
+ * hero title (.title-wave) and the hero ring all re-align every cycle. The glow
  * also paints the same matchup colours — the live/next-up teams' home→away flag
  * wave (see `--wave-stops` and `.live-ring` in globals.css), so the whole system
  * is one wave in both colour and phase.
  */
 const TARGETS: ReadonlyArray<readonly [string, number, string]> = [
-  [".gradient-text, .gradient-accent", 14000, "animation-delay"],
+  [".title-wave, .gradient-accent", 14000, "animation-delay"],
   [".live-ring", 14000, "--ring-delay"],
 ];
 const SELECTOR = TARGETS.map(([s]) => s).join(", ");
 
 /**
  * Keeps every drifting/spinning brand element waving in one shared phase, so the
- * top-left wordmark, the account initials, page headings, the hero ring and the
- * live match-card glow all move together — no matter which page you're on or
- * when an element mounts.
+ * home hero title, the hero ring and the live match-card glow all move together —
+ * no matter which page you're on or when an element mounts.
  *
- * Each animation's clock otherwise starts at its own mount; the layout wordmark
- * persists across navigation while page headings remount, so they drift apart.
- * We pin each element to the negative of the current position within its cycle
- * (from the page's shared `performance` epoch), so anything mounting at any
- * moment snaps into the shared phase.
+ * Each animation's clock otherwise starts at its own mount, so a remounting hero
+ * title and a persistent live card would drift apart. We pin each element to the
+ * negative of the current position within its cycle (from the page's shared
+ * `performance` epoch), so anything mounting at any moment snaps into the shared
+ * phase.
  *
  * Mounted once globally. CSS still drives the animations, so without JS you only
  * lose the cross-element sync, not the motion.

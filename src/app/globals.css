@@ -240,11 +240,20 @@ body {
   }
 }
 
-/* Gradient headline with a solid-colour fallback. Only the text *fill* is made
-   transparent (not `color`), so if an extension like Dark Reader strips the
-   clipped background, the text stays visible in the fallback colour instead of
-   disappearing entirely. */
+/* Headline / inline-accent colour: a flat lilac. The animated matchup wave is
+   reserved for the home hero title alone (`.title-wave` below); every other
+   headline, wordmark and inline accent that used to wave now uses this solid
+   lilac. Set on `color` so it survives extensions that strip backgrounds. */
 .gradient-text {
+  color: #c4b5fd;
+}
+
+/* The brand matchup wave as gradient-clipped text — used on exactly ONE element:
+   the home page hero title. The home/away flag colours sweep across the letters
+   (left flag → right flag), drifting on the shared 14s clock. Only the text
+   *fill* is transparent (not `color`), so if an extension strips the clipped
+   background the lilac fallback keeps the title visible. */
+.title-wave {
   color: #c4b5fd;
   background-image: linear-gradient(to right, var(--wave-stops));
   -webkit-background-clip: text;
@@ -261,20 +270,20 @@ body {
 }
 
 /* Let the brand sweep breathe: a slow drift across a double-wide gradient so the
-   page headlines (.gradient-text) and the hero card's accent ring
+   home hero title (.title-wave) and the hero card's accent ring
    (.gradient-accent) feel alive rather than printed. Slow enough (14s) to read
    as ambient light, not motion. Reduced motion parks it on the first frame. */
 @keyframes gradient-drift {
   0%, 100% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
 }
-.gradient-text,
+.title-wave,
 .gradient-accent {
   background-size: 200% 100%;
   animation: gradient-drift 14s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .gradient-text,
+  .title-wave,
   .gradient-accent { animation: none; }
 }
 
@@ -618,7 +627,7 @@ body {
 body[data-anim-paused] .live-ring::before,
 body[data-anim-paused] .live-dot,
 body[data-anim-paused] .shine::after,
-body[data-anim-paused] .gradient-text,
+body[data-anim-paused] .title-wave,
 body[data-anim-paused] .gradient-accent,
 body[data-anim-paused] .float-bob,
 body[data-anim-paused] .nag-pulse,
