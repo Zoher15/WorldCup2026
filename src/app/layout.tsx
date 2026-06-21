@@ -81,14 +81,10 @@ export default async function RootLayout({
             href="/"
             className={`inline-flex items-center gap-1.5 rounded-full glass px-3 py-1.5 text-sm font-black tracking-tight ${FOCUS_RING}`}
           >
-            {/* The brand signature: the living matchup wave (home→away team
-                colours, .gradient-text) on the one element present on every
-                page. The
-                ⚽ keeps its own emoji colours (text-fill-color doesn't touch
-                emoji glyphs), so it stays legible inside the glass pill while
-                the wordmark carries the gradient. The class's solid violet
-                fallback (set on `color`) keeps it readable if an extension
-                strips the clipped background. */}
+            {/* The wordmark in flat lilac (.gradient-text). The animated matchup
+                wave is reserved for the home page hero title alone; the brand
+                signature here is the steady lilac. The ⚽ keeps its own emoji
+                colours. */}
             <span aria-hidden>⚽</span>
             <span className="gradient-text">World Cup 2026</span>
           </Link>

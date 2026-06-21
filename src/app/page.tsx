@@ -110,7 +110,10 @@ export default async function Home() {
       <header className="mb-8 text-center">
         {/* Display face (Archivo Black) is inherently black-weight, so no
             font-black — that would only synthesise a faux bold on top. */}
-        <h1 className="gradient-text font-display pb-1 text-4xl leading-tight tracking-tight sm:text-5xl">
+        {/* The one element that wears the animated matchup wave (home/away flag
+            colours of the live / next-up match). Every other headline is flat
+            lilac (.gradient-text). */}
+        <h1 className="title-wave font-display pb-1 text-4xl leading-tight tracking-tight sm:text-5xl">
           You think you know ball?
         </h1>
         <p className="mt-2 font-medium text-stone-300">
