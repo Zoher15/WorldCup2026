@@ -308,7 +308,14 @@ export function Leaderboard({
           );
           return (
           <li
-            key={r.userId}
+            // Scope the row key to the active tab. Rows are identity-keyed (by
+            // userId) so a live refresh can reorder them in place and flash
+            // climbers WITHIN a tab. But that identity also let React reuse a
+            // row's DOM across a TAB SWITCH — where it could keep the previous
+            // tab's points and position, bleeding e.g. an Overall total into the
+            // Scoreline board. The positionally-keyed podium never showed this;
+            // prefixing the tab gives the list the same clean slate per tab.
+            key={`${tab}-${r.userId}`}
             // Rows settle in with a short stagger; `backwards` fill means the
             // entrance never pins the transform, so the hover lift still works.
             style={{ animationDelay: `${Math.min(i * 0.04, 0.28)}s` }}
