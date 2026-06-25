@@ -482,6 +482,18 @@ export async function getViewerMembership(
   };
 }
 
+/**
+ * Total number of distinct users who have joined at least one group —
+ * the "X players competing" social-proof count shown on the home page.
+ */
+export async function getTotalActivePlayers(): Promise<number> {
+  const db = createAdminClient();
+  const { count } = await db
+    .from("users")
+    .select("*", { count: "exact", head: true });
+  return count ?? 0;
+}
+
 /** A group's name by code (no auth needed) — used for invite link previews. */
 export async function getGroupName(code: string): Promise<string | null> {
   const db = createAdminClient();

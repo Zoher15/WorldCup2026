@@ -8,7 +8,7 @@ import { FOCUS_RING } from "@/components/theme";
 import { DEMO_LEADERBOARD } from "@/lib/mock";
 import { getUserId } from "@/lib/identity";
 import { getPredictionBoard } from "@/lib/predictions";
-import { getUserGroups, getViewerStanding, type ViewerStanding } from "@/lib/groups";
+import { getUserGroups, getViewerStanding, getTotalActivePlayers, type ViewerStanding } from "@/lib/groups";
 import { FIXTURES } from "@/data/fixtures";
 
 /** Rank-first mobile strip: the viewer's best standing across their groups,
@@ -83,6 +83,7 @@ export default async function Home() {
   let board: Awaited<ReturnType<typeof getPredictionBoard>> | null = null;
   let groups: Awaited<ReturnType<typeof getUserGroups>> = [];
   let standing: ViewerStanding | null = null;
+  const totalPlayers = await getTotalActivePlayers().catch(() => 0);
   if (userId) {
     try {
       [board, groups, standing] = await Promise.all([
@@ -134,9 +135,14 @@ export default async function Home() {
             Got a code? Join
           </a>
         </div>
+        {totalPlayers > 0 && (
+          <p className="mt-3 text-xs font-medium text-stone-400">
+            {totalPlayers.toLocaleString()} player{totalPlayers === 1 ? "" : "s"} competing
+          </p>
+        )}
         <a
           href="/how-to-play"
-          className="mt-3 inline-block text-sm font-bold text-violet-300 hover:underline"
+          className="mt-1 inline-block text-sm font-bold text-violet-300 hover:underline"
         >
           New here? How to play →
         </a>
