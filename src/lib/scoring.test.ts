@@ -125,12 +125,12 @@ test("right draw with off scoreline", () => {
 });
 
 test("the round multiplier scales the whole match in the knockouts", () => {
-  // A flawless quarter-final (×3): 10 face value -> 30 total.
+  // A flawless quarter-final (×4): 10 face value -> 40 total.
   assert.deepEqual(scoreMatch(sl(2, 1), sl(2, 1), "HOME", "quarter_final"), {
     outcome: 5,
     closeness: 5,
-    multiplier: 3,
-    total: 30,
+    multiplier: 4,
+    total: 40,
   });
   // A flawless final (×6) is the biggest single prize.
   assert.equal(scoreMatch(sl(2, 1), sl(2, 1), "HOME", "final").total, 60);
@@ -138,39 +138,38 @@ test("the round multiplier scales the whole match in the knockouts", () => {
   const ko = scoreMatch(sl(0, 2), sl(0, 1), "AWAY", "round_of_16");
   assert.equal(ko.outcome, 5);
   assert.equal(ko.closeness, 4);
-  assert.equal(ko.multiplier, 2.5);
-  assert.equal(ko.total, 22.5); // (5 + 4) × 2.5
+  assert.equal(ko.multiplier, 3);
+  assert.equal(ko.total, 27); // (5 + 4) × 3
 });
 
 test("a knockout tie decided on penalties grades outcome by who advanced, scaled", () => {
-  // 1-1 after extra time, HOME win the shootout and advance, in a semi-final (×4).
+  // 1-1 after extra time, HOME win the shootout and advance, in a semi-final (×5).
   // Backed HOME 2-1: wrong scoreline, but right side of the real win.
   const backedWinner = scoreMatch(sl(2, 1), sl(1, 1), "HOME", "semi_final");
   assert.equal(backedWinner.outcome, 5); // HOME won the tie
   assert.equal(backedWinner.closeness, 4); // |2-1| + |1-1| = 1 off
-  assert.equal(backedWinner.total, 36); // (5 + 4) × 4
+  assert.equal(backedWinner.total, 45); // (5 + 4) × 5
 
   // Predicted the literal 1-1 draw: nails closeness, but a draw was not the
   // outcome of the tie, so the outcome is one step off.
   const predictedDraw = scoreMatch(sl(1, 1), sl(1, 1), "HOME", "semi_final");
   assert.equal(predictedDraw.outcome, 2);
   assert.equal(predictedDraw.closeness, 5);
-  assert.equal(predictedDraw.total, 28); // (2 + 5) × 4
+  assert.equal(predictedDraw.total, 35); // (2 + 5) × 5
 });
 
-test("maxMatchPoints follows the ladder; third place is demoted", () => {
+test("maxMatchPoints climbs the integer ladder", () => {
   assert.equal(maxMatchPoints("group"), 10);
-  assert.equal(maxMatchPoints("round_of_32"), 15);
-  assert.equal(maxMatchPoints("round_of_16"), 25);
-  assert.equal(maxMatchPoints("quarter_final"), 30);
-  assert.equal(maxMatchPoints("semi_final"), 40);
-  assert.equal(maxMatchPoints("third_place"), 20); // below R16, above R32
+  assert.equal(maxMatchPoints("round_of_32"), 20);
+  assert.equal(maxMatchPoints("round_of_16"), 30);
+  assert.equal(maxMatchPoints("quarter_final"), 40);
+  assert.equal(maxMatchPoints("semi_final"), 50);
+  assert.equal(maxMatchPoints("third_place"), 50); // level with the semi-final
   assert.equal(maxMatchPoints("final"), 60);
-  // third place is worth less than the semi-final it follows
-  assert.ok(SCORE_MULTIPLIER.third_place < SCORE_MULTIPLIER.semi_final);
+  assert.equal(SCORE_MULTIPLIER.third_place, SCORE_MULTIPLIER.semi_final);
 });
 
-test("the knockouts and the group stage each hold exactly 50% of the points", () => {
+test("the knockouts outweigh the group stage (930 vs 720 of 1650)", () => {
   // Official 2026 match counts per stage.
   const COUNTS: Record<Stage, number> = {
     group: 72,
@@ -195,8 +194,9 @@ test("the knockouts and the group stage each hold exactly 50% of the points", ()
   ]);
 
   assert.equal(groupPool, 720);
-  assert.equal(knockoutPool, 720);
-  assert.equal(groupPool, knockoutPool); // 50 / 50
+  assert.equal(knockoutPool, 930);
+  assert.equal(groupPool + knockoutPool, 1650);
+  assert.ok(knockoutPool > groupPool); // knockouts carry the most weight
 });
 
 test("total is always (outcome + closeness) × multiplier, within bounds", () => {

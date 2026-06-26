@@ -135,8 +135,8 @@ export default function HowToPlayPage() {
             ×{SCORE_MULTIPLIER.round_of_32} in the Round of 32 up to ×
             {SCORE_MULTIPLIER.final} in the final
           </strong>
-          . The deeper the run, the more every call is worth — so the knockouts
-          are worth as much as the entire group stage combined.
+          . The deeper the run, the more every call is worth — together the
+          knockouts are worth even more than the entire group stage combined.
         </p>
         <p className="mx-auto mt-3 max-w-md text-sm font-medium text-stone-200">
           Knockouts can&apos;t end in a draw. If the game is decided in extra time

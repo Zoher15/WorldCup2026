@@ -16,11 +16,10 @@
  *
  *   3. Round multiplier — the whole match (outcome + closeness) is multiplied by
  *      SCORE_MULTIPLIER[stage]. Group games count at face value (×1); each
- *      knockout round is worth more, peaking at the final (×6). The ladder is
- *      tuned so the knockouts and the group stage each hold exactly 50% of all
- *      points up for grabs (720 each across the 104-match tournament) — see
- *      scoring.test.ts. That keeps a group-stage runaway from deciding the whole
- *      game: a strong knockout run can overturn it.
+ *      knockout round climbs by one, peaking at the final (×6). With this ladder
+ *      the knockouts are worth 930 points to the group stage's 720 (≈56% of the
+ *      1650 on offer), so the knockouts outweigh the groups and a strong
+ *      knockout run can overturn a group-stage lead — see scoring.test.ts.
  *
  * `outcome` and `closeness` are reported at FACE VALUE (un-multiplied), so the
  * "Outcome predictor" and "Scoreline predictor" leaderboards measure pure skill
@@ -69,20 +68,19 @@ export const MAX_MATCH_POINTS = OUTCOME_FOR_CORRECT_DIRECTION + MAX_CLOSENESS_PO
 
 /**
  * Per-round multiplier on the whole match score. Group games score at face
- * value; each knockout round is worth progressively more, so the deeper you go
- * the more every call matters. The ladder is calibrated so the 32 knockout
- * matches are worth as much in total as the 72 group games (720 points each).
- *
- * Third place is deliberately demoted below the rounds around it: it is the
- * lowest-stakes game of the tournament, not a near-final prize.
+ * value (×1); each knockout round climbs by one — Round of 32 ×2 up to the
+ * final ×6 — so the deeper you go the more every call matters. With this ladder
+ * the 32 knockout matches are worth 930 points in total, more than the 720 from
+ * the 72 group games, so the knockouts outweigh the group stage. Third place is
+ * level with the semi-final (×5).
  */
 export const SCORE_MULTIPLIER: Record<Stage, number> = {
   group: 1,
-  round_of_32: 1.5,
-  round_of_16: 2.5,
-  quarter_final: 3,
-  semi_final: 4,
-  third_place: 2,
+  round_of_32: 2,
+  round_of_16: 3,
+  quarter_final: 4,
+  semi_final: 5,
+  third_place: 5,
   final: 6,
 };
 
