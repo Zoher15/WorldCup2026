@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Icon } from "@/components/Icon";
 import { HowToPlayDemo } from "@/components/HowToPlayDemo";
-import { ADVANCE_BONUS, MAX_MATCH_POINTS } from "@/lib/scoring";
+import { MAX_MATCH_POINTS, SCORE_MULTIPLIER } from "@/lib/scoring";
 import { BORINGBOT_NAME } from "@/lib/standings";
 import { PageShell } from "@/components/PageShell";
 
@@ -70,7 +70,7 @@ export default function HowToPlayPage() {
         </h2>
         <div className="rounded-3xl glass p-6 text-center">
           <p className="text-sm font-medium text-stone-300">
-            Every match is worth up to{" "}
+            Every group match is worth up to{" "}
             <strong className="text-stone-100">
               {MAX_MATCH_POINTS} points
             </strong>
@@ -129,13 +129,14 @@ export default function HowToPlayPage() {
           Knockout rounds
         </h2>
         <p className="mx-auto mt-1 max-w-md text-sm font-medium text-stone-200">
-          In the knockouts you also pick which team goes through. Get it right
-          and you earn a bonus on top — and it grows every round, from{" "}
+          In the knockouts every match is worth more: the whole score is
+          multiplied, and the multiplier climbs each round — from{" "}
           <strong className="text-violet-300">
-            +{ADVANCE_BONUS.round_of_32} in the Round of 32 to +
-            {ADVANCE_BONUS.final} in the final
+            ×{SCORE_MULTIPLIER.round_of_32} in the Round of 32 up to ×
+            {SCORE_MULTIPLIER.final} in the final
           </strong>
-          .
+          . The deeper the run, the more every call is worth — so the knockouts
+          are worth as much as the entire group stage combined.
         </p>
         <p className="mx-auto mt-3 max-w-md text-sm font-medium text-stone-200">
           Knockouts can&apos;t end in a draw. If the game is decided in extra time

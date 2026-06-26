@@ -69,6 +69,48 @@ test("a knockout advances the score.winner", () => {
   );
   assert.equal(u.resultConfirmed, true);
   assert.equal(u.homeGoals, 1); // scoreline excludes the shootout
+  assert.equal(u.awayGoals, 1);
+  assert.equal(u.advancedCode, "ARG");
+});
+
+test("a shootout folded into fullTime is stripped back to the level scoreline", () => {
+  // Guard: the tie was 1-1 after extra time, ARG won the shootout 4-2. If a
+  // record ever reports fullTime as 5-3 (ET + pens) with a penalties tally, we
+  // subtract it back to the 1-1 the closeness should be graded against.
+  const u = deriveFdUpdate(
+    fd({
+      stage: "QUARTER_FINALS",
+      status: "FINISHED",
+      homeTeam: { id: 1, name: "Argentina", tla: "ARG" },
+      awayTeam: { id: 2, name: "Brazil", tla: "BRA" },
+      score: {
+        winner: "HOME_TEAM",
+        duration: "PENALTY_SHOOTOUT",
+        fullTime: { home: 5, away: 3 },
+        penalties: { home: 4, away: 2 },
+      },
+    }),
+    { isKnockout: true, resolveTeam: resolve },
+  );
+  assert.equal(u.homeGoals, 1);
+  assert.equal(u.awayGoals, 1);
+  assert.equal(u.advancedCode, "ARG");
+});
+
+test("an extra-time win keeps its real (unlevel) scoreline", () => {
+  // 2-1 after extra time, no shootout — must NOT be touched by the guard.
+  const u = deriveFdUpdate(
+    fd({
+      stage: "LAST_16",
+      status: "FINISHED",
+      homeTeam: { id: 1, name: "Argentina", tla: "ARG" },
+      awayTeam: { id: 2, name: "Brazil", tla: "BRA" },
+      score: { winner: "HOME_TEAM", duration: "EXTRA_TIME", fullTime: { home: 2, away: 1 } },
+    }),
+    { isKnockout: true, resolveTeam: resolve },
+  );
+  assert.equal(u.homeGoals, 2);
+  assert.equal(u.awayGoals, 1);
   assert.equal(u.advancedCode, "ARG");
 });
 

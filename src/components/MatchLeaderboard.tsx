@@ -75,7 +75,12 @@ function RevealedScore({ row }: { row: MatchBoardRow }) {
         <div className="mt-1.5 w-44 rounded-xl glass px-3 py-2 text-left">
           <BreakdownRow label="Right result" value={b.outcome} max={5} />
           <BreakdownRow label="Scoreline closeness" value={b.closeness} max={5} />
-          {b.knockout && <BreakdownRow label="Who advances" value={b.advance} />}
+          {b.knockout && b.multiplier !== 1 && (
+            <div className="flex items-center justify-between py-0.5 text-[11px] font-bold">
+              <span className="text-stone-300">Knockout round</span>
+              <span className="tabular-nums text-stone-100">×{b.multiplier}</span>
+            </div>
+          )}
           <div className="mt-1 flex items-center justify-between border-stone-600/60 pt-1">
             <span className="text-[11px] font-black uppercase tracking-wide text-stone-200">
               {row.provisional ? "If it ends now" : "Total"}

@@ -1,8 +1,8 @@
 /**
  * Scoring engine for the World Cup 2026 prediction game.
  *
- * Each match prediction is worth up to 10 points, split into two independent
- * parts that always sum to the total:
+ * Each match prediction has two skill parts, then a per-round multiplier on the
+ * total so the knockouts carry as much weight as the whole group stage:
  *
  *   1. Outcome points (0, 2, or 5) — did you back the right direction?
  *        - Right winner, or right draw .................... 5
@@ -14,17 +14,24 @@
  *        closeness = max(0, 5 - totalGoalError)
  *        where totalGoalError = |predHome - actualHome| + |predAway - actualAway|
  *
+ *   3. Round multiplier — the whole match (outcome + closeness) is multiplied by
+ *      SCORE_MULTIPLIER[stage]. Group games count at face value (×1); each
+ *      knockout round is worth more, peaking at the final (×6). The ladder is
+ *      tuned so the knockouts and the group stage each hold exactly 50% of all
+ *      points up for grabs (720 each across the 104-match tournament) — see
+ *      scoring.test.ts. That keeps a group-stage runaway from deciding the whole
+ *      game: a strong knockout run can overturn it.
+ *
+ * `outcome` and `closeness` are reported at FACE VALUE (un-multiplied), so the
+ * "Outcome predictor" and "Scoreline predictor" leaderboards measure pure skill
+ * independent of round, while `total` (= (outcome + closeness) × multiplier)
+ * drives the "Overall champion" board where the deep rounds pay off.
+ *
  * This means:
  *   - Picking the wrong winner costs all 5 outcome points, while a draw
  *     guess only costs 3 — a wrong winner is punished harder.
  *   - Over-/under-shooting the goal count bleeds points smoothly, so a
  *     5–0 prediction beats 6–0 beats 10–0 when the real score is 5–0.
- *
- * Because the two parts are independent and additive, they also power three
- * leaderboards for free:
- *   - "Outcome predictor"  = sum of outcome points
- *   - "Scoreline predictor"= sum of closeness points
- *   - "Overall champion"   = sum of totals
  */
 
 import type { Stage } from "./types";
@@ -40,38 +47,49 @@ export interface Scoreline {
 
 /** The breakdown of points earned for a single match prediction. */
 export interface MatchScore {
-  /** Outcome points: 0, 2, or 5. */
+  /** Outcome points at face value: 0, 2, or 5 (before the round multiplier). */
   outcome: number;
-  /** Closeness points: 0–5. */
+  /** Closeness points at face value: 0–5 (before the round multiplier). */
   closeness: number;
-  /** Total points: 0–10 (always outcome + closeness). */
+  /** The round multiplier applied to the total (SCORE_MULTIPLIER[stage]). */
+  multiplier: number;
+  /** Total points: (outcome + closeness) × multiplier. */
   total: number;
 }
-
-/** Maximum points available for a single match (scoreline only). */
-export const MAX_MATCH_POINTS = 10;
-
-/**
- * Bonus for correctly predicting which team advances in a knockout match
- * (after extra time / penalties), scaled by round: the deeper the stage, the
- * more a correct call is worth, so the final is the biggest prize. Group-stage
- * matches have no advance pick (0).
- */
-export const ADVANCE_BONUS: Record<Stage, number> = {
-  group: 0,
-  round_of_32: 4,
-  round_of_16: 8,
-  quarter_final: 12,
-  semi_final: 16,
-  third_place: 20,
-  final: 24,
-};
 
 /** Outcome points for backing the right winner (or the right draw) — i.e. a
  *  "correct direction" call. One step off scores less; the opposite, nothing. */
 export const OUTCOME_FOR_CORRECT_DIRECTION = 5;
 const OUTCOME_PENALTY_PER_STEP = 3;
 const MAX_CLOSENESS_POINTS = 5;
+
+/** Face-value points for a single match (outcome + closeness), before the round
+ *  multiplier — the group-stage ceiling. */
+export const MAX_MATCH_POINTS = OUTCOME_FOR_CORRECT_DIRECTION + MAX_CLOSENESS_POINTS;
+
+/**
+ * Per-round multiplier on the whole match score. Group games score at face
+ * value; each knockout round is worth progressively more, so the deeper you go
+ * the more every call matters. The ladder is calibrated so the 32 knockout
+ * matches are worth as much in total as the 72 group games (720 points each).
+ *
+ * Third place is deliberately demoted below the rounds around it: it is the
+ * lowest-stakes game of the tournament, not a near-final prize.
+ */
+export const SCORE_MULTIPLIER: Record<Stage, number> = {
+  group: 1,
+  round_of_32: 1.5,
+  round_of_16: 2.5,
+  quarter_final: 3,
+  semi_final: 4,
+  third_place: 2,
+  final: 6,
+};
+
+/** The most a single match can be worth (a flawless prediction) for a stage. */
+export function maxMatchPoints(stage: Stage): number {
+  return MAX_MATCH_POINTS * SCORE_MULTIPLIER[stage];
+}
 
 /** Validates that a scoreline is made of non-negative whole numbers. */
 function assertValidScoreline(label: string, score: Scoreline): void {
@@ -125,37 +143,26 @@ function closenessPoints(prediction: Scoreline, actual: Scoreline): number {
  *
  * `actualWinner` overrides the direction the outcome is graded against. It
  * exists for knockout ties decided on penalties: the stored scoreline is the
- * pre-shootout draw, but the tie HAD a winner (the team that advanced), so the
- * caller passes that side and a prediction backing it earns full outcome
- * points. Closeness is always graded against the literal scoreline. Defaults to
- * the scoreline's own direction (the right behaviour for group games).
+ * end-of-extra-time draw, but the tie HAD a winner (the team that advanced), so
+ * the caller passes that side and a prediction backing it earns full outcome
+ * points — exactly like a regular-time win. Closeness is always graded against
+ * the literal scoreline. Defaults to the scoreline's own direction (the right
+ * behaviour for group games).
+ *
+ * `stage` selects the round multiplier applied to the total (defaults to
+ * "group", i.e. face value).
  */
 export function scoreMatch(
   prediction: Scoreline,
   actual: Scoreline,
   actualWinner: Direction = direction(actual),
+  stage: Stage = "group",
 ): MatchScore {
   assertValidScoreline("prediction", prediction);
   assertValidScoreline("actual", actual);
 
   const outcome = outcomePoints(direction(prediction), actualWinner);
   const closeness = closenessPoints(prediction, actual);
-  return { outcome, closeness, total: outcome + closeness };
-}
-
-/**
- * Bonus points for a knockout "who advances?" pick, scaled by round.
- *
- * Returns the stage's ADVANCE_BONUS if the picked team matches the team that
- * actually advanced, otherwise 0. A null/absent pick or unknown result scores
- * 0. This is added on top of the scoreline points for knockout matches, so a
- * perfect final prediction is worth MAX_MATCH_POINTS + ADVANCE_BONUS.final.
- */
-export function advancePoints(
-  pick: string | null | undefined,
-  actualAdvancedCode: string | null | undefined,
-  stage: Stage,
-): number {
-  if (!pick || !actualAdvancedCode) return 0;
-  return pick === actualAdvancedCode ? ADVANCE_BONUS[stage] : 0;
+  const multiplier = SCORE_MULTIPLIER[stage];
+  return { outcome, closeness, multiplier, total: (outcome + closeness) * multiplier };
 }

@@ -5,21 +5,21 @@
  * provisional projection (scoreMatch doesn't require a confirmed result).
  */
 
-import { scoreMatch, advancePoints } from "./scoring.ts";
+import { scoreMatch } from "./scoring.ts";
 import { actualWinnerDirection } from "./recompute.ts";
 import { isKnockoutStage } from "./polling.ts";
 import type { Stage } from "./types.ts";
 
 export interface ScoreBreakdown {
-  /** Outcome points: 0, 2, or 5 (right direction). */
+  /** Outcome points at face value: 0, 2, or 5 (right direction). */
   outcome: number;
-  /** Closeness points: 0–5 (how near the scoreline). */
+  /** Closeness points at face value: 0–5 (how near the scoreline). */
   closeness: number;
-  /** Knockout "who advances" bonus (0 for group games / undecided ties). */
-  advance: number;
-  /** outcome + closeness + advance. */
+  /** Round multiplier on the total (1 for group games, more in the knockouts). */
+  multiplier: number;
+  /** (outcome + closeness) × multiplier. */
   total: number;
-  /** True for a knockout match (so the UI can show the advance row). */
+  /** True for a knockout match (so the UI can show the round-multiplier row). */
   knockout: boolean;
 }
 
@@ -40,19 +40,17 @@ export function computeBreakdown(opts: {
     homeCode: opts.homeCode ?? null,
     awayCode: opts.awayCode ?? null,
   });
-  const { outcome, closeness } = scoreMatch(
+  const { outcome, closeness, multiplier, total } = scoreMatch(
     { homeGoals: opts.pick.home, awayGoals: opts.pick.away },
     { homeGoals: opts.result.home, awayGoals: opts.result.away },
     actualWinner,
+    opts.stage,
   );
-  const advance = knockout
-    ? advancePoints(opts.pick.advancePick, opts.result.advancedCode, opts.stage)
-    : 0;
   return {
     outcome,
     closeness,
-    advance,
-    total: outcome + closeness + advance,
+    multiplier,
+    total,
     knockout,
   };
 }

@@ -189,7 +189,7 @@ export function buildStandings(input: {
     if (!score) continue; // match not scorable yet
 
     agg.total += score.totalPoints;
-    agg.outcome += score.outcomePoints + score.advancePoints;
+    agg.outcome += score.outcomePoints;
     agg.closeness += score.closenessPoints;
     if (match.resultConfirmed) recordSettled(p.userId, match.id, score.outcomePoints);
   }
@@ -217,14 +217,15 @@ export function buildStandings(input: {
       ) {
         continue;
       }
-      const { outcome, closeness } = scoreMatch(
+      const { outcome, closeness, total } = scoreMatch(
         { homeGoals: BORINGBOT_PICK.pred_home, awayGoals: BORINGBOT_PICK.pred_away },
         { homeGoals: match.homeGoals, awayGoals: match.awayGoals },
         actualWinnerDirection(match),
+        match.stage,
       );
       bot.outcome += outcome;
       bot.closeness += closeness;
-      bot.total += outcome + closeness;
+      bot.total += total;
       if (match.resultConfirmed) {
         recordSettled(BORINGBOT_ID, match.id, outcome);
       }

@@ -61,6 +61,38 @@ export function matchFdToLocal(
   return null;
 }
 
+/**
+ * The on-pitch scoreline to grade against: the score at the end of 90 + extra
+ * time, EXCLUDING any penalty shootout. That keeps closeness honest (a tie that
+ * went to penalties is graded as the level draw it was), while the shootout
+ * result is carried separately via `winner` -> `advancedCode`.
+ *
+ * football-data v4's `fullTime` is already the end-of-extra-time score, so we
+ * use it directly. Belt-and-braces: if a PENALTY_SHOOTOUT record is somehow NOT
+ * level yet subtracting the reported `penalties` tally makes it level, we strip
+ * the shootout back out — so a provider quirk that folded the shootout into
+ * fullTime could never leak into the scoreline.
+ */
+function endOfPlayScoreline(
+  score: FdMatch["score"],
+): { home: number | null; away: number | null } {
+  const { home, away } = score.fullTime;
+  const pens = score.penalties;
+  if (
+    score.duration === "PENALTY_SHOOTOUT" &&
+    home != null &&
+    away != null &&
+    home !== away &&
+    pens?.home != null &&
+    pens?.away != null
+  ) {
+    const h = home - pens.home;
+    const a = away - pens.away;
+    if (h >= 0 && a >= 0 && h === a) return { home: h, away: a };
+  }
+  return { home, away };
+}
+
 /** Derive the fields to write for a match from its football-data record. */
 export function deriveFdUpdate(
   m: FdMatch,
@@ -76,11 +108,13 @@ export function deriveFdUpdate(
     else if (m.score.winner === "AWAY_TEAM") advancedCode = awayCode;
   }
 
+  const scoreline = endOfPlayScoreline(m.score);
+
   return {
     status: fdStatusToOurs(m.status),
     minute: null, // football-data's match list has no live clock
-    homeGoals: m.score.fullTime.home,
-    awayGoals: m.score.fullTime.away,
+    homeGoals: scoreline.home,
+    awayGoals: scoreline.away,
     homeCode,
     awayCode,
     resultConfirmed: final,

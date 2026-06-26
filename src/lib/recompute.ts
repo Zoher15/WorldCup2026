@@ -16,16 +16,18 @@
  * the returned rows into `match_scores`.
  */
 
-import { scoreMatch, advancePoints, direction } from "./scoring.ts";
+import { scoreMatch, direction } from "./scoring.ts";
 import type { Direction } from "./scoring.ts";
 import { isKnockoutStage } from "./polling.ts";
 import type { Match, Prediction } from "./types.ts";
 
 export interface ComputedScore {
   predictionId: string;
+  /** Outcome points at face value (0, 2, or 5), before the round multiplier. */
   outcomePoints: number;
+  /** Closeness points at face value (0–5), before the round multiplier. */
   closenessPoints: number;
-  advancePoints: number;
+  /** (outcome + closeness) × the stage's round multiplier. */
   totalPoints: number;
 }
 
@@ -82,21 +84,18 @@ export function scorePrediction(
 ): ComputedScore | null {
   if (!isMatchScorable(match)) return null;
 
-  const { outcome, closeness } = scoreMatch(
+  const { outcome, closeness, total } = scoreMatch(
     { homeGoals: prediction.predHome, awayGoals: prediction.predAway },
     { homeGoals: match.homeGoals!, awayGoals: match.awayGoals! },
     actualWinnerDirection(match),
+    match.stage,
   );
-  const advance = isKnockoutStage(match.stage)
-    ? advancePoints(prediction.advancePick, match.advancedCode, match.stage)
-    : 0;
 
   return {
     predictionId: prediction.id,
     outcomePoints: outcome,
     closenessPoints: closeness,
-    advancePoints: advance,
-    totalPoints: outcome + closeness + advance,
+    totalPoints: total,
   };
 }
 

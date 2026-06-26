@@ -106,9 +106,11 @@ export interface Prediction {
 
 export interface MatchScoreRow {
   predictionId: string;
+  /** Outcome points at face value (0, 2, or 5), before the round multiplier. */
   outcomePoints: number;
+  /** Closeness points at face value (0–5), before the round multiplier. */
   closenessPoints: number;
-  advancePoints: number;
+  /** (outcome + closeness) × the stage's round multiplier. */
   totalPoints: number;
   computedAt: string;
 }

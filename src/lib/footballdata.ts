@@ -46,7 +46,12 @@ export interface FdMatch {
   score: {
     winner: string | null; // HOME_TEAM | AWAY_TEAM | DRAW
     duration: string; // REGULAR | EXTRA_TIME | PENALTY_SHOOTOUT
+    // The score at the end of 90 + extra time — in v4 this EXCLUDES the penalty
+    // shootout (the shootout outcome lives in `winner` / `duration`).
     fullTime: { home: number | null; away: number | null };
+    // The shootout tally, when present. Only used as a guard to strip the
+    // shootout back out if it were ever folded into fullTime — see fd-core.
+    penalties?: { home: number | null; away: number | null } | null;
   };
 }
 

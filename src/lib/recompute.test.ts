@@ -57,13 +57,12 @@ test("scorePrediction scores an exact group prediction", () => {
     predictionId: "p1",
     outcomePoints: 5,
     closenessPoints: 5,
-    advancePoints: 0,
     totalPoints: 10,
   });
 });
 
-test("knockout adds the advance bonus, group stage does not", () => {
-  // ARG (home) wins 2-1 in regulation; a perfect 2-1 + correct advance pick.
+test("a knockout multiplies the score; the group stage does not", () => {
+  // ARG (home) wins 2-1 in regulation; a perfect 2-1 prediction in the R16 (×2.5).
   const ko = match({
     stage: "round_of_16",
     homeGoals: 2,
@@ -72,12 +71,16 @@ test("knockout adds the advance bonus, group stage does not", () => {
   });
   const p = pred({ predHome: 2, predAway: 1, advancePick: "ARG" });
   const s = scorePrediction(p, ko)!;
-  assert.equal(s.advancePoints, 8); // round of 16 bonus
-  assert.equal(s.totalPoints, 18); // 10 scoreline + 8 advance
+  assert.equal(s.outcomePoints, 5); // reported at face value
+  assert.equal(s.closenessPoints, 5); // reported at face value
+  assert.equal(s.totalPoints, 25); // (5 + 5) × 2.5
 
-  // same prediction in a group match earns no advance bonus
-  const g = scorePrediction(pred({ predHome: 2, predAway: 1, advancePick: "ARG" }), match({ homeGoals: 2, awayGoals: 1 }))!;
-  assert.equal(g.advancePoints, 0);
+  // the same perfect prediction in a group match is worth face value (×1)
+  const g = scorePrediction(
+    pred({ predHome: 2, predAway: 1 }),
+    match({ homeGoals: 2, awayGoals: 1 }),
+  )!;
+  assert.equal(g.totalPoints, 10);
 });
 
 test("a knockout decided on penalties is graded as a win, not the drawn scoreline", () => {
@@ -96,8 +99,7 @@ test("a knockout decided on penalties is graded as a win, not the drawn scorelin
   )!;
   assert.equal(backedWinner.outcomePoints, 5); // ARG won the tie
   assert.equal(backedWinner.closenessPoints, 4); // |2-1| + |1-1| = 1 off
-  assert.equal(backedWinner.advancePoints, 12); // quarter-final bonus
-  assert.equal(backedWinner.totalPoints, 21);
+  assert.equal(backedWinner.totalPoints, 27); // (5 + 4) × 3  (quarter-final)
 
   // Predicted the literal 1-1 draw: nails closeness, but a draw was not the
   // outcome of the tie, so the outcome is one step off.
@@ -107,6 +109,7 @@ test("a knockout decided on penalties is graded as a win, not the drawn scorelin
   )!;
   assert.equal(predictedDraw.outcomePoints, 2);
   assert.equal(predictedDraw.closenessPoints, 5);
+  assert.equal(predictedDraw.totalPoints, 21); // (2 + 5) × 3
 
   // The SAME 1-1 in a group game is a genuine draw — full outcome credit.
   const groupDraw = scorePrediction(

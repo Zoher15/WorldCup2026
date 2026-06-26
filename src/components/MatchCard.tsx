@@ -101,7 +101,7 @@ export interface MatchCardProps {
   };
   /** A revealed predicted score, shown in the focal tile when not editing, and
    *  paired with the live/final score (with tap-to-see-points) once a match has
-   *  kicked off. `advancePick` feeds the knockout advance-bonus math. */
+   *  kicked off. `advancePick` is an informational knockout pick (unscored). */
   pick?: { home: number; away: number; advancePick?: string | null } | null;
   /** Whose pick this is — "your call" by default; a group-mate's profile passes
    *  "their call" so the tile never claims someone else's pick as yours. */
@@ -299,8 +299,8 @@ function MiniScore({
 /**
  * The live/final focal tile: the player's call beside the actual score, in the
  * same glass tile (and same footprint) the single score used — so the card keeps
- * its dimensions. Tapping it expands the points math: outcome + closeness (+ the
- * knockout advance bonus) = total. While the match is live the math is a
+ * its dimensions. Tapping it expands the points math: (outcome + closeness) ×
+ * the round multiplier = total. While the match is live the math is a
  * projection ("if it ends now"); at full time it's the points earned. Rendered
  * identically wherever a pick + a score are both known — your card or a friend's.
  */
@@ -334,17 +334,21 @@ function DualScore({
   // Nailed the scoreline exactly (only celebrated once the result is final —
   // a live "exact" can still slip away).
   const exact = !live && pick.home === result.home && pick.away === result.away;
-  // A heartbreak-close finish — right idea, just shy of a perfect 10. Worth a
+  // Face-value skill (outcome + closeness, out of 10) — the round multiplier
+  // inflates the total, so judge "how good was the call" on the un-multiplied
+  // score so the celebrate/commiserate verdict reads the same in every round.
+  const base = b.outcome + b.closeness;
+  // A heartbreak-close finish — right idea, just shy of a perfect call. Worth a
   // gentle "so close" instead of silence (final and not exact).
-  const nearMiss = !live && !exact && b.total >= 8;
+  const nearMiss = !live && !exact && base >= 8;
   // Recap tone once it's full time: a strong call glows green, a middling one
   // reads neutral blue, a miss cools to flame — so a finished card carries the
-  // celebrate/commiserate verdict at a glance.
+  // verdict at a glance.
   const pointsTone = live
     ? LIVE_TEXT
-    : b.total >= 8
+    : base >= 8
       ? RESULT_TEXT
-      : b.total <= 3
+      : base <= 3
         ? "text-flame"
         : "text-sky-400";
 
@@ -392,8 +396,11 @@ function DualScore({
         <div className={`mt-2 rounded-xl px-3 py-2 text-left ${GLASS}`}>
           <BreakdownRow label="Right result" value={b.outcome} max={5} />
           <BreakdownRow label="Scoreline closeness" value={b.closeness} max={5} />
-          {b.knockout && (
-            <BreakdownRow label="Who advances" value={b.advance} />
+          {b.knockout && b.multiplier !== 1 && (
+            <div className="flex items-center justify-between py-0.5 text-[11px] font-bold">
+              <span className="text-stone-300">Knockout round</span>
+              <span className="tabular-nums text-stone-100">×{b.multiplier}</span>
+            </div>
           )}
           <div className="mt-1 flex items-center justify-between border-stone-600/60 pt-1">
             <span className="text-[11px] font-black uppercase tracking-wide text-stone-200">
@@ -405,7 +412,7 @@ function DualScore({
           </div>
           {nearMiss && (
             <p className="mt-1.5 text-center text-[11px] font-bold text-sunburst">
-              💔 So close — {10 - b.total} off a perfect 10
+              💔 So close — {10 - base} off a perfect 10
             </p>
           )}
         </div>

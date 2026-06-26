@@ -3,11 +3,12 @@ import assert from "node:assert/strict";
 import {
   direction,
   scoreMatch,
-  advancePoints,
-  ADVANCE_BONUS,
+  maxMatchPoints,
+  SCORE_MULTIPLIER,
   MAX_MATCH_POINTS,
   type Scoreline,
 } from "./scoring.ts";
+import type { Stage } from "./types.ts";
 
 const sl = (homeGoals: number, awayGoals: number): Scoreline => ({
   homeGoals,
@@ -21,15 +22,17 @@ test("direction classifies winners and draws", () => {
   assert.equal(direction(sl(0, 0)), "DRAW");
 });
 
-test("an exact score earns the full 10 points", () => {
+test("an exact group score earns the full 10 points (×1)", () => {
   assert.deepEqual(scoreMatch(sl(0, 1), sl(0, 1)), {
     outcome: 5,
     closeness: 5,
+    multiplier: 1,
     total: 10,
   });
   assert.deepEqual(scoreMatch(sl(3, 2), sl(3, 2)), {
     outcome: 5,
     closeness: 5,
+    multiplier: 1,
     total: 10,
   });
 });
@@ -42,18 +45,21 @@ test("the away-win 0-1 example ranks predictions correctly", () => {
   assert.deepEqual(scoreMatch(sl(0, 2), actual), {
     outcome: 5,
     closeness: 4,
+    multiplier: 1,
     total: 9,
   });
   // predicted a draw -> half-wrong direction
   assert.deepEqual(scoreMatch(sl(0, 0), actual), {
     outcome: 2,
     closeness: 4,
+    multiplier: 1,
     total: 6,
   });
   // predicted the wrong winner -> punished hardest
   assert.deepEqual(scoreMatch(sl(1, 0), actual), {
     outcome: 0,
     closeness: 3,
+    multiplier: 1,
     total: 3,
   });
 });
@@ -92,6 +98,7 @@ test("opposite winner with far scoreline scores zero", () => {
   assert.deepEqual(scoreMatch(sl(0, 3), sl(3, 0)), {
     outcome: 0,
     closeness: 0,
+    multiplier: 1,
     total: 0,
   });
 });
@@ -102,6 +109,7 @@ test("a close but wrong-winner guess still earns a little closeness", () => {
   assert.deepEqual(scoreMatch(sl(0, 1), sl(1, 0)), {
     outcome: 0,
     closeness: 3,
+    multiplier: 1,
     total: 3,
   });
 });
@@ -111,40 +119,112 @@ test("right draw with off scoreline", () => {
   assert.deepEqual(scoreMatch(sl(0, 0), sl(1, 1)), {
     outcome: 5,
     closeness: 3,
+    multiplier: 1,
     total: 8,
   });
 });
 
-test("outcome + closeness always equals total, and total is within 0..10", () => {
-  for (let ph = 0; ph <= 6; ph++) {
-    for (let pa = 0; pa <= 6; pa++) {
-      for (let ah = 0; ah <= 6; ah++) {
-        for (let aa = 0; aa <= 6; aa++) {
-          const s = scoreMatch(sl(ph, pa), sl(ah, aa));
-          assert.equal(s.outcome + s.closeness, s.total);
-          assert.ok(s.total >= 0 && s.total <= MAX_MATCH_POINTS);
-          assert.ok(s.outcome === 0 || s.outcome === 2 || s.outcome === 5);
-          assert.ok(s.closeness >= 0 && s.closeness <= 5);
+test("the round multiplier scales the whole match in the knockouts", () => {
+  // A flawless quarter-final (×3): 10 face value -> 30 total.
+  assert.deepEqual(scoreMatch(sl(2, 1), sl(2, 1), "HOME", "quarter_final"), {
+    outcome: 5,
+    closeness: 5,
+    multiplier: 3,
+    total: 30,
+  });
+  // A flawless final (×6) is the biggest single prize.
+  assert.equal(scoreMatch(sl(2, 1), sl(2, 1), "HOME", "final").total, 60);
+  // outcome/closeness are reported at face value regardless of round.
+  const ko = scoreMatch(sl(0, 2), sl(0, 1), "AWAY", "round_of_16");
+  assert.equal(ko.outcome, 5);
+  assert.equal(ko.closeness, 4);
+  assert.equal(ko.multiplier, 2.5);
+  assert.equal(ko.total, 22.5); // (5 + 4) × 2.5
+});
+
+test("a knockout tie decided on penalties grades outcome by who advanced, scaled", () => {
+  // 1-1 after extra time, HOME win the shootout and advance, in a semi-final (×4).
+  // Backed HOME 2-1: wrong scoreline, but right side of the real win.
+  const backedWinner = scoreMatch(sl(2, 1), sl(1, 1), "HOME", "semi_final");
+  assert.equal(backedWinner.outcome, 5); // HOME won the tie
+  assert.equal(backedWinner.closeness, 4); // |2-1| + |1-1| = 1 off
+  assert.equal(backedWinner.total, 36); // (5 + 4) × 4
+
+  // Predicted the literal 1-1 draw: nails closeness, but a draw was not the
+  // outcome of the tie, so the outcome is one step off.
+  const predictedDraw = scoreMatch(sl(1, 1), sl(1, 1), "HOME", "semi_final");
+  assert.equal(predictedDraw.outcome, 2);
+  assert.equal(predictedDraw.closeness, 5);
+  assert.equal(predictedDraw.total, 28); // (2 + 5) × 4
+});
+
+test("maxMatchPoints follows the ladder; third place is demoted", () => {
+  assert.equal(maxMatchPoints("group"), 10);
+  assert.equal(maxMatchPoints("round_of_32"), 15);
+  assert.equal(maxMatchPoints("round_of_16"), 25);
+  assert.equal(maxMatchPoints("quarter_final"), 30);
+  assert.equal(maxMatchPoints("semi_final"), 40);
+  assert.equal(maxMatchPoints("third_place"), 20); // below R16, above R32
+  assert.equal(maxMatchPoints("final"), 60);
+  // third place is worth less than the semi-final it follows
+  assert.ok(SCORE_MULTIPLIER.third_place < SCORE_MULTIPLIER.semi_final);
+});
+
+test("the knockouts and the group stage each hold exactly 50% of the points", () => {
+  // Official 2026 match counts per stage.
+  const COUNTS: Record<Stage, number> = {
+    group: 72,
+    round_of_32: 16,
+    round_of_16: 8,
+    quarter_final: 4,
+    semi_final: 2,
+    third_place: 1,
+    final: 1,
+  };
+  const pool = (stages: Stage[]) =>
+    stages.reduce((sum, s) => sum + COUNTS[s] * maxMatchPoints(s), 0);
+
+  const groupPool = pool(["group"]);
+  const knockoutPool = pool([
+    "round_of_32",
+    "round_of_16",
+    "quarter_final",
+    "semi_final",
+    "third_place",
+    "final",
+  ]);
+
+  assert.equal(groupPool, 720);
+  assert.equal(knockoutPool, 720);
+  assert.equal(groupPool, knockoutPool); // 50 / 50
+});
+
+test("total is always (outcome + closeness) × multiplier, within bounds", () => {
+  const stages: Stage[] = [
+    "group",
+    "round_of_32",
+    "round_of_16",
+    "quarter_final",
+    "semi_final",
+    "third_place",
+    "final",
+  ];
+  for (const stage of stages) {
+    for (let ph = 0; ph <= 6; ph++) {
+      for (let pa = 0; pa <= 6; pa++) {
+        for (let ah = 0; ah <= 6; ah++) {
+          for (let aa = 0; aa <= 6; aa++) {
+            const s = scoreMatch(sl(ph, pa), sl(ah, aa), undefined, stage);
+            assert.equal((s.outcome + s.closeness) * s.multiplier, s.total);
+            assert.ok(s.total >= 0 && s.total <= maxMatchPoints(stage));
+            assert.ok(s.outcome === 0 || s.outcome === 2 || s.outcome === 5);
+            assert.ok(s.closeness >= 0 && s.closeness <= MAX_MATCH_POINTS - 5);
+            assert.equal(s.multiplier, SCORE_MULTIPLIER[stage]);
+          }
         }
       }
     }
   }
-});
-
-test("advance bonus rewards the correct knockout pick, scaled by round", () => {
-  assert.equal(advancePoints("ARG", "ARG", "round_of_32"), ADVANCE_BONUS.round_of_32);
-  assert.equal(advancePoints("ARG", "ARG", "final"), ADVANCE_BONUS.final);
-  assert.equal(advancePoints("ARG", "FRA", "final"), 0);
-  assert.equal(advancePoints(null, "FRA", "final"), 0);
-  assert.equal(advancePoints("ARG", null, "final"), 0);
-  assert.equal(advancePoints(undefined, undefined, "final"), 0);
-  // The ladder climbs every round and peaks at the final.
-  assert.ok(
-    ADVANCE_BONUS.round_of_32 < ADVANCE_BONUS.round_of_16 &&
-      ADVANCE_BONUS.round_of_16 < ADVANCE_BONUS.quarter_final &&
-      ADVANCE_BONUS.quarter_final < ADVANCE_BONUS.semi_final &&
-      ADVANCE_BONUS.semi_final < ADVANCE_BONUS.final,
-  );
 });
 
 test("invalid scorelines are rejected", () => {
