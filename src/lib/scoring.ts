@@ -16,7 +16,7 @@
  *
  *   3. Round multiplier — the whole match (outcome + closeness) is multiplied by
  *      SCORE_MULTIPLIER[stage]. Group games count at face value (×1); each
- *      knockout round climbs by one, peaking at the final (×6). With this ladder
+ *      knockout round is worth more, peaking at the final (×7). With this ladder
  *      the knockouts are worth 930 points to the group stage's 720 (≈56% of the
  *      1650 on offer), so the knockouts outweigh the groups and a strong
  *      knockout run can overturn a group-stage lead — see scoring.test.ts.
@@ -68,11 +68,11 @@ export const MAX_MATCH_POINTS = OUTCOME_FOR_CORRECT_DIRECTION + MAX_CLOSENESS_PO
 
 /**
  * Per-round multiplier on the whole match score. Group games score at face
- * value (×1); each knockout round climbs by one — Round of 32 ×2 up to the
- * final ×6 — so the deeper you go the more every call matters. With this ladder
+ * value (×1); each knockout round is worth more, from Round of 32 ×2 up to the
+ * final ×7, so the deeper you go the more every call matters. With this ladder
  * the 32 knockout matches are worth 930 points in total, more than the 720 from
  * the 72 group games, so the knockouts outweigh the group stage. Third place is
- * level with the semi-final (×5).
+ * level with the quarter-final (×4).
  */
 export const SCORE_MULTIPLIER: Record<Stage, number> = {
   group: 1,
@@ -80,8 +80,8 @@ export const SCORE_MULTIPLIER: Record<Stage, number> = {
   round_of_16: 3,
   quarter_final: 4,
   semi_final: 5,
-  third_place: 5,
-  final: 6,
+  third_place: 4,
+  final: 7,
 };
 
 /** The most a single match can be worth (a flawless prediction) for a stage. */

@@ -132,8 +132,8 @@ test("the round multiplier scales the whole match in the knockouts", () => {
     multiplier: 4,
     total: 40,
   });
-  // A flawless final (×6) is the biggest single prize.
-  assert.equal(scoreMatch(sl(2, 1), sl(2, 1), "HOME", "final").total, 60);
+  // A flawless final (×7) is the biggest single prize.
+  assert.equal(scoreMatch(sl(2, 1), sl(2, 1), "HOME", "final").total, 70);
   // outcome/closeness are reported at face value regardless of round.
   const ko = scoreMatch(sl(0, 2), sl(0, 1), "AWAY", "round_of_16");
   assert.equal(ko.outcome, 5);
@@ -164,9 +164,9 @@ test("maxMatchPoints climbs the integer ladder", () => {
   assert.equal(maxMatchPoints("round_of_16"), 30);
   assert.equal(maxMatchPoints("quarter_final"), 40);
   assert.equal(maxMatchPoints("semi_final"), 50);
-  assert.equal(maxMatchPoints("third_place"), 50); // level with the semi-final
-  assert.equal(maxMatchPoints("final"), 60);
-  assert.equal(SCORE_MULTIPLIER.third_place, SCORE_MULTIPLIER.semi_final);
+  assert.equal(maxMatchPoints("third_place"), 40); // level with the quarter-final
+  assert.equal(maxMatchPoints("final"), 70);
+  assert.equal(SCORE_MULTIPLIER.third_place, SCORE_MULTIPLIER.quarter_final);
 });
 
 test("the knockouts outweigh the group stage (930 vs 720 of 1650)", () => {
