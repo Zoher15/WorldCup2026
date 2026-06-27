@@ -17,6 +17,9 @@ export interface SyncSummary {
   /** How many matches had their live score/status actually move this sync —
    *  the trigger to warm share images even before a result is confirmed. */
   scoreChanges: number;
+  /** How many upcoming knockout fixtures got a real team filled in this sync as
+   *  the bracket resolved (e.g. "Winner Group A" -> ARG), before they kick off. */
+  bracketFilled: number;
 }
 
 /**
@@ -37,10 +40,6 @@ export interface SyncSummary {
 export async function syncDay(_date?: string): Promise<SyncSummary> {
   const db = createAdminClient();
   const all = await fetchWorldCupMatches();
-  const fixtures = all.filter((m) => {
-    const s = fdStatusToOurs(m.status);
-    return s === "live" || s === "finished";
-  });
 
   const { data: localRows } = await db
     .from("matches")
@@ -60,17 +59,28 @@ export async function syncDay(_date?: string): Promise<SyncSummary> {
   }));
 
   const summary: SyncSummary = {
-    fetched: fixtures.length,
+    fetched: all.filter((m) => {
+      const s = fdStatusToOurs(m.status);
+      return s === "live" || s === "finished";
+    }).length,
     updated: 0,
     confirmed: 0,
     unmatched: 0,
     scoreChanges: 0,
+    bracketFilled: 0,
   };
   const syncedAt = new Date().toISOString();
 
-  // Build one patch per matched fixture, then write them concurrently.
+  // Build one patch per matched fixture, then write them concurrently. We walk
+  // EVERY fetched fixture (not just live/finished): an upcoming knockout fixture
+  // needs its real teams written as soon as the bracket resolves them, well
+  // before it kicks off, so the matchup shows during the prediction window.
   const patches: { id: string; patch: Record<string, unknown> }[] = [];
-  for (const fx of fixtures) {
+  for (const fx of all) {
+    const ourStatus = fdStatusToOurs(fx.status);
+    const live = ourStatus === "live";
+    const finished = ourStatus === "finished";
+
     const refId = String(fx.id);
     let local = byRef.get(refId);
     if (!local) {
@@ -78,7 +88,7 @@ export async function syncDay(_date?: string): Promise<SyncSummary> {
       local = matchedId ? byId.get(matchedId) : undefined;
     }
     if (!local) {
-      summary.unmatched++;
+      if (live || finished) summary.unmatched++;
       continue;
     }
     // Respect manual/earlier confirmations — never clobber a final result.
@@ -86,6 +96,23 @@ export async function syncDay(_date?: string): Promise<SyncSummary> {
 
     const isKnockout = isKnockoutStage(local.stage);
     const u = deriveFdUpdate(fx, { isKnockout, resolveTeam: resolveFdTeam });
+
+    // Still scheduled: the only useful write is filling a knockout's teams once
+    // the bracket has resolved them (resolveFdTeam returns null for unresolved
+    // "Winner Group A" placeholders, so we only ever write real teams). Nothing
+    // else to do until it goes live.
+    if (!live && !finished) {
+      if (!isKnockout) continue;
+      const patch: Record<string, unknown> = {};
+      if (!local.home_code && u.homeCode) patch.home_code = u.homeCode;
+      if (!local.away_code && u.awayCode) patch.away_code = u.awayCode;
+      if (Object.keys(patch).length === 0) continue; // nothing new yet
+      patch.external_ref = refId;
+      patch.last_synced_at = syncedAt;
+      summary.bracketFilled++;
+      patches.push({ id: local.id, patch });
+      continue;
+    }
 
     // Did the live score/status actually move since we last stored it? Only
     // not-yet-confirmed matches reach here (confirmed ones are skipped above),
@@ -166,6 +193,15 @@ const MIN_POLL_INTERVAL_SEC = 30;
  */
 const STRAGGLER_POLL_INTERVAL_SEC = 5 * 60;
 
+/** How far ahead to start refreshing an upcoming knockout's teams. The bracket
+ *  resolves when the prior round finishes (a few days out at most), so a 3-day
+ *  horizon comfortably fills the matchup before its prediction window opens. */
+const BRACKET_REFRESH_HORIZON_MS = 3 * 24 * 60 * 60 * 1000;
+
+/** Cadence when the only thing due is filling an upcoming knockout's teams. The
+ *  bracket changes at most a few times a tournament, so this stays slow. */
+const BRACKET_POLL_INTERVAL_SEC = 30 * 60;
+
 /**
  * Poll guard, meant to be called frequently (e.g. a once-a-minute cron). It
  * calls football-data when a match is in (or near) its expected window, AND
@@ -187,7 +223,9 @@ export async function pollIfDue(now: Date = new Date()): Promise<PollResult> {
 
   const { data } = await db
     .from("matches")
-    .select("kickoff_at, stage, last_synced_at, status, result_confirmed, is_trial");
+    .select(
+      "kickoff_at, stage, last_synced_at, status, result_confirmed, is_trial, home_code, away_code",
+    );
   const rows = data ?? [];
   // Recent or imminent matches — the ones that can be inside a live window now.
   const recent = rows.filter((r) => {
@@ -218,14 +256,33 @@ export async function pollIfDue(now: Date = new Date()): Promise<PollResult> {
   const awaitingFinish = recent.some(unfinished);
   const anyUnfinished = rows.some(unfinished);
 
-  if (!inWindow && !anyUnfinished) {
+  // An upcoming knockout still showing a placeholder slot: poll (slowly) so the
+  // bracket fills in as soon as the prior round resolves it — before its
+  // prediction window opens. Stops triggering once both teams are set.
+  const needsBracket = (r: (typeof rows)[number]): boolean => {
+    const ko = Date.parse(r.kickoff_at);
+    return (
+      isKnockoutStage(r.stage) &&
+      ko > nowMs &&
+      ko <= nowMs + BRACKET_REFRESH_HORIZON_MS &&
+      (!r.home_code || !r.away_code) &&
+      !r.is_trial
+    );
+  };
+  const anyBracketToFill = rows.some(needsBracket);
+
+  if (!inWindow && !anyUnfinished && !anyBracketToFill) {
     return { synced: false, reason: "no live window" };
   }
 
-  // Fast cadence while a match is live or just finished; a coarse one when the
-  // only thing left to do is reconcile an older straggler.
+  // Fast cadence while a match is live or just finished; coarser to reconcile an
+  // older straggler; slowest when the only thing due is a bracket refresh.
   const fast = inWindow || awaitingFinish;
-  const minIntervalSec = fast ? MIN_POLL_INTERVAL_SEC : STRAGGLER_POLL_INTERVAL_SEC;
+  const minIntervalSec = fast
+    ? MIN_POLL_INTERVAL_SEC
+    : anyUnfinished
+      ? STRAGGLER_POLL_INTERVAL_SEC
+      : BRACKET_POLL_INTERVAL_SEC;
   const lastSynced = rows.reduce((max, r) => {
     const t = r.last_synced_at ? Date.parse(r.last_synced_at) : 0;
     return t > max ? t : max;

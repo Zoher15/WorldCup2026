@@ -114,6 +114,41 @@ test("an extra-time win keeps its real (unlevel) scoreline", () => {
   assert.equal(u.advancedCode, "ARG");
 });
 
+test("a scheduled knockout resolves its teams for pre-fill, without confirming", () => {
+  // Once the bracket is known the fixture is still TIMED (not yet kicked off);
+  // we resolve its teams so the matchup can be filled in before predictions open.
+  const u = deriveFdUpdate(
+    fd({
+      stage: "LAST_16",
+      status: "TIMED",
+      homeTeam: { id: 1, name: "Argentina", tla: "ARG" },
+      awayTeam: { id: 2, name: "Brazil", tla: "BRA" },
+    }),
+    { isKnockout: true, resolveTeam: resolve },
+  );
+  assert.equal(u.status, "scheduled");
+  assert.equal(u.resultConfirmed, false);
+  assert.equal(u.homeCode, "ARG");
+  assert.equal(u.awayCode, "BRA");
+  assert.equal(u.advancedCode, null); // not decided yet
+});
+
+test("an unresolved knockout slot resolves to null (no premature fill)", () => {
+  // Before the prior round finishes a slot is still a placeholder; it must not
+  // be written as a team.
+  const u = deriveFdUpdate(
+    fd({
+      stage: "LAST_16",
+      status: "TIMED",
+      homeTeam: { id: 0, name: "Winner Group A", tla: null },
+      awayTeam: { id: 2, name: "Brazil", tla: "BRA" },
+    }),
+    { isKnockout: true, resolveTeam: resolve },
+  );
+  assert.equal(u.homeCode, null); // placeholder -> not written
+  assert.equal(u.awayCode, "BRA");
+});
+
 test("matching by time, disambiguating by teams", () => {
   const locals: LocalMatchRef[] = [
     { id: "a", kickoffAt: "2026-06-11T19:00:00Z", homeCode: "MEX", awayCode: "RSA" },
