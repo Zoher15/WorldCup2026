@@ -379,6 +379,11 @@ export async function getGroupStandings(
   const userIds = memberList.map((m) => m.user_id);
   const matchList = matchesRes.data ?? [];
 
+  // A group's predictions number members × matches, which crosses PostgREST's
+  // default 1000-row response cap for a large group (e.g. 21 members over a full
+  // tournament). An un-paginated read would silently drop the tail, zeroing out
+  // whichever members' picks fell past row 1000 on the board — so page through
+  // until a short page, ordered stably so the boundaries are deterministic.
   let predList: {
     user_id: string;
     match_id: string;
@@ -387,12 +392,21 @@ export async function getGroupStandings(
     advance_pick: string | null;
   }[] = [];
   if (userIds.length && matchList.length) {
-    const { data: preds } = await db
-      .from("predictions")
-      .select("user_id, match_id, pred_home, pred_away, advance_pick")
-      .in("user_id", userIds)
-      .in("match_id", matchList.map((m) => m.id));
-    predList = preds ?? [];
+    const matchIds = matchList.map((m) => m.id);
+    const PAGE = 1000;
+    for (let from = 0; ; from += PAGE) {
+      const { data: preds } = await db
+        .from("predictions")
+        .select("user_id, match_id, pred_home, pred_away, advance_pick")
+        .in("user_id", userIds)
+        .in("match_id", matchIds)
+        .order("user_id", { ascending: true })
+        .order("match_id", { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (!preds || preds.length === 0) break;
+      predList.push(...preds);
+      if (preds.length < PAGE) break;
+    }
   }
 
   // An in-play / just-finished match with a score, not yet officially confirmed:
