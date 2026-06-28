@@ -96,7 +96,13 @@ export default async function Home() {
       board = null;
     }
   }
-  const boardMatches = board?.matches.slice(0, 6) ?? [];
+  // Lead with everything currently actionable — the whole open round (all of the
+  // Round of 32 at once, or a single day's group games) plus any live match — so
+  // a knockout round isn't truncated to its first few cards. Between rounds,
+  // when nothing's open yet, fall back to the next six upcoming as a preview.
+  const openOrLive = board?.matches.filter((m) => m.state !== "upcoming") ?? [];
+  const boardMatches =
+    openOrLive.length > 0 ? openOrLive : board?.matches.slice(0, 6) ?? [];
   const upcoming = board ? [] : upcomingFixtures();
   // The embedded predictor renders a fixed save bar; reserve clearance for it
   // (plus the mobile tab bar) only when it's actually shown.
