@@ -4,8 +4,10 @@ import {
   isValidAdvanceCode,
   isValidGoals,
   predictionState,
+  roundOpensByStage,
   windowOpensAt,
   isTrialActive,
+  KNOCKOUT_STAGES,
   type PredictionState,
 } from "./prediction-rules";
 import type { Stage } from "./types";
@@ -97,13 +99,21 @@ export async function getPredictionBoard(userId: string): Promise<{
     };
   }
 
+  // Knockout rounds open all at once: every game in a round shares its first
+  // match's open instant, so the whole Round of 32 (etc.) is predictable
+  // together rather than day-by-day. Group matches keep the daily cadence.
+  const roundOpens = roundOpensByStage(
+    (matches ?? []).map((m) => ({ stage: m.stage, kickoffAt: m.kickoff_at })),
+  );
+
   return {
     matches: (matches ?? [])
       // The trial is editable practice / a live demo until it retires one hour
       // before the tournament, at which point its card disappears entirely.
       .filter((m) => !m.is_trial || trialActive)
       .map((m) => {
-        const naturalState = predictionState(m.kickoff_at, now, m.is_trial);
+        const roundOpenMs = roundOpens.get(m.stage);
+        const naturalState = predictionState(m.kickoff_at, now, m.is_trial, roundOpenMs);
         // Practice match during the warm-up: once you've made a pick, run it as a
         // live demo (its baked-in 2–1 shown as the in-play score) so the live card
         // layout — your call vs the live score, tap for provisional math — is
@@ -124,7 +134,7 @@ export async function getPredictionBoard(userId: string): Promise<{
           venue: m.venue,
           opensAt: m.is_trial
             ? nowIso
-            : new Date(windowOpensAt(m.kickoff_at)).toISOString(),
+            : new Date(roundOpenMs ?? windowOpensAt(m.kickoff_at)).toISOString(),
           state,
           isTrial: Boolean(m.is_trial),
           status: trialLiveDemo ? "live" : m.status,
@@ -246,18 +256,33 @@ export async function savePredictions(
       {
         kickoff: r.kickoff_at,
         isTrial: r.is_trial,
-        stage: r.stage as string,
+        stage: r.stage as Stage,
         homeCode: r.home_code as string | null,
         awayCode: r.away_code as string | null,
       },
     ]),
   );
 
+  // A knockout round opens all at once, so the window check needs the round's
+  // shared open instant — which depends on sibling games not necessarily in this
+  // batch. Pull the knockout schedule (≤32 rows) to anchor it, only when a
+  // knockout match is actually being saved (group-only saves skip the query).
+  let roundOpens = new Map<Stage, number>();
+  if ([...matchById.values()].some((m) => KNOCKOUT_STAGES.has(m.stage))) {
+    const { data: koRows } = await db
+      .from("matches")
+      .select("stage, kickoff_at")
+      .in("stage", [...KNOCKOUT_STAGES]);
+    roundOpens = roundOpensByStage(
+      (koRows ?? []).map((r) => ({ stage: r.stage as Stage, kickoffAt: r.kickoff_at })),
+    );
+  }
+
   const valid = items.filter((i) => {
     const m = matchById.get(i.matchId);
     return (
       m != null &&
-      isWindowOpen(m.kickoff, new Date(), m.isTrial) &&
+      isWindowOpen(m.kickoff, new Date(), m.isTrial, roundOpens.get(m.stage)) &&
       isValidGoals(i.predHome, i.predAway) &&
       isValidAdvanceCode(i.advancePick, m)
     );

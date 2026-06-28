@@ -3,6 +3,7 @@ import { normalizeCode } from "./codes";
 import { deriveMatchScore, mapMatchFields } from "./match-status";
 import {
   predictionState,
+  roundOpensByStage,
   isTrialActive,
   type PredictionState,
 } from "./prediction-rules";
@@ -199,6 +200,12 @@ export async function getPlayerProfile(opts: {
   // match showing the pick and result — but no longer counts (see countTrial).
   const trialActive = isTrialActive();
   const matches = matchesRes.data ?? [];
+  // Knockout rounds open all at once — every game in a round shares its first
+  // match's open instant — so a later game in the round reads as "open" together
+  // with the rest, not the day before its own kickoff.
+  const roundOpens = roundOpensByStage(
+    matches.map((m) => ({ stage: m.stage, kickoffAt: m.kickoff_at })),
+  );
   const predByMatch = new Map(
     (predsRes.data ?? []).map((p) => [p.match_id, p as StoredPrediction & { match_id: string }]),
   );
@@ -215,7 +222,7 @@ export async function getPlayerProfile(opts: {
     const state =
       m.is_trial && !trialActive
         ? "locked"
-        : predictionState(m.kickoff_at, new Date(), m.is_trial);
+        : predictionState(m.kickoff_at, new Date(), m.is_trial, roundOpens.get(m.stage));
     // BoringBot's pick is the same 0–0 for every match.
     const pred: StoredPrediction | undefined = isBot
       ? BORINGBOT_PICK

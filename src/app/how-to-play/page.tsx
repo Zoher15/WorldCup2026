@@ -208,9 +208,11 @@ export default function HowToPlayPage() {
         </h2>
         <ul className="mx-auto max-w-md space-y-2 text-sm font-medium text-stone-200">
           <li className="rounded-2xl glass px-4 py-3">
-            ⏱️ Each day&apos;s games open for prediction{" "}
-            <strong>the day before</strong> and close at kickoff — a countdown
-            shows the time left.
+            ⏱️ Group-stage games open for prediction{" "}
+            <strong>the day before</strong>, and each knockout round opens{" "}
+            <strong>all at once</strong> — the whole Round of 32, then the Round
+            of 16, and so on. Every game still closes at its own kickoff, with a
+            countdown showing the time left.
           </li>
           <li className="rounded-2xl glass px-4 py-3">
             <Icon name="lock" className="mr-1 text-stone-300" /> Everyone&apos;s
