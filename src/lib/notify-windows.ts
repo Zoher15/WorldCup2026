@@ -3,7 +3,12 @@
  * imports, so they're cheap to unit-test on their own.
  */
 
-import { windowOpensAt } from "./prediction-rules.ts";
+import {
+  windowOpensAt,
+  roundOpensByStage,
+  KNOCKOUT_STAGES,
+} from "./prediction-rules.ts";
+import type { Stage } from "./types.ts";
 
 export interface MatchDayGroup<T> {
   /** When the match-day's prediction window opened (epoch ms). */
@@ -55,4 +60,63 @@ export function dueMatchDaysForDigest<T extends { kickoff_at: string }>(
     );
     return earliestKickoff - leadMs <= nowMs && nowMs < earliestKickoff;
   });
+}
+
+export interface RoundOpenGroup<T> {
+  stage: Stage;
+  /** When the whole round opened for prediction (epoch ms). */
+  opensAt: number;
+  matches: T[];
+}
+
+/**
+ * Knockout rounds ready to ANNOUNCE: a round qualifies the moment its (shared)
+ * prediction window has opened and its bracket is fully resolved, but before its
+ * first game kicks off —
+ *
+ *   opensAt ≤ now < firstKickoff, and every game in the round has both teams.
+ *
+ * Drives the one-per-round "the round is open" broadcast. The bracket guard
+ * avoids announcing a round still showing "Winner of …" placeholders (the prior
+ * round's last game can finish after the window technically opens), and the
+ * first-kickoff guard means deploying mid-round can't blast a round already
+ * underway. Returns one group per due round (games kickoff-ascending), earliest
+ * round first; the caller claims each exactly once.
+ */
+export function dueRoundOpens<
+  T extends {
+    stage: Stage;
+    kickoff_at: string;
+    home_code: string | null;
+    away_code: string | null;
+  },
+>(matches: T[], now: Date): RoundOpenGroup<T>[] {
+  const nowMs = now.getTime();
+  const opens = roundOpensByStage(
+    matches.map((m) => ({ stage: m.stage, kickoffAt: m.kickoff_at })),
+  );
+  const byStage = new Map<Stage, T[]>();
+  for (const m of matches) {
+    if (!KNOCKOUT_STAGES.has(m.stage)) continue;
+    const arr = byStage.get(m.stage);
+    if (arr) arr.push(m);
+    else byStage.set(m.stage, [m]);
+  }
+  const due: RoundOpenGroup<T>[] = [];
+  for (const [stage, group] of byStage) {
+    const opensAt = opens.get(stage);
+    if (opensAt == null) continue;
+    const firstKickoff = Math.min(...group.map((m) => Date.parse(m.kickoff_at)));
+    const bracketSet = group.every((m) => m.home_code && m.away_code);
+    if (opensAt <= nowMs && nowMs < firstKickoff && bracketSet) {
+      due.push({
+        stage,
+        opensAt,
+        matches: [...group].sort(
+          (a, b) => Date.parse(a.kickoff_at) - Date.parse(b.kickoff_at),
+        ),
+      });
+    }
+  }
+  return due.sort((a, b) => a.opensAt - b.opensAt);
 }

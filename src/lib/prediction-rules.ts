@@ -15,11 +15,29 @@
  * — so "the games on that day" group cleanly and share one open time.
  */
 
+import type { Stage } from "./types";
+
 /** Earliest timezone on earth (UTC+14) — the "anywhere on earth" reference. */
 const AOE_OFFSET_MS = 14 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export type PredictionState = "upcoming" | "open" | "locked";
+
+/**
+ * The knockout stages. Unlike the group stage (which opens day-by-day), a whole
+ * knockout round opens for prediction at once — every game in the round shares
+ * the single open time of the round's FIRST match (see `roundOpensByStage`), so
+ * once the Round of 32 opens all 16 are predictable, and so on. Each match still
+ * LOCKS individually at its own kickoff.
+ */
+export const KNOCKOUT_STAGES: ReadonlySet<Stage> = new Set<Stage>([
+  "round_of_32",
+  "round_of_16",
+  "quarter_final",
+  "semi_final",
+  "third_place",
+  "final",
+]);
 
 /** The World Cup's first kickoff. */
 export const TOURNAMENT_START = "2026-06-11T19:00:00.000Z";
@@ -53,35 +71,67 @@ export function windowOpensAt(kickoffAt: string): number {
   return matchDayMidnight - DAY_MS;
 }
 
+/**
+ * The single open instant for each knockout round present in `matches`: the
+ * earliest day-before window-open across the round's games, so the whole round
+ * opens together the moment its first match would have opened under the daily
+ * rule. Group matches keep the daily cadence and are omitted from the map.
+ *
+ * Callers that already hold a round's matches pass the resulting instant to
+ * `predictionState` / `isWindowOpen` (as `opensAtMs`) for every game in that
+ * round, so a later game in the round becomes predictable as soon as the round
+ * opens rather than the day before its own match-day.
+ */
+export function roundOpensByStage(
+  matches: { stage: Stage; kickoffAt: string }[],
+): Map<Stage, number> {
+  const opens = new Map<Stage, number>();
+  for (const m of matches) {
+    if (!KNOCKOUT_STAGES.has(m.stage)) continue;
+    const open = windowOpensAt(m.kickoffAt);
+    const prev = opens.get(m.stage);
+    if (prev == null || open < prev) opens.set(m.stage, open);
+  }
+  return opens;
+}
+
 /** A match locks for predictions once kickoff has passed. */
 export function isLocked(kickoffAt: string, now: Date = new Date()): boolean {
   return now.getTime() >= Date.parse(kickoffAt);
 }
 
 /**
- * The window is open from (the day before, 00:00 UTC+14) until kickoff. A trial
- * (practice) match is open from the start — right up until its kickoff — so it
- * can be predicted immediately, ignoring the day-before rule.
+ * The window is open from its open instant until kickoff. A trial (practice)
+ * match is open from the start — right up until its kickoff — so it can be
+ * predicted immediately, ignoring the day-before rule. `opensAtMs` overrides the
+ * daily open instant (the knockout round-open anchor); omit it for the group
+ * stage's day-before default.
  */
 export function isWindowOpen(
   kickoffAt: string,
   now: Date = new Date(),
   isTrial = false,
+  opensAtMs?: number | null,
 ): boolean {
   const t = now.getTime();
   if (isTrial) return t < Date.parse(kickoffAt);
-  return t >= windowOpensAt(kickoffAt) && t < Date.parse(kickoffAt);
+  const opens = opensAtMs ?? windowOpensAt(kickoffAt);
+  return t >= opens && t < Date.parse(kickoffAt);
 }
 
-/** Where a match sits relative to its prediction window. */
+/** Where a match sits relative to its prediction window. `opensAtMs` overrides
+ *  the daily open instant for a knockout round (every game in the round shares
+ *  one open time); omit it for the group stage's day-before default. */
 export function predictionState(
   kickoffAt: string,
   now: Date = new Date(),
   isTrial = false,
+  opensAtMs?: number | null,
 ): PredictionState {
   const t = now.getTime();
   if (t >= Date.parse(kickoffAt)) return "locked";
-  if (isTrial || t >= windowOpensAt(kickoffAt)) return "open";
+  const opens = opensAtMs ?? windowOpensAt(kickoffAt);
+  if (isTrial || t >= opens) return "open";
   return "upcoming";
 }
 

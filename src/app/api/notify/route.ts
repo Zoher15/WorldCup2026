@@ -1,5 +1,5 @@
 import { authorizeCron } from "@/lib/cron-auth";
-import { sendMatchDayDigest } from "@/lib/notify";
+import { sendMatchDayDigest, sendKnockoutRoundOpenBroadcast } from "@/lib/notify";
 import { drainEmailQueue } from "@/lib/email-queue";
 
 export const dynamic = "force-dynamic";
@@ -43,8 +43,12 @@ async function handle(req: Request): Promise<Response> {
       }
     }
     const digest = await sendMatchDayDigest(now);
+    // In addition to the day-by-day digest: announce a whole knockout round the
+    // moment it opens (bracket set, before its first game). Self-claiming and
+    // exactly-once like the digest, so it's safe to run on every tick.
+    const roundOpen = await sendKnockoutRoundOpenBroadcast(now);
     const drained = await drainEmailQueue().catch(() => ({ sent: 0 }));
-    return Response.json({ digest, drained });
+    return Response.json({ digest, roundOpen, drained });
   } catch (e) {
     return Response.json(
       { ok: false, error: e instanceof Error ? e.message : "notify failed" },

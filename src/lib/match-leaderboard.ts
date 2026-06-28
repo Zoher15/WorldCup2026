@@ -20,6 +20,7 @@ import { liveWindowExpired } from "./polling";
 import {
   isLocked,
   predictionState,
+  roundOpensByStage,
   isTrialActive,
   type PredictionState,
 } from "./prediction-rules";
@@ -349,6 +350,11 @@ export async function listBoardMatches(
     .order("kickoff_at", { ascending: true });
   const now = new Date();
   const all = (data ?? []).filter((m) => !m.is_trial);
+  // Knockout rounds open together: anchor each knockout game's state to its
+  // round's shared open instant rather than its own day-before window.
+  const roundOpens = roundOpensByStage(
+    all.map((m) => ({ stage: m.stage, kickoffAt: m.kickoff_at })),
+  );
 
   const toSummary = (m: (typeof all)[number]): BoardMatchSummary => ({
     id: m.id,
@@ -359,7 +365,7 @@ export async function listBoardMatches(
     homeLabel: m.home_team,
     awayLabel: m.away_team,
     kickoffAt: m.kickoff_at,
-    state: predictionState(m.kickoff_at, now, false),
+    state: predictionState(m.kickoff_at, now, false, roundOpens.get(m.stage)),
     // Mirror the per-match board: a finished/over match is never live, and a
     // stale "live" past its window stops showing as live (these are non-trial).
     isLive:

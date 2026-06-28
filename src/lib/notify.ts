@@ -20,7 +20,11 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "./supabase/admin";
-import { dueMatchDaysForDigest } from "./notify-windows";
+import {
+  dueMatchDaysForDigest,
+  dueRoundOpens,
+  type RoundOpenGroup,
+} from "./notify-windows";
 import {
   buildStandings,
   competitionRanks,
@@ -63,6 +67,15 @@ interface Recipient {
 export interface NotifyResult {
   ok: boolean;
   matchDay: string | null;
+  recipients: number;
+  queued: number;
+  skipped?: string;
+}
+
+export interface RoundOpenResult {
+  ok: boolean;
+  /** The knockout round announced this tick, or null if none was due. */
+  stage: Stage | null;
   recipients: number;
   queued: number;
   skipped?: string;
@@ -214,6 +227,74 @@ export async function sendMatchDayDigest(
     return { ok: true, matchDay, recipients: messages.length, queued };
   } catch (e) {
     await db.from("notified_match_days").delete().eq("match_day", matchDay);
+    throw e;
+  }
+}
+
+/**
+ * Broadcast a knockout round's opening: the moment a round's prediction window
+ * opens and its bracket is fully set (but before its first game), enqueue ONE
+ * announcement per opted-in member — "the Round of 32 is open, all 16 games are
+ * ready to predict". This is IN ADDITION to the day-by-day digest, which still
+ * fires ~an hour before each match-day. Claimed once per round in
+ * notified_match_days (under a `round_open:<stage>` key that sits alongside the
+ * daily match-day claims), so overlapping cron ticks announce each round exactly
+ * once. Returns which round (if any) was announced this tick.
+ */
+export async function sendKnockoutRoundOpenBroadcast(
+  now: Date = new Date(),
+): Promise<RoundOpenResult> {
+  if (!isEmailConfigured()) {
+    return { ok: true, stage: null, recipients: 0, queued: 0, skipped: "email not configured" };
+  }
+
+  const db = createAdminClient();
+  const { data: matchData } = await db
+    .from("matches")
+    .select(MATCH_COLUMNS)
+    .eq("is_trial", false);
+  const matches = (matchData ?? []) as MatchRow[];
+
+  const due = dueRoundOpens(matches, now);
+  if (due.length === 0) {
+    return { ok: true, stage: null, recipients: 0, queued: 0, skipped: "no knockout round opening" };
+  }
+
+  // Claim the earliest due round we haven't announced yet. The send log is keyed
+  // by text, so "round_open:<stage>" never collides with a daily match-day's ISO
+  // instant. The PK insert makes the claim exactly-once.
+  let claimed: RoundOpenGroup<MatchRow> | null = null;
+  let claimKey: string | null = null;
+  for (const round of due) {
+    const key = `round_open:${round.stage}`;
+    const { error } = await db.from("notified_match_days").insert({ match_day: key });
+    if (error) continue; // already announced — try the next due round
+    claimed = round;
+    claimKey = key;
+    break;
+  }
+  if (!claimed || !claimKey) {
+    return { ok: true, stage: null, recipients: 0, queued: 0, skipped: "all opening rounds already announced" };
+  }
+
+  // Claimed; if the build throws before anything is enqueued, release the claim
+  // so a later tick retries rather than leaving the round permanently unannounced.
+  try {
+    const recipients = await loadRecipients(db);
+    const base = appBaseUrl();
+    const ordered = claimed.matches;
+    const messages: EmailMessage[] = recipients.map((r) => ({
+      to: r.email,
+      subject: roundOpenSubject(claimed!.stage, ordered.length),
+      html: renderRoundOpenEmail(claimed!.stage, ordered, base, r.token),
+      headers: { "List-Unsubscribe": `<${base}/unsubscribe?token=${r.token}>` },
+    }));
+
+    const queued = await enqueueDigestEmails(messages);
+    await db.from("notified_match_days").update({ recipients: queued }).eq("match_day", claimKey);
+    return { ok: true, stage: claimed.stage, recipients: messages.length, queued };
+  } catch (e) {
+    await db.from("notified_match_days").delete().eq("match_day", claimKey);
     throw e;
   }
 }
@@ -883,6 +964,87 @@ function renderAchievements(streak: number, upsets: UpsetCall[]): string {
  * achievements (streak + fresh upset calls), the day's slate with their picks
  * marked, a one-line summary of what's still missing, and per-group FOMO.
  */
+/** Polished round names for the email (the app's CSS title-cases the lowercase
+ *  `formatStageLabel` on screen, but an email has no such styling). */
+const ROUND_NAMES: Partial<Record<Stage, string>> = {
+  round_of_32: "Round of 32",
+  round_of_16: "Round of 16",
+  quarter_final: "Quarter-finals",
+  semi_final: "Semi-finals",
+  third_place: "Third-place playoff",
+  final: "Final",
+};
+
+function roundName(stage: Stage): string {
+  return ROUND_NAMES[stage] ?? formatStageLabel(null, stage);
+}
+
+/** Subject for the once-per-round "the round is open" broadcast. */
+function roundOpenSubject(stage: Stage, count: number): string {
+  const round = roundName(stage);
+  return count === 1
+    ? `🏆 The ${round} is open to predict`
+    : `🏆 ${round} predictions are open — all ${count} games are ready`;
+}
+
+/** The round's matchups as table rows (both teams known by the time this sends —
+ *  see the bracket guard in dueRoundOpens). */
+function renderRoundOpenRows(matches: MatchRow[]): string {
+  return matches
+    .map((m) => {
+      const home = teamLabel(m.home_code, m.home_team);
+      const away = teamLabel(m.away_code, m.away_team);
+      return `<tr>
+        <td style="padding:8px 0;font-weight:600;color:#1c1917;">${home} <span style="color:#a8a29e;font-weight:400;">vs</span> ${away}</td>
+      </tr>`;
+    })
+    .join("");
+}
+
+/**
+ * The knockout round-open announcement: the whole round unlocks at once, so this
+ * lists every matchup and points at /predict. Unlike the digest it carries no
+ * per-recipient picks — it fires the moment the round opens, well before kickoff,
+ * when nobody has predicted yet. Each game still closes at its own kickoff.
+ */
+function renderRoundOpenEmail(
+  stage: Stage,
+  matches: MatchRow[],
+  base: string,
+  token: string,
+): string {
+  const round = roundName(stage);
+  const count = matches.length;
+  const rows = renderRoundOpenRows(matches);
+  const intro =
+    count === 1
+      ? `The <strong>${round}</strong> is open to predict. Get your scoreline in before it kicks off.`
+      : `All <strong>${count} matchups</strong> in the <strong>${round}</strong> are open to predict — the whole round at once. Get your scorelines in early; each game closes when it kicks off.`;
+  return `<!doctype html>
+<html>
+  <body style="margin:0;background:#f5f5f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1c1917;">
+    <div style="max-width:480px;margin:0 auto;padding:24px;">
+      <h1 style="margin:0 0 4px;font-size:22px;">🏆 ${round}: predictions are open</h1>
+      <p style="margin:0 0 20px;color:#57534e;font-size:15px;">
+        ${intro}
+      </p>
+      <div style="background:#ffffff;border-radius:16px;padding:16px 20px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+        <table style="width:100%;border-collapse:collapse;font-size:15px;">${rows}</table>
+      </div>
+      <div style="text-align:center;margin:24px 0;">
+        <a href="${base}/predict" style="display:inline-block;background:#0b8a3e;color:#ffffff;text-decoration:none;font-weight:700;padding:14px 28px;border-radius:9999px;font-size:16px;">
+          Make your predictions →
+        </a>
+      </div>
+      <p style="margin:24px 0 0;color:#a8a29e;font-size:12px;text-align:center;">
+        You're getting this because you're in a World Cup 2026 prediction group.<br />
+        <a href="${base}/unsubscribe?token=${token}" style="color:#a8a29e;">Unsubscribe from these emails</a>
+      </p>
+    </div>
+  </body>
+</html>`;
+}
+
 function renderDigestEmail(
   matches: MatchRow[],
   done: Set<string>,
