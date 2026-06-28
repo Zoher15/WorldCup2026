@@ -3,10 +3,12 @@
  * if one is in play, otherwise the next fixture to kick off. Its two teams colour
  * the wordmark, headings, card rim and live glow (see wave-colors.ts).
  *
- * Live state lives in the DB (written by the score sync), so a live read needs a
- * query; "next up" is pure static schedule. The whole thing fails open to null —
- * if the DB isn't configured or the query hiccups, the caller falls back to the
- * brand colours rather than blanking the wave or crashing the layout.
+ * Both the live match and the next-up fixture are read from the DB (written by
+ * the score sync / bracket resolution) so the wave reflects the real teams —
+ * crucial for knockouts, whose static fixtures carry null codes until the
+ * bracket resolves. The whole thing fails open: if the DB isn't configured or a
+ * query hiccups it falls back to the static schedule (then to the brand colours)
+ * rather than blanking the wave or crashing the layout.
  */
 
 import { createAdminClient } from "./supabase/admin";
@@ -61,9 +63,26 @@ export async function getWaveMatch(now: Date = new Date()): Promise<WaveMatch | 
         Date.parse(m.kickoff_at) >= nowMs - LIVE_STALE_FLOOR_MS,
     );
     if (live) return { homeCode: live.home_code, awayCode: live.away_code };
+
+    // Next up: read the resolved teams from the DB, not the static schedule.
+    // Knockout fixtures ship with null codes (placeholders like "Runner-up
+    // Group A") until the bracket resolves — only the DB carries the real teams
+    // once they're set. Reading FIXTURES here would paint the wave with the
+    // brand fallback instead of the upcoming matchup's flags. Trial rows are
+    // excluded so the how-to-play demo can't hijack the colours.
+    const { data: upcoming } = await db
+      .from("matches")
+      .select("home_code, away_code, kickoff_at")
+      .eq("is_trial", false)
+      .gt("kickoff_at", now.toISOString())
+      .order("kickoff_at", { ascending: true })
+      .limit(1);
+    const next = upcoming?.[0];
+    if (next) return { homeCode: next.home_code, awayCode: next.away_code };
   } catch {
-    // DB not configured or a transient read error — fall through to the
-    // schedule so the wave still picks up the next match.
+    // DB not configured or a transient read error — fall through to the static
+    // schedule so the wave still picks up the next match (group-stage codes are
+    // already baked into FIXTURES).
   }
   return nextUpcoming(nowMs);
 }
