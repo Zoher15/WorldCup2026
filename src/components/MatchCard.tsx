@@ -187,9 +187,17 @@ function StatusPill({
     case "final":
       return <FullTimeBadge className={`${base} glass`}>FULL TIME</FullTimeBadge>;
     case "locked":
+      // A locked card with no live/final score means kickoff has passed but the
+      // (delayed, free-tier) feed hasn't delivered a scoreline yet — so it reads
+      // as "in progress, score pending" rather than a dead "Locked". Predictions
+      // being closed is conveyed by the un-editable pick (and the predict page's
+      // own centred "Locked" chip), so this pill is free to report match state.
       return (
-        <span className={`${base} ${GLASS} inline-flex items-center gap-1 text-stone-300`}>
-          <Icon name="lock" /> Locked
+        <span
+          title="Kicked off — waiting on the score"
+          className={`${base} ${GLASS} inline-flex items-center gap-1 text-amber-300`}
+        >
+          <Icon name="hourglass" className="animate-pulse" /> Awaiting score
         </span>
       );
     case "open":

@@ -21,6 +21,7 @@ export type IconName =
   | "lock"
   | "map-pin"
   | "clock"
+  | "hourglass"
   | "link"
   | "chevron-up"
   | "chevron-down"
@@ -61,6 +62,15 @@ const PATHS: Record<IconName, React.ReactNode> = {
     <>
       <circle cx="12" cy="12" r="8.5" />
       <path d="M12 7.5V12l3 2" />
+    </>
+  ),
+  // A waiting glass: top/bottom bars with curved sides pinching to a waist —
+  // the "kicked off, score pending" marker.
+  hourglass: (
+    <>
+      <path d="M7 4h10M7 20h10" />
+      <path d="M7 4c0 4 5 5 5 8s-5 4-5 8" />
+      <path d="M17 4c0 4-5 5-5 8s5 4 5 8" />
     </>
   ),
   link: (
