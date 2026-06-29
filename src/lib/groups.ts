@@ -2,9 +2,11 @@ import { createAdminClient } from "./supabase/admin";
 import { generateGroupCode, normalizeCode } from "./codes";
 import {
   buildStandings,
+  buildStageStandings,
   BORINGBOT_ID,
   BORINGBOT_NAME,
   type Standings,
+  type StageBreakdown,
 } from "./standings";
 import { isTrialActive } from "./prediction-rules";
 import type { LateJoinPolicy } from "./types";
@@ -344,15 +346,22 @@ export interface GroupStandings {
   /** The requesting user's relationship to this group. */
   viewer: { isMember: boolean; isAdmin: boolean };
   standings: Standings;
+  /** The board sliced by stage (group / knockout / each round), for the
+   *  leaderboard's scope views. Only computed when `withStageBreakdown` is set —
+   *  the rank-first and cross-group callers don't need it, so they don't pay for
+   *  it. */
+  stages?: StageBreakdown;
   /** True while an in-play match is being counted provisionally, so the board
    *  can show a LIVE cue and refresh itself. */
   live: boolean;
 }
 
-/** Load a group's live leaderboard, computed from confirmed results. */
+/** Load a group's live leaderboard, computed from confirmed results. Pass
+ *  `withStageBreakdown` to also slice the board by stage and knockout round. */
 export async function getGroupStandings(
   code: string,
   viewerId?: string | null,
+  opts?: { withStageBreakdown?: boolean },
 ): Promise<GroupStandings | null> {
   const db = createAdminClient();
   const { data: group } = await db
@@ -417,7 +426,7 @@ export async function getGroupStandings(
     m.home_goals != null &&
     m.away_goals != null;
 
-  const standings = buildStandings({
+  const buildInput = {
     members: memberList.map((m) => ({
       userId: m.user_id,
       displayName: m.display_name,
@@ -447,7 +456,13 @@ export async function getGroupStandings(
     groupCreatedAt: group.created_at,
     includeBaseline: true,
     countTrialMatches: isTrialActive(),
-  });
+  };
+  // The stage breakdown already computes the full-tournament ("all") board, so
+  // reuse it as the headline standings instead of building that board twice.
+  const stages = opts?.withStageBreakdown
+    ? buildStageStandings(buildInput)
+    : undefined;
+  const standings = stages ? stages.all.standings : buildStandings(buildInput);
 
   const myMembership = viewerId
     ? memberList.find((m) => m.user_id === viewerId)
@@ -467,6 +482,7 @@ export async function getGroupStandings(
     },
     viewer: { isMember, isAdmin },
     standings,
+    stages,
     live: matchList.some(isProvisional),
   };
 }
