@@ -4,7 +4,7 @@
  * football-data schema.
  */
 
-import type { FdMatch } from "./footballdata.ts";
+import type { FdMatch, FdSideScore } from "./footballdata.ts";
 import type { LocalMatchRef, MatchStatus, MatchUpdate } from "./types.ts";
 
 const FINAL = new Set(["FINISHED", "AWARDED"]);
@@ -61,36 +61,55 @@ export function matchFdToLocal(
   return null;
 }
 
+/** Read a football-data side-score, tolerating either the v4 `home`/`away` keys
+ *  or the `homeTeam`/`awayTeam` shape. Returns nulls when the block is absent. */
+function side(s: FdSideScore | null | undefined): { home: number | null; away: number | null } {
+  if (!s) return { home: null, away: null };
+  return { home: s.home ?? s.homeTeam ?? null, away: s.away ?? s.awayTeam ?? null };
+}
+
 /**
- * The on-pitch scoreline to grade against: the score at the end of 90 + extra
- * time, EXCLUDING any penalty shootout. That keeps closeness honest (a tie that
- * went to penalties is graded as the level draw it was), while the shootout
- * result is carried separately via `winner` -> `advancedCode`.
+ * The on-pitch scoreline to grade closeness against: the score at the end of 90
+ * + extra time, EXCLUDING any penalty shootout. A tie settled on penalties is
+ * graded as the level draw it was on the pitch; the shootout result rides
+ * separately via `winner` -> `advancedCode`.
  *
- * football-data v4's `fullTime` is already the end-of-extra-time score, so we
- * use it directly. Belt-and-braces: if a PENALTY_SHOOTOUT record is somehow NOT
- * level yet subtracting the reported `penalties` tally makes it level, we strip
- * the shootout back out — so a provider quirk that folded the shootout into
- * fullTime could never leak into the scoreline.
+ * football-data's `fullTime` is the FINAL score and, for a penalty win, folds
+ * the shootout in (a 1-1 won 6-5 on pens is reported as 7-6) — so we must NOT
+ * use it directly or the post-shootout score leaks into closeness. We recover
+ * the end-of-extra-time score defensively, never trusting a single field:
+ *
+ *   1. fullTime − penalties, whenever a shootout tally is present and the
+ *      subtraction stays non-negative (the usual case: fullTime includes pens).
+ *      This is independent of how `duration` is spelled, so a renamed status
+ *      can't let the shootout through.
+ *   2. else regularTime (+ extraTime) — the clean components, used when a feed
+ *      reports those instead (or when fullTime already EXCLUDED the shootout, so
+ *      subtracting would have gone negative and step 1 was skipped).
+ *   3. else fullTime as-is (regular-time finishes, where it's the real score).
  */
 function endOfPlayScoreline(
   score: FdMatch["score"],
 ): { home: number | null; away: number | null } {
-  const { home, away } = score.fullTime;
-  const pens = score.penalties;
-  if (
-    score.duration === "PENALTY_SHOOTOUT" &&
-    home != null &&
-    away != null &&
-    home !== away &&
-    pens?.home != null &&
-    pens?.away != null
-  ) {
-    const h = home - pens.home;
-    const a = away - pens.away;
-    if (h >= 0 && a >= 0 && h === a) return { home: h, away: a };
+  const full = side(score.fullTime);
+  const pens = side(score.penalties);
+
+  // 1. Peel a penalty shootout back out of the final score.
+  if (full.home != null && full.away != null && pens.home != null && pens.away != null) {
+    const h = full.home - pens.home;
+    const a = full.away - pens.away;
+    if (h >= 0 && a >= 0) return { home: h, away: a };
   }
-  return { home, away };
+
+  // 2. Rebuild from the clean components when they're provided.
+  const reg = side(score.regularTime);
+  if (reg.home != null && reg.away != null) {
+    const et = side(score.extraTime);
+    return { home: reg.home + (et.home ?? 0), away: reg.away + (et.away ?? 0) };
+  }
+
+  // 3. No shootout, no components: the final score is the on-pitch score.
+  return full;
 }
 
 /** Derive the fields to write for a match from its football-data record. */

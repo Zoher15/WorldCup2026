@@ -74,9 +74,9 @@ test("a knockout advances the score.winner", () => {
 });
 
 test("a shootout folded into fullTime is stripped back to the level scoreline", () => {
-  // Guard: the tie was 1-1 after extra time, ARG won the shootout 4-2. If a
-  // record ever reports fullTime as 5-3 (ET + pens) with a penalties tally, we
-  // subtract it back to the 1-1 the closeness should be graded against.
+  // football-data's fullTime is the FINAL score and folds the shootout in: a
+  // 1-1 after extra time won 6-5 on penalties is reported as 7-6. We must grade
+  // closeness on the 1-1, not the post-shootout 7-6 — so peel the pens back off.
   const u = deriveFdUpdate(
     fd({
       stage: "QUARTER_FINALS",
@@ -86,8 +86,83 @@ test("a shootout folded into fullTime is stripped back to the level scoreline", 
       score: {
         winner: "HOME_TEAM",
         duration: "PENALTY_SHOOTOUT",
-        fullTime: { home: 5, away: 3 },
-        penalties: { home: 4, away: 2 },
+        fullTime: { home: 7, away: 6 },
+        regularTime: { home: 1, away: 1 },
+        extraTime: { home: 0, away: 0 },
+        penalties: { home: 6, away: 5 },
+      },
+    }),
+    { isKnockout: true, resolveTeam: resolve },
+  );
+  assert.equal(u.homeGoals, 1); // 7 − 6 pens
+  assert.equal(u.awayGoals, 1); // 6 − 5 pens
+  assert.equal(u.advancedCode, "ARG");
+});
+
+test("a shootout keyed homeTeam/awayTeam is still stripped (key-name tolerance)", () => {
+  // The regression that leaked the post-shootout score: when the penalties tally
+  // is keyed homeTeam/awayTeam (not home/away), reading `.home` gave undefined,
+  // the strip was skipped, and fullTime's 7-6 went straight into closeness.
+  const u = deriveFdUpdate(
+    fd({
+      stage: "SEMI_FINALS",
+      status: "FINISHED",
+      homeTeam: { id: 1, name: "Argentina", tla: "ARG" },
+      awayTeam: { id: 2, name: "Brazil", tla: "BRA" },
+      score: {
+        winner: "AWAY_TEAM",
+        duration: "PENALTY_SHOOTOUT",
+        fullTime: { homeTeam: 4, awayTeam: 5 },
+        penalties: { homeTeam: 3, awayTeam: 4 },
+      },
+    }),
+    { isKnockout: true, resolveTeam: resolve },
+  );
+  assert.equal(u.homeGoals, 1); // 4 − 3 pens
+  assert.equal(u.awayGoals, 1); // 5 − 4 pens
+  assert.equal(u.advancedCode, "BRA");
+});
+
+test("a shootout with no penalties tally falls back to regulation + extra time", () => {
+  // If a feed omits the penalties tally but gives the clean components, rebuild
+  // the on-pitch score from regularTime + extraTime rather than trusting the
+  // shootout-inflated fullTime.
+  const u = deriveFdUpdate(
+    fd({
+      stage: "FINAL",
+      status: "FINISHED",
+      homeTeam: { id: 1, name: "Argentina", tla: "ARG" },
+      awayTeam: { id: 2, name: "Brazil", tla: "BRA" },
+      score: {
+        winner: "HOME_TEAM",
+        duration: "PENALTY_SHOOTOUT",
+        fullTime: { home: 6, away: 4 },
+        regularTime: { home: 1, away: 1 },
+        extraTime: { home: 1, away: 1 },
+      },
+    }),
+    { isKnockout: true, resolveTeam: resolve },
+  );
+  assert.equal(u.homeGoals, 2); // 1 reg + 1 ET
+  assert.equal(u.awayGoals, 2); // 1 reg + 1 ET
+  assert.equal(u.advancedCode, "ARG");
+});
+
+test("a level fullTime that already excludes the shootout is left alone", () => {
+  // The other convention: fullTime is the 1-1 draw and penalties holds 6-5.
+  // Subtracting would go negative, so we must NOT — the 1-1 is already right.
+  const u = deriveFdUpdate(
+    fd({
+      stage: "ROUND_OF_16",
+      status: "FINISHED",
+      homeTeam: { id: 1, name: "Argentina", tla: "ARG" },
+      awayTeam: { id: 2, name: "Brazil", tla: "BRA" },
+      score: {
+        winner: "HOME_TEAM",
+        duration: "PENALTY_SHOOTOUT",
+        fullTime: { home: 1, away: 1 },
+        regularTime: { home: 1, away: 1 },
+        penalties: { home: 6, away: 5 },
       },
     }),
     { isKnockout: true, resolveTeam: resolve },
