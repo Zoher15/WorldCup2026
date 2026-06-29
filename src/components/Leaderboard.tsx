@@ -1,19 +1,43 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Icon } from "./Icon";
 import { InfoBadge } from "./InfoBadge";
 import { PlayerLink } from "./PlayerLink";
 import { ShareLeaderboard } from "./ShareLeaderboard";
 import { FOCUS_RING } from "./theme";
 import { useLiveRefresh } from "./useLiveRefresh";
-import { competitionRanks, type Standings } from "@/lib/standings";
+import {
+  competitionRanks,
+  KNOCKOUT_ROUNDS,
+  type KnockoutRound,
+  type StageBreakdown,
+  type Standings,
+} from "@/lib/standings";
 
 const TABS = [
   { key: "overall", label: "Overall" },
   { key: "win", label: "Outcome predictor" },
   { key: "scoreline", label: "Scoreline" },
 ] as const;
+
+// The stage scope (top control). "all" is the whole tournament — the board's
+// resting state, identical to having no scope at all.
+const SCOPES = [
+  { key: "all", label: "All" },
+  { key: "group", label: "Group" },
+  { key: "knockout", label: "Knockout" },
+] as const;
+type Scope = (typeof SCOPES)[number]["key"];
+
+// Short chip labels for each knockout round, in bracket order.
+const ROUND_LABEL: Record<KnockoutRound, string> = {
+  round_of_32: "R32",
+  round_of_16: "R16",
+  quarter_final: "QF",
+  semi_final: "SF",
+  final: "Final",
+};
 
 // Medal tone, colour and height are all indexed by rank (0 = 1st), never by
 // podium position — so tied places match: two co-leaders both stand on
@@ -85,14 +109,52 @@ function StreakBadge({
   );
 }
 
+/** A knockout-round drill chip: the active round wears the chrome pill, played
+ *  rounds sit on glass, and a round that hasn't happened yet is disabled rather
+ *  than opening an empty board. */
+function RoundChip({
+  active,
+  disabled,
+  onClick,
+  children,
+}: {
+  active?: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={disabled ? "Not played yet" : undefined}
+      className={`rounded-full px-3 py-1 text-xs font-bold transition ${FOCUS_RING} ${
+        disabled
+          ? "cursor-not-allowed text-stone-600"
+          : active
+            ? "chrome text-violet-300"
+            : "glass text-stone-300 hover:text-white active:scale-95"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
 export function Leaderboard({
   data,
+  stages,
   code,
   groupName,
   live = false,
   viewerId,
 }: {
   data: Standings;
+  /** The board sliced by stage / knockout round. When present, a scope control
+   *  appears above the metric tabs; absent (the home-page demo) the board is
+   *  the whole tournament only. */
+  stages?: StageBreakdown;
   code?: string;
   groupName?: string;
   /** A match is in play — points are provisional; tick the board on a timer and
@@ -103,8 +165,32 @@ export function Leaderboard({
   viewerId?: string;
 }) {
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("overall");
+  const [scope, setScope] = useState<Scope>("all");
+  // Which knockout round is drilled into; null = the knockouts as a whole. Only
+  // meaningful while scope === "knockout".
+  const [round, setRound] = useState<KnockoutRound | null>(null);
   const [expanded, setExpanded] = useState(false);
-  const rows = data[tab];
+
+  // The board the controls currently point at, and whether it has been scored
+  // yet (so an unplayed round shows "not started" rather than an empty podium).
+  const scoped =
+    !stages
+      ? null
+      : scope === "all"
+        ? stages.all
+        : scope === "group"
+          ? stages.group
+          : round
+            ? stages.rounds[round]
+            : stages.knockout;
+  const activeStandings = scoped ? scoped.standings : data;
+  const hasResults = scoped ? scoped.hasResults : true;
+  // Identifies the exact board on screen (scope + round + metric). Keys the
+  // overtake-flash history and the row DOM so switching any of the three starts
+  // from a clean slate instead of bleeding one board's points/positions into
+  // another (see the per-tab note on the row key below).
+  const boardKey = `${scope}:${round ?? ""}:${tab}`;
+  const rows = activeStandings[tab];
   const top3 = rows.slice(0, 3);
   const rest = rows.slice(3);
 
@@ -166,8 +252,8 @@ export function Leaderboard({
   const [climbed, setClimbed] = useState<ReadonlySet<string>>(() => new Set());
   useEffect(() => {
     const ranks = new Map(rows.map((r, i) => [r.userId, i]));
-    const prev = prevRanks.current.get(tab);
-    prevRanks.current.set(tab, ranks);
+    const prev = prevRanks.current.get(boardKey);
+    prevRanks.current.set(boardKey, ranks);
     if (!prev) return;
     const up = new Set<string>();
     for (const [id, rank] of ranks) {
@@ -178,7 +264,19 @@ export function Leaderboard({
     setClimbed(up);
     const t = setTimeout(() => setClimbed(new Set()), 1600);
     return () => clearTimeout(t);
-  }, [rows, tab]);
+  }, [rows, boardKey]);
+
+  // What to say when the chosen scope/round hasn't been scored yet, instead of a
+  // flat all-zeros podium. (Unplayed rounds are disabled, so the round message is
+  // a belt-and-braces fallback.)
+  const emptyMessage =
+    scope === "group"
+      ? "The group stage hasn't been scored yet."
+      : scope === "knockout" && round === null
+        ? "The knockouts haven't started yet."
+        : round !== null
+          ? `${ROUND_LABEL[round] === "Final" ? "The final" : `The ${ROUND_LABEL[round]} round`} hasn't been played yet.`
+          : "No results yet — check back once matches are played.";
 
   return (
     <div className="rounded-3xl glass p-5">
@@ -195,6 +293,54 @@ export function Leaderboard({
         <p className="-mt-2 mb-4 text-center text-xs font-medium text-stone-400">
           Points are provisional while matches are in play.
         </p>
+      )}
+
+      {/* Stage scope (only with a real breakdown): the whole tournament, the
+          group stage, or the knockouts. Secondary to the metric tabs below, so
+          a touch smaller. Picking Knockout reveals the round drill underneath;
+          leaving it clears any drilled-in round. */}
+      {stages && (
+        <div className="mb-3">
+          <div className="flex justify-center gap-1 rounded-full glass p-1">
+            {SCOPES.map((s) => (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => {
+                  setScope(s.key);
+                  if (s.key !== "knockout") setRound(null);
+                }}
+                className={`flex-1 rounded-full px-3 py-1 text-xs font-bold transition ${FOCUS_RING} ${
+                  scope === s.key
+                    ? "chrome text-emerald-300"
+                    : "text-stone-300 hover:text-white"
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+          {/* Round drill — appears only inside the knockouts (progressive
+              disclosure, so the resting card stays one row taller, not two).
+              "All" is the knockouts as a whole; each round chip narrows to it. */}
+          {scope === "knockout" && (
+            <div className="mt-2 flex flex-wrap justify-center gap-1.5">
+              <RoundChip active={round === null} onClick={() => setRound(null)}>
+                All
+              </RoundChip>
+              {KNOCKOUT_ROUNDS.map((r) => (
+                <RoundChip
+                  key={r}
+                  active={round === r}
+                  disabled={!stages.rounds[r].hasResults}
+                  onClick={() => setRound(r)}
+                >
+                  {ROUND_LABEL[r]}
+                </RoundChip>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {/* Tabs: the active tab is a solid chrome pill; inactive tabs are muted
@@ -215,6 +361,8 @@ export function Leaderboard({
         ))}
       </div>
 
+      {hasResults ? (
+      <>
       {/* Podium */}
       <div className="mb-5 flex items-end justify-center gap-3 max-sm:gap-2">
         {PODIUM_ORDER.map((idx, slot) => {
@@ -308,14 +456,15 @@ export function Leaderboard({
           );
           return (
           <li
-            // Scope the row key to the active tab. Rows are identity-keyed (by
-            // userId) so a live refresh can reorder them in place and flash
-            // climbers WITHIN a tab. But that identity also let React reuse a
-            // row's DOM across a TAB SWITCH — where it could keep the previous
-            // tab's points and position, bleeding e.g. an Overall total into the
-            // Scoreline board. The positionally-keyed podium never showed this;
-            // prefixing the tab gives the list the same clean slate per tab.
-            key={`${tab}-${r.userId}`}
+            // Scope the row key to the active board (scope + round + metric).
+            // Rows are identity-keyed (by userId) so a live refresh can reorder
+            // them in place and flash climbers WITHIN a board. But that identity
+            // also let React reuse a row's DOM across a board SWITCH — where it
+            // could keep the previous board's points and position, bleeding e.g.
+            // an Overall total into the Scoreline board, or a Group total into a
+            // knockout round. The positionally-keyed podium never showed this;
+            // prefixing the boardKey gives the list the same clean slate.
+            key={`${boardKey}-${r.userId}`}
             // Rows settle in with a short stagger; `backwards` fill means the
             // entrance never pins the transform, so the hover lift still works.
             style={{ animationDelay: `${Math.min(i * 0.04, 0.28)}s` }}
@@ -379,10 +528,19 @@ export function Leaderboard({
           );
         })}
       </ol>
+      </>
+      ) : (
+        // The chosen scope/round hasn't been scored yet — say so rather than
+        // showing a podium of zeros.
+        <div className="rounded-2xl glass p-8 text-center">
+          <div className="float-bob mb-2 text-4xl">⚽</div>
+          <p className="font-medium text-stone-300">{emptyMessage}</p>
+        </div>
+      )}
 
-      {(canExpand || code) && (
+      {((hasResults && canExpand) || code) && (
         <div className="mt-5 flex flex-col items-center gap-3">
-          {canExpand && (
+          {hasResults && canExpand && (
             <button
               onClick={() => setExpanded((v) => !v)}
               aria-expanded={expanded}

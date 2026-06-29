@@ -76,6 +76,46 @@ export interface Standings {
   scoreline: StandingsRow[];
 }
 
+/** Every knockout stage, including the third-place play-off. Used to scope a
+ *  board to "the knockouts" as a whole. */
+export const KNOCKOUT_STAGES: readonly Stage[] = [
+  "round_of_32",
+  "round_of_16",
+  "quarter_final",
+  "semi_final",
+  "third_place",
+  "final",
+];
+
+/** The knockout rounds that each get their own drill-down chip, in bracket
+ *  order. The third-place play-off folds into the Knockout aggregate rather than
+ *  earning its own chip, so it isn't listed here. */
+export const KNOCKOUT_ROUNDS = [
+  "round_of_32",
+  "round_of_16",
+  "quarter_final",
+  "semi_final",
+  "final",
+] as const;
+export type KnockoutRound = (typeof KNOCKOUT_ROUNDS)[number];
+
+/** A single scope's three ranked boards, plus whether any match in that scope
+ *  has actually been scored yet — so the UI can show "not started" rather than a
+ *  flat all-zeros board for a round that hasn't been played. */
+export interface ScopedStandings {
+  standings: Standings;
+  hasResults: boolean;
+}
+
+/** The leaderboard sliced by stage: the whole tournament, the group stage, the
+ *  knockouts as a whole, and each knockout round on its own. */
+export interface StageBreakdown {
+  all: ScopedStandings;
+  group: ScopedStandings;
+  knockout: ScopedStandings;
+  rounds: Record<KnockoutRound, ScopedStandings>;
+}
+
 interface Totals {
   userId: string;
   displayName: string;
@@ -124,6 +164,9 @@ export function buildStandings(input: {
   includeBaseline?: boolean;
   /** Whether the practice (trial) match still counts (pre-tournament only). */
   countTrialMatches?: boolean;
+  /** Restrict the board to matches whose stage passes this test — the engine
+   *  behind the stage/round views. Omitted means every stage counts. */
+  stageFilter?: (stage: Stage) => boolean;
 }): Standings {
   const { members, matches, predictions, lateJoinPolicy, groupCreatedAt } = input;
 
@@ -152,6 +195,7 @@ export function buildStandings(input: {
   const counts = (match: StandingMatch, kickoffMs: number): boolean => {
     if (lowerBound != null && kickoffMs < lowerBound) return false;
     if (match.isTrial && !input.countTrialMatches) return false;
+    if (input.stageFilter && !input.stageFilter(match.stage)) return false;
     return true;
   };
 
@@ -260,5 +304,56 @@ export function buildStandings(input: {
     overall: rank(list, (t) => t.total),
     win: rank(list, (t) => t.outcome),
     scoreline: rank(list, (t) => t.closeness),
+  };
+}
+
+/**
+ * The leaderboard sliced by stage in a single pass over the same rows: the whole
+ * tournament, the group stage, the knockouts as a whole, and each knockout round
+ * on its own. Each slice reuses {@link buildStandings} with a stage filter, so
+ * the late-join window, trial handling, baseline bot and streaks all behave
+ * exactly as on the main board — just over a narrower set of matches.
+ *
+ * Alongside each slice's three boards it reports `hasResults`: whether any match
+ * in that scope has actually been scored (confirmed or counted live). That's the
+ * honest "has this round started" signal — a board can be all-zeros because a
+ * round was played and everyone missed, which is different from a round that
+ * hasn't happened yet — so the UI uses it to show "not started" instead of an
+ * empty podium.
+ */
+export function buildStageStandings(
+  input: Omit<Parameters<typeof buildStandings>[0], "stageFilter">,
+): StageBreakdown {
+  // Which stages carry a counted result yet, honouring the same window and trial
+  // rules the board itself applies — so `hasResults` can never disagree with the
+  // points a scope shows.
+  const lowerBound =
+    input.lateJoinPolicy === "start_even"
+      ? Date.parse(input.groupCreatedAt)
+      : null;
+  const scoredStages = new Set<Stage>();
+  for (const m of input.matches) {
+    if (lowerBound != null && Date.parse(m.kickoffAt) < lowerBound) continue;
+    if (m.isTrial && !input.countTrialMatches) continue;
+    if ((m.resultConfirmed || m.live) && m.homeGoals != null && m.awayGoals != null) {
+      scoredStages.add(m.stage);
+    }
+  }
+  const knockoutSet = new Set(KNOCKOUT_STAGES);
+
+  const slice = (filter?: (stage: Stage) => boolean): ScopedStandings => ({
+    standings: buildStandings({ ...input, stageFilter: filter }),
+    hasResults: [...scoredStages].some((s) => !filter || filter(s)),
+  });
+
+  const rounds = Object.fromEntries(
+    KNOCKOUT_ROUNDS.map((r) => [r, slice((s) => s === r)]),
+  ) as Record<KnockoutRound, ScopedStandings>;
+
+  return {
+    all: slice(),
+    group: slice((s) => s === "group"),
+    knockout: slice((s) => knockoutSet.has(s)),
+    rounds,
   };
 }

@@ -28,7 +28,7 @@ export default async function GroupPage({
 
   let data;
   try {
-    data = await getGroupStandings(code, userId);
+    data = await getGroupStandings(code, userId, { withStageBreakdown: true });
   } catch (e) {
     return (
       <LoadError
@@ -70,7 +70,7 @@ export default async function GroupPage({
     );
   }
 
-  const { group, standings, viewer, live } = data;
+  const { group, standings, stages, viewer, live } = data;
   const members = standings.overall
     .filter((r) => r.userId !== BORINGBOT_ID)
     .map((r) => ({ userId: r.userId, displayName: r.displayName }));
@@ -108,6 +108,7 @@ export default async function GroupPage({
 
       <Leaderboard
         data={standings}
+        stages={stages}
         code={group.code}
         groupName={group.name}
         live={live}

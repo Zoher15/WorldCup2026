@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   buildStandings,
+  buildStageStandings,
   competitionRanks,
   BORINGBOT_ID,
   type StandingMatch,
@@ -365,4 +366,103 @@ test("competitionRanks shares a rank across ties (1, 1, 3 style)", () => {
     [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 12],
   );
   assert.deepEqual(competitionRanks([]), []);
+});
+
+// --- Stage breakdown (group / knockout / per round) ------------------------
+
+// Alice nails a group game (10) and an R32 game (10); the R16 hasn't been
+// played, so it must read as "not started" rather than an all-zeros board.
+const stageMatches: StandingMatch[] = [
+  {
+    id: "g1",
+    kickoffAt: "2026-06-12T19:00:00Z",
+    stage: "group",
+    resultConfirmed: true,
+    homeGoals: 1,
+    awayGoals: 0,
+    advancedCode: null,
+    homeCode: null,
+    awayCode: null,
+  },
+  {
+    id: "k1",
+    kickoffAt: "2026-06-29T19:00:00Z",
+    stage: "round_of_32",
+    resultConfirmed: true,
+    homeGoals: 2,
+    awayGoals: 1,
+    advancedCode: null,
+    homeCode: null,
+    awayCode: null,
+  },
+  {
+    id: "k2", // R16 fixture, no result yet
+    kickoffAt: "2026-07-03T19:00:00Z",
+    stage: "round_of_16",
+    resultConfirmed: false,
+    homeGoals: null,
+    awayGoals: null,
+    advancedCode: null,
+    homeCode: null,
+    awayCode: null,
+  },
+];
+const stagePreds: StandingPrediction[] = [
+  { userId: "u1", matchId: "g1", predHome: 1, predAway: 0, advancePick: null }, // exact 10
+  { userId: "u1", matchId: "k1", predHome: 2, predAway: 1, advancePick: null }, // exact 10
+];
+
+test("stage breakdown slices points by stage and round", () => {
+  const b = buildStageStandings({
+    members: [members[0]],
+    matches: stageMatches,
+    predictions: stagePreds,
+    lateJoinPolicy: "carry_over",
+    groupCreatedAt: "2026-06-01T00:00:00Z",
+  });
+  const pts = (s: typeof b.all) =>
+    s.standings.overall.find((r) => r.userId === "u1")?.points;
+  // The R32 exact (2-1) carries the knockout stage multiplier, so it's worth
+  // more than the group exact — the slices must reflect that, not flatten it.
+  const group = pts(b.group) ?? 0;
+  const knockout = pts(b.knockout) ?? 0;
+  assert.equal(group, 10); // group exact
+  assert.ok(knockout > 10, "knockout exact should outscore a group exact"); // stage bonus
+  assert.equal(pts(b.all), group + knockout); // all = the parts, summed
+  assert.equal(pts(b.rounds.round_of_32), knockout); // the only knockout game
+  assert.equal(pts(b.rounds.round_of_16), 0); // unplayed
+});
+
+test("stage breakdown reports which scopes have been scored", () => {
+  const b = buildStageStandings({
+    members: [members[0]],
+    matches: stageMatches,
+    predictions: stagePreds,
+    lateJoinPolicy: "carry_over",
+    groupCreatedAt: "2026-06-01T00:00:00Z",
+  });
+  assert.equal(b.all.hasResults, true);
+  assert.equal(b.group.hasResults, true);
+  assert.equal(b.knockout.hasResults, true);
+  assert.equal(b.rounds.round_of_32.hasResults, true);
+  // The R16 fixture has no result, and the later rounds don't exist yet.
+  assert.equal(b.rounds.round_of_16.hasResults, false);
+  assert.equal(b.rounds.quarter_final.hasResults, false);
+  assert.equal(b.rounds.final.hasResults, false);
+});
+
+test("stage breakdown honours the start_even window per scope", () => {
+  // Group created after the group game but before the R32 game: the group scope
+  // has no counted result, the knockout scope does.
+  const b = buildStageStandings({
+    members: [members[0]],
+    matches: stageMatches,
+    predictions: stagePreds,
+    lateJoinPolicy: "start_even",
+    groupCreatedAt: "2026-06-20T00:00:00Z",
+  });
+  assert.equal(b.group.hasResults, false);
+  assert.equal(b.group.standings.overall[0].points, 0);
+  assert.equal(b.knockout.hasResults, true);
+  assert.ok(b.knockout.standings.overall[0].points > 0);
 });
