@@ -204,22 +204,44 @@ export default function HowToPlayPage() {
           </p>
         </div>
 
-        {/* Draws & penalties — the one knockout-specific wrinkle, made actionable. */}
-        <div className="mt-4 rounded-3xl glass p-6 text-center">
-          <div className="text-2xl">🥊</div>
-          <h3 className="gradient-text mt-1 text-lg font-black">
-            No draws in the knockouts
-          </h3>
-          <p className="mx-auto mt-1 max-w-md text-sm font-medium text-stone-200">
-            You still just call a scoreline. But a knockout has to produce a
-            winner, so if it&apos;s level after 90 and decided in extra time or on
-            penalties, the team that goes through counts as the winner. Back a side
-            with a <strong>decisive</strong> score (say 2–1, not 1–1) and you keep
-            your full <strong className="text-flame">Outcome</strong> points even if
-            the real game ends level and they win on penalties. Your{" "}
-            <strong className="text-sky-400">Closeness</strong> points always follow
-            the score on the pitch.
-          </p>
+        {/* Extra time & penalties — spell out exactly which scoreline feeds
+            each half, since this is the part players ask about most. */}
+        <div className="mt-4 rounded-3xl glass p-6">
+          <div className="text-center">
+            <div className="text-2xl">🥊</div>
+            <h3 className="gradient-text mt-1 text-lg font-black">
+              Extra time &amp; penalties
+            </h3>
+            <p className="mx-auto mt-1 max-w-md text-sm font-medium text-stone-200">
+              A knockout can&apos;t end level — so which score counts? The match is
+              recorded at the score{" "}
+              <strong className="text-stone-100">after extra time</strong>:
+              extra-time goals count, but a penalty shootout never changes the
+              scoreline. A tie won on penalties is recorded as the draw it was on
+              the pitch — say <strong className="text-stone-100">1–1</strong>.
+              Here&apos;s how that score feeds your two point halves:
+            </p>
+          </div>
+          <div className="mt-4 flex flex-col items-stretch gap-3 sm:flex-row">
+            <div className="flex-1 rounded-2xl glass p-4 text-center">
+              <div className="text-sm font-bold text-flame">Outcome</div>
+              <p className="mt-1 text-xs font-medium text-stone-300">
+                The team that <strong>goes through</strong> counts as the winner,
+                even on penalties. Back them with a decisive call and you bank the
+                full <strong>5</strong> — even if the game finished level. Predict
+                the draw itself and you&apos;re one step off, for <strong>2</strong>.
+              </p>
+            </div>
+            <div className="flex-1 rounded-2xl glass p-4 text-center">
+              <div className="text-sm font-bold text-sky-400">Closeness</div>
+              <p className="mt-1 text-xs font-medium text-stone-300">
+                Always measured against that{" "}
+                <strong>after-extra-time</strong> score — the shootout is ignored.
+                Nail <strong>1–1</strong> on a tie won by penalties and you still
+                pocket all <strong>5</strong> for closeness.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
