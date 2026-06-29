@@ -4,10 +4,25 @@ import { HowToPlayDemo } from "@/components/HowToPlayDemo";
 import { MAX_MATCH_POINTS, SCORE_MULTIPLIER } from "@/lib/scoring";
 import { BORINGBOT_NAME } from "@/lib/standings";
 import { PageShell } from "@/components/PageShell";
+import type { Stage } from "@/lib/types";
 
 export const metadata = {
   title: "How to play · World Cup 2026 Predictions",
 };
+
+// The multiplier ladder, shown as chips so players can see every rung — group
+// (the ×1 baseline) through the final — and what a flawless call is worth at
+// each. Labels live here; the multipliers come from SCORE_MULTIPLIER so the
+// numbers can never drift from the scoring engine. (Third place rides with the
+// quarter-finals at ×4 and is left off this headline ladder.)
+const MULTIPLIER_LADDER: { stage: Stage; label: string }[] = [
+  { stage: "group", label: "Group" },
+  { stage: "round_of_32", label: "R32" },
+  { stage: "round_of_16", label: "R16" },
+  { stage: "quarter_final", label: "QF" },
+  { stage: "semi_final", label: "SF" },
+  { stage: "final", label: "Final" },
+];
 
 function Step({
   n,
@@ -123,30 +138,89 @@ export default function HowToPlayPage() {
       </section>
 
       {/* Knockouts */}
-      <section className="mb-10 rounded-3xl glass p-6 text-center">
-        <div className="text-2xl">🥊</div>
-        <h2 className="gradient-text mt-1 text-lg font-black">
-          Knockout rounds
+      <section className="mb-10">
+        <h2 className="gradient-text mb-1 text-center text-xl font-black">
+          Knockouts count for more
         </h2>
-        <p className="mx-auto mt-1 max-w-md text-sm font-medium text-stone-200">
-          In the knockouts every match is worth more: the whole score is
-          multiplied, and the multiplier climbs each round — from{" "}
-          <strong className="text-violet-300">
-            ×{SCORE_MULTIPLIER.round_of_32} in the Round of 32 up to ×
-            {SCORE_MULTIPLIER.final} in the final
-          </strong>
-          . The deeper the run, the more every call is worth — together the
-          knockouts are worth even more than the entire group stage combined.
+        <p className="mx-auto mb-4 max-w-md text-center text-sm font-medium text-stone-300">
+          Points work exactly the same — Outcome plus Closeness, up to{" "}
+          {MAX_MATCH_POINTS} a game — then the whole match is multiplied, and the
+          multiplier climbs every round.
         </p>
-        <p className="mx-auto mt-3 max-w-md text-sm font-medium text-stone-200">
-          Knockouts can&apos;t end in a draw. If the game is decided in extra time
-          or on penalties, the team that goes through counts as the winner — so
-          backing them still earns your{" "}
-          <strong className="text-flame">Outcome</strong> points, even if the
-          score was level. Your{" "}
-          <strong className="text-sky-400">Closeness</strong>{" "}
-          points always follow the score on the pitch.
-        </p>
+
+        <div className="rounded-3xl glass p-6">
+          {/* The ladder, rung by rung: each round's multiplier and what a
+              flawless call is worth there. The final towers over the group. */}
+          <div className="flex flex-wrap items-stretch justify-center gap-2">
+            {MULTIPLIER_LADDER.map(({ stage, label }) => {
+              const mult = SCORE_MULTIPLIER[stage];
+              const isGroup = stage === "group";
+              const isFinal = stage === "final";
+              return (
+                <div
+                  key={stage}
+                  className={`flex min-w-[4rem] flex-1 flex-col items-center rounded-2xl glass px-2 py-3 ${
+                    isFinal ? "ring-1 ring-flame/40" : ""
+                  }`}
+                >
+                  <span
+                    className={`font-display text-2xl leading-none ${
+                      isGroup
+                        ? "text-stone-300"
+                        : isFinal
+                          ? "text-flame"
+                          : "text-violet-300"
+                    }`}
+                  >
+                    ×{mult}
+                  </span>
+                  <span className="mt-1.5 text-center text-[11px] font-black uppercase tracking-wide text-stone-200">
+                    {label}
+                  </span>
+                  <span className="text-[10px] font-medium text-stone-400">
+                    up to {MAX_MATCH_POINTS * mult}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* A worked example, mirroring the group-stage "say it ends 2–1" one. */}
+          <p className="mx-auto mt-5 max-w-md text-center text-xs font-medium text-stone-300">
+            <strong className="text-stone-100">
+              Call a Round-of-16 game 2–1 and it ends 2–1.
+            </strong>{" "}
+            That&apos;s the full {MAX_MATCH_POINTS}, then ×
+            {SCORE_MULTIPLIER.round_of_16} for the round ={" "}
+            <strong className="text-emerald-400">
+              {MAX_MATCH_POINTS * SCORE_MULTIPLIER.round_of_16}
+            </strong>
+            . The same perfect call in the final banks{" "}
+            <strong className="text-emerald-400">
+              {MAX_MATCH_POINTS * SCORE_MULTIPLIER.final}
+            </strong>
+            . Add it up and the knockouts outweigh the entire group stage — a hot
+            run can overturn a group-stage lead.
+          </p>
+        </div>
+
+        {/* Draws & penalties — the one knockout-specific wrinkle, made actionable. */}
+        <div className="mt-4 rounded-3xl glass p-6 text-center">
+          <div className="text-2xl">🥊</div>
+          <h3 className="gradient-text mt-1 text-lg font-black">
+            No draws in the knockouts
+          </h3>
+          <p className="mx-auto mt-1 max-w-md text-sm font-medium text-stone-200">
+            You still just call a scoreline. But a knockout has to produce a
+            winner, so if it&apos;s level after 90 and decided in extra time or on
+            penalties, the team that goes through counts as the winner. Back a side
+            with a <strong>decisive</strong> score (say 2–1, not 1–1) and you keep
+            your full <strong className="text-flame">Outcome</strong> points even if
+            the real game ends level and they win on penalties. Your{" "}
+            <strong className="text-sky-400">Closeness</strong> points always follow
+            the score on the pitch.
+          </p>
+        </div>
       </section>
 
       {/* BoringBot */}
