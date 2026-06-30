@@ -65,7 +65,11 @@ function RevealedScore({ row }: { row: MatchBoardRow }) {
           }`}
         >
           {row.provisional ? "~" : ""}
-          <CountUp value={row.points} /> pt{row.points === 1 ? "" : "s"}
+          <CountUp value={row.points} />
+          {/* "pts" only where there's room: on phones the bare number keeps the
+              pill narrow so the name gets the width. The tap-expand below still
+              spells out "Total … pts", so the unit is never lost. */}
+          <span className="hidden sm:inline"> pt{row.points === 1 ? "" : "s"}</span>
         </span>
         <span className="text-stone-400">
           <Icon name={open ? "chevron-up" : "chevron-down"} className="text-[10px]" />
@@ -99,18 +103,19 @@ function RevealedScore({ row }: { row: MatchBoardRow }) {
   );
 }
 
-/** A player's name, linked to their in-group profile (except the bot). Rendered
- *  as a block-level truncating element (not an inline span) so it reliably clips
- *  with an ellipsis as a flex child — including the bot row, which previously got
- *  no truncate at all and overflowed into the score (the "BoringBot0–0" collide).
- *  The "(you)" tag lives outside this element so it isn't clipped away. */
+/** A player's name, linked to their in-group profile (except the bot). It wraps
+ *  onto a second line (and only then clips, via line-clamp) rather than truncating
+ *  on one — so a name squeezed by the score never collapses to a single letter
+ *  ("C…"). `break-words` lets a long single token (e.g. the bot's "BoringBot")
+ *  break across the two lines instead of overflowing into the score. The "(you)"
+ *  tag lives outside this element so it isn't clipped away. */
 function PlayerName({ row, code }: { row: MatchBoardRow; code: string }) {
   return (
     <PlayerLink
       userId={row.userId}
       code={row.isBot ? undefined : code}
       title={row.displayName}
-      className="block min-w-0 flex-1 truncate font-bold text-stone-100"
+      className="min-w-0 flex-1 break-words font-bold text-stone-100 line-clamp-2"
     >
       {row.displayName}
     </PlayerLink>
