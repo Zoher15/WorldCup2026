@@ -35,6 +35,18 @@ export interface FdTeam {
   tla: string | null;
 }
 
+/**
+ * A two-sided score block from football-data. v4 keys the sides `home`/`away`;
+ * some payloads (and older docs) use `homeTeam`/`awayTeam`, so downstream code
+ * tolerates either rather than silently reading `undefined` from the wrong key.
+ */
+export interface FdSideScore {
+  home?: number | null;
+  away?: number | null;
+  homeTeam?: number | null;
+  awayTeam?: number | null;
+}
+
 export interface FdMatch {
   id: number;
   utcDate: string;
@@ -46,12 +58,18 @@ export interface FdMatch {
   score: {
     winner: string | null; // HOME_TEAM | AWAY_TEAM | DRAW
     duration: string; // REGULAR | EXTRA_TIME | PENALTY_SHOOTOUT
-    // The score at the end of 90 + extra time — in v4 this EXCLUDES the penalty
-    // shootout (the shootout outcome lives in `winner` / `duration`).
-    fullTime: { home: number | null; away: number | null };
-    // The shootout tally, when present. Only used as a guard to strip the
-    // shootout back out if it were ever folded into fullTime — see fd-core.
-    penalties?: { home: number | null; away: number | null } | null;
+    // The FINAL score and, for a tie settled on penalties, this INCLUDES the
+    // shootout goals (e.g. a 1-1 won 6-5 on penalties is reported here as 7-6).
+    // We grade closeness on the end-of-extra-time scoreline, so fd-core peels the
+    // shootout back off (see endOfPlayScoreline).
+    fullTime: FdSideScore;
+    halfTime?: FdSideScore | null;
+    // The clean components: goals after 90 minutes, goals scored within extra
+    // time, and the shootout tally. Present for extra-time / shootout matches,
+    // and used to reconstruct the on-pitch scoreline without the shootout.
+    regularTime?: FdSideScore | null;
+    extraTime?: FdSideScore | null;
+    penalties?: FdSideScore | null;
   };
 }
 
