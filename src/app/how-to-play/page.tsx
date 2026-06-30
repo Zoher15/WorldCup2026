@@ -229,7 +229,10 @@ export default function HowToPlayPage() {
                 The team that <strong>goes through</strong> counts as the winner,
                 even on penalties. Back them with a decisive call and you bank the
                 full <strong>5</strong> — even if the game finished level. Predict
-                the draw itself and you&apos;re one step off, for <strong>2</strong>.
+                a <strong>draw</strong>? Pick who you think advances, and that pick
+                is graded like backing them to win: right team through scores the
+                full <strong>5</strong>, the wrong one <strong>0</strong>. Skip the
+                pick and a bare draw is one step off, for <strong>2</strong>.
               </p>
             </div>
             <div className="flex-1 rounded-2xl glass p-4 text-center">

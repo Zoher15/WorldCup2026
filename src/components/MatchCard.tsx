@@ -12,6 +12,7 @@ import { Icon } from "./Icon";
 import { FOCUS_RING, LIVE_TEXT, PREDICTION_TEXT, RESULT_TEXT } from "./theme";
 import { teamByCode, teamColor, teamLabel } from "@/lib/fifa";
 import { formatHostCity, formatKickoffDateCompact, formatKickoffTime, formatStageLabel, shortHostCity } from "@/lib/format";
+import { isKnockoutStage } from "@/lib/polling";
 import type { PredictionState } from "@/lib/prediction-rules";
 import { computeBreakdown } from "@/lib/score-breakdown";
 import type { Stage } from "@/lib/types";
@@ -98,6 +99,11 @@ export interface MatchCardProps {
     home: number;
     away: number;
     onChange: (side: "home" | "away", n: number) => void;
+    /** Knockout only: who the player thinks goes through. The picker appears
+     *  under the card's teams only when the entered scoreline is a draw (the one
+     *  case the scoreline alone can't name a winner). `null` = not yet chosen. */
+    advance?: string | null;
+    onAdvanceChange?: (code: string | null) => void;
   };
   /** A revealed predicted score, shown in the focal tile when not editing, and
    *  paired with the live/final score (with tap-to-see-points) once a match has
@@ -576,6 +582,55 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
     );
   }
 
+  // A knockout tie the player has called as a draw can't name a winner from the
+  // scoreline alone — so offer the same "who advanced?" choice the admin gets for
+  // the result. Only while editing, only on a knockout, only when the two
+  // steppers are level, and only once both teams are known (a filled bracket).
+  let advancePicker: React.ReactNode = null;
+  if (
+    editing &&
+    entry &&
+    entry.onAdvanceChange &&
+    isKnockoutStage(data.stage ?? "group") &&
+    entry.home === entry.away &&
+    data.homeCode != null &&
+    data.awayCode != null
+  ) {
+    const onAdvanceChange = entry.onAdvanceChange;
+    const current = entry.advance ?? null;
+    advancePicker = (
+      <div className={`rounded-lg px-3 py-2 ${GLASS}`}>
+        <div className="mb-1.5 text-center text-[10px] font-bold uppercase tracking-wide text-stone-200">
+          Tied — who goes through?
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { code: data.homeCode, label: data.homeLabel },
+            { code: data.awayCode, label: data.awayLabel },
+          ].map(({ code, label }) => {
+            // Tapping the chosen side again clears it (back to a plain draw).
+            const selected = current === code;
+            return (
+              <button
+                key={code}
+                type="button"
+                onClick={() => onAdvanceChange(selected ? null : code)}
+                aria-pressed={selected}
+                className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-bold transition active:scale-95 ${FOCUS_RING} ${
+                  selected
+                    ? "bg-pitch/30 text-emerald-300 ring-1 ring-emerald-400/50"
+                    : "glass text-stone-200"
+                }`}
+              >
+                <span className="truncate">{teamLabel(code, label)}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   // The header pill truncates on narrow cards, so it carries its full text as a
   // hover title too. A practice (trial) match wears a target icon before the
   // word; the title stays plain text since `title` can't hold an icon.
@@ -657,6 +712,7 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
             <TeamName code={data.homeCode} label={data.homeLabel} />
             <TeamName code={data.awayCode} label={data.awayLabel} />
           </div>
+          {advancePicker}
           {footer && (
             <div className={`rounded-lg px-3 py-1.5 ${GLASS} text-stone-100`}>
               {footer}

@@ -9,10 +9,19 @@ import { FOCUS_RING } from "./theme";
 import { useLiveRefresh } from "./useLiveRefresh";
 import { groupByDate } from "@/lib/group-by-date";
 import { isLiveMatch } from "@/lib/match-predicates";
+import { isKnockoutStage } from "@/lib/polling";
 import { savePredictionsAction } from "@/app/predict/actions";
 import type { MatchForPrediction, SavedPrediction } from "@/lib/predictions";
 
-type Picks = Record<string, { home: number; away: number }>;
+type DraftPick = { home: number; away: number; advance: string | null };
+type Picks = Record<string, DraftPick>;
+
+/** The advance pick to persist: a knockout draw lets the player name who goes
+ *  through; everywhere else the scoreline already decides the winner, so nothing
+ *  is stored. Keeps a stale pick from a since-changed scoreline out of the DB. */
+function advanceToSave(m: MatchForPrediction, pick: DraftPick): string | null {
+  return isKnockoutStage(m.stage) && pick.home === pick.away ? pick.advance : null;
+}
 
 export function PredictionList({
   matches,
@@ -33,14 +42,18 @@ export function PredictionList({
     const p: Picks = {};
     for (const m of matches) {
       const saved = initial[m.id];
-      p[m.id] = { home: saved?.predHome ?? 0, away: saved?.predAway ?? 0 };
+      p[m.id] = {
+        home: saved?.predHome ?? 0,
+        away: saved?.predAway ?? 0,
+        advance: saved?.advancePick ?? null,
+      };
     }
     return p;
   });
   const [savedSnapshot, setSavedSnapshot] = useState<Picks>(() => {
     const p: Picks = {};
     for (const [id, saved] of Object.entries(initial)) {
-      p[id] = { home: saved.predHome, away: saved.predAway };
+      p[id] = { home: saved.predHome, away: saved.predAway, advance: saved.advancePick };
     }
     return p;
   });
@@ -56,6 +69,10 @@ export function PredictionList({
 
   const openIds = useMemo(
     () => new Set(matches.filter((m) => m.state === "open").map((m) => m.id)),
+    [matches],
+  );
+  const matchById = useMemo(
+    () => new Map(matches.map((m) => [m.id, m])),
     [matches],
   );
 
@@ -79,7 +96,12 @@ export function PredictionList({
           if (!openIds.has(m.id)) return false;
           const cur = picks[m.id];
           const snap = savedSnapshot[m.id];
-          return !snap || snap.home !== cur.home || snap.away !== cur.away;
+          return (
+            !snap ||
+            snap.home !== cur.home ||
+            snap.away !== cur.away ||
+            advanceToSave(m, cur) !== (snap.advance ?? null)
+          );
         })
         .map((m) => m.id),
     [matches, picks, savedSnapshot, openIds],
@@ -88,12 +110,15 @@ export function PredictionList({
 
   const setPick = (id: string, side: "home" | "away", n: number) =>
     setPicks((p) => ({ ...p, [id]: { ...p[id], [side]: n } }));
+  const setAdvance = (id: string, code: string | null) =>
+    setPicks((p) => ({ ...p, [id]: { ...p[id], advance: code } }));
 
   function save() {
     const items = dirtyIds.map((id) => ({
       matchId: id,
       predHome: picks[id].home,
       predAway: picks[id].away,
+      advancePick: advanceToSave(matchById.get(id)!, picks[id]),
     }));
     startTransition(async () => {
       const res = await savePredictionsAction(items);
@@ -107,7 +132,15 @@ export function PredictionList({
       }
       setSavedSnapshot((snap) => {
         const next = { ...snap };
-        for (const id of dirtyIds) next[id] = { ...picks[id] };
+        // Snapshot the EFFECTIVE advance that was persisted (null off a draw), so
+        // the dirty check compares like-for-like and doesn't flag a clean save.
+        for (const id of dirtyIds) {
+          next[id] = {
+            home: picks[id].home,
+            away: picks[id].away,
+            advance: advanceToSave(matchById.get(id)!, picks[id]),
+          };
+        }
         return next;
       });
       setFlash({
@@ -241,6 +274,8 @@ export function PredictionList({
                     home: pick.home,
                     away: pick.away,
                     onChange: (side, n) => setPick(m.id, side, n),
+                    advance: pick.advance,
+                    onAdvanceChange: (code) => setAdvance(m.id, code),
                   }}
                   onExpire={() => router.refresh()}
                   status={

@@ -147,6 +147,15 @@ function closenessPoints(prediction: Scoreline, actual: Scoreline): number {
  * the literal scoreline. Defaults to the scoreline's own direction (the right
  * behaviour for group games).
  *
+ * `predictedWinner` is the mirror override for the prediction side: a player who
+ * predicts a knockout DRAW can also name which team they think goes through, and
+ * that advance pick IS their winner call — graded like backing that team to win
+ * (full outcome if it advances, nothing if the other side does). The caller
+ * passes it in; it only changes the OUTCOME grade, never closeness, which is
+ * always the literal predicted scoreline vs the literal result. Defaults to the
+ * predicted scoreline's own direction (the right behaviour for a decisive pick
+ * or a group game).
+ *
  * `stage` selects the round multiplier applied to the total (defaults to
  * "group", i.e. face value).
  */
@@ -155,11 +164,12 @@ export function scoreMatch(
   actual: Scoreline,
   actualWinner: Direction = direction(actual),
   stage: Stage = "group",
+  predictedWinner: Direction = direction(prediction),
 ): MatchScore {
   assertValidScoreline("prediction", prediction);
   assertValidScoreline("actual", actual);
 
-  const outcome = outcomePoints(direction(prediction), actualWinner);
+  const outcome = outcomePoints(predictedWinner, actualWinner);
   const closeness = closenessPoints(prediction, actual);
   const multiplier = SCORE_MULTIPLIER[stage];
   return { outcome, closeness, multiplier, total: (outcome + closeness) * multiplier };

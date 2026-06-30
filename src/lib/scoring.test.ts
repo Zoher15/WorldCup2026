@@ -158,6 +158,26 @@ test("a knockout tie decided on penalties grades outcome by who advanced, scaled
   assert.equal(predictedDraw.total, 35); // (2 + 5) × 5
 });
 
+test("predictedWinner overrides the outcome grade but not closeness", () => {
+  // A 1-1 prediction whose owner called HOME to advance, in a tie HOME won on
+  // penalties (actual 1-1, actualWinner HOME): outcome graded as backing HOME.
+  const right = scoreMatch(sl(1, 1), sl(1, 1), "HOME", "quarter_final", "HOME");
+  assert.equal(right.outcome, 5); // backed the side that went through
+  assert.equal(right.closeness, 5); // closeness is still the literal 1-1
+  assert.equal(right.total, 40); // (5 + 5) × 4
+
+  // Same draw, but they backed AWAY (the side that went out): a wrong winner.
+  const wrong = scoreMatch(sl(1, 1), sl(1, 1), "HOME", "quarter_final", "AWAY");
+  assert.equal(wrong.outcome, 0); // opposite of who advanced
+  assert.equal(wrong.closeness, 5); // closeness unchanged by the bad pick
+  assert.equal(wrong.total, 20); // (0 + 5) × 4
+
+  // Closeness ignores predictedWinner entirely: a 2-0 prediction with a HOME
+  // override still scores closeness off the 2-0 vs 1-1 scoreline.
+  const offScore = scoreMatch(sl(2, 0), sl(1, 1), "HOME", "group", "HOME");
+  assert.equal(offScore.closeness, 3); // |2-1| + |0-1| = 2 off
+});
+
 test("maxMatchPoints climbs the integer ladder", () => {
   assert.equal(maxMatchPoints("group"), 10);
   assert.equal(maxMatchPoints("round_of_32"), 20);
