@@ -56,7 +56,7 @@ function RevealedScore({ row }: { row: MatchBoardRow }) {
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        className={`inline-flex items-center gap-2 rounded-full glass px-2.5 py-1 transition active:scale-95 ${FOCUS_RING}`}
+        className={`inline-flex items-center gap-1.5 rounded-full glass px-2.5 py-1 text-sm transition active:scale-95 ${FOCUS_RING}`}
       >
         {call}
         <span
@@ -99,21 +99,20 @@ function RevealedScore({ row }: { row: MatchBoardRow }) {
   );
 }
 
-/** A player's name, linked to their in-group profile (except the bot). */
+/** A player's name, linked to their in-group profile (except the bot). Rendered
+ *  as a block-level truncating element (not an inline span) so it reliably clips
+ *  with an ellipsis as a flex child — including the bot row, which previously got
+ *  no truncate at all and overflowed into the score (the "BoringBot0–0" collide).
+ *  The "(you)" tag lives outside this element so it isn't clipped away. */
 function PlayerName({ row, code }: { row: MatchBoardRow; code: string }) {
   return (
     <PlayerLink
       userId={row.userId}
       code={row.isBot ? undefined : code}
       title={row.displayName}
-      className={row.isBot ? undefined : "truncate"}
+      className="block min-w-0 flex-1 truncate font-bold text-stone-100"
     >
-      <span className="truncate font-bold text-stone-100">
-        {row.displayName}
-        {row.isViewer && (
-          <span className="ml-1.5 text-[10px] font-bold text-stone-400">(you)</span>
-        )}
-      </span>
+      {row.displayName}
     </PlayerLink>
   );
 }
@@ -153,7 +152,7 @@ export function MatchBoardRows({ board }: { board: MatchBoard }) {
   let lastRank = 0;
 
   return (
-    <div className="rounded-3xl glass p-5">
+    <div className="rounded-3xl glass p-4 sm:p-5">
         <h2 className="mb-1 text-center text-xl font-black">
           {revealed && "🏅 "}
           <span className="gradient-text">
@@ -177,23 +176,28 @@ export function MatchBoardRows({ board }: { board: MatchBoard }) {
             return (
               <li
                 key={r.userId}
-                className={`flex items-center gap-3 rounded-2xl px-4 py-2.5 transition hover:scale-[1.01] ${
+                className={`flex items-center gap-2 rounded-2xl px-3 py-2.5 transition hover:scale-[1.01] sm:gap-3 sm:px-4 ${
                   r.isViewer
                     ? "glass ring-2 ring-violet-300/40"
                     : "glass"
                 }`}
               >
                 {revealed && (
-                  <span className="w-6 text-center font-black text-stone-400 tabular-nums">
+                  <span className="w-5 shrink-0 text-center font-black text-stone-400 tabular-nums sm:w-6">
                     {rank ?? "—"}
                   </span>
                 )}
-                <span className="flex min-w-0 flex-1 items-center gap-2">
+                <div className="flex min-w-0 flex-1 items-center gap-1.5">
                   <PlayerName row={r} code={group.code} />
-                </span>
+                  {r.isViewer && (
+                    <span className="shrink-0 text-[10px] font-bold text-stone-400">
+                      (you)
+                    </span>
+                  )}
+                </div>
                 {/* Right side: the upset flag sits beside the score, so the name
                     keeps the whole left side and truncates clear of both. */}
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex shrink-0 items-center gap-1.5">
                   {r.upset && <UpsetBadge />}
                   {revealed ? (
                     <RevealedScore row={r} />
