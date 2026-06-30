@@ -11,11 +11,30 @@ import { FOCUS_RING, LIVE_TEXT, PREDICTION_TEXT, RESULT_TEXT } from "./theme";
 import { useLiveRefresh } from "./useLiveRefresh";
 import type { MatchBoard, MatchBoardRow } from "@/lib/match-leaderboard";
 
-/** The right-hand status for a revealed row: the player's call + points, with
- *  the same tap-for-math expansion the match card uses. */
-function RevealedScore({ row }: { row: MatchBoardRow }) {
-  const [open, setOpen] = useState(false);
+/** Whether a revealed row has a points breakdown to expand (a scored pick that
+ *  counts). The non-scored states show a static call only. */
+function isScored(row: MatchBoardRow): boolean {
+  return (
+    row.hasPrediction &&
+    row.counts &&
+    row.points != null &&
+    row.breakdown != null
+  );
+}
 
+/** The inline right-hand status for a revealed row: the player's call + points.
+ *  Static for the non-scored states; a tap-for-math toggle when there's a
+ *  breakdown. The breakdown itself renders BELOW the row (ScoreBreakdown), not in
+ *  this cluster, so expanding it never squeezes the name to nothing. */
+function ScoreTrigger({
+  row,
+  open,
+  onToggle,
+}: {
+  row: MatchBoardRow;
+  open: boolean;
+  onToggle: () => void;
+}) {
   if (!row.hasPrediction) {
     return <span className="text-xs font-bold text-stone-400">No pick</span>;
   }
@@ -49,56 +68,61 @@ function RevealedScore({ row }: { row: MatchBoardRow }) {
     );
   }
 
-  const b = row.breakdown;
   return (
-    <div className="flex flex-col items-end">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        className={`inline-flex items-center gap-1.5 rounded-full glass px-2.5 py-1 text-sm transition active:scale-95 ${FOCUS_RING}`}
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={open}
+      className={`inline-flex items-center gap-1.5 rounded-full glass px-2.5 py-1 text-sm transition active:scale-95 ${FOCUS_RING}`}
+    >
+      {call}
+      <span
+        className={`font-black tabular-nums ${
+          row.provisional ? LIVE_TEXT : RESULT_TEXT
+        }`}
       >
-        {call}
+        {row.provisional ? "~" : ""}
+        <CountUp value={row.points} />
+        {/* "pts" only where there's room: on phones the bare number keeps the
+            pill narrow so the name gets the width. The tap-expand below still
+            spells out "Total … pts", so the unit is never lost. */}
+        <span className="hidden sm:inline"> pt{row.points === 1 ? "" : "s"}</span>
+      </span>
+      <span className="text-stone-400">
+        <Icon name={open ? "chevron-up" : "chevron-down"} className="text-[10px]" />
+      </span>
+    </button>
+  );
+}
+
+/** The points math for a scored row, revealed on tap. Rendered as a full-width
+ *  block UNDER the row's main line (not inside the right-hand cluster), so opening
+ *  it gives the breakdown room to read and never steals width from the name. On
+ *  wider screens it tucks to the right under the score, near where it was. */
+function ScoreBreakdown({ row }: { row: MatchBoardRow }) {
+  const b = row.breakdown!;
+  return (
+    <div className="mt-2 rounded-xl glass px-3 py-2 text-left sm:ml-auto sm:w-64">
+      <BreakdownRow label="Right result" value={b.outcome} max={5} />
+      <BreakdownRow label="Scoreline closeness" value={b.closeness} max={5} />
+      {b.knockout && b.multiplier !== 1 && (
+        <div className="flex items-center justify-between py-0.5 text-[11px] font-bold">
+          <span className="text-stone-300">Knockout round</span>
+          <span className="tabular-nums text-stone-100">×{b.multiplier}</span>
+        </div>
+      )}
+      <div className="mt-1 flex items-center justify-between border-stone-600/60 pt-1">
+        <span className="text-[11px] font-black uppercase tracking-wide text-stone-200">
+          {row.provisional ? "If it ends now" : "Total"}
+        </span>
         <span
-          className={`font-black tabular-nums ${
+          className={`text-sm font-black tabular-nums ${
             row.provisional ? LIVE_TEXT : RESULT_TEXT
           }`}
         >
-          {row.provisional ? "~" : ""}
-          <CountUp value={row.points} />
-          {/* "pts" only where there's room: on phones the bare number keeps the
-              pill narrow so the name gets the width. The tap-expand below still
-              spells out "Total … pts", so the unit is never lost. */}
-          <span className="hidden sm:inline"> pt{row.points === 1 ? "" : "s"}</span>
+          <CountUp value={b.total} /> pt{b.total === 1 ? "" : "s"}
         </span>
-        <span className="text-stone-400">
-          <Icon name={open ? "chevron-up" : "chevron-down"} className="text-[10px]" />
-        </span>
-      </button>
-      {open && (
-        <div className="mt-1.5 w-44 rounded-xl glass px-3 py-2 text-left">
-          <BreakdownRow label="Right result" value={b.outcome} max={5} />
-          <BreakdownRow label="Scoreline closeness" value={b.closeness} max={5} />
-          {b.knockout && b.multiplier !== 1 && (
-            <div className="flex items-center justify-between py-0.5 text-[11px] font-bold">
-              <span className="text-stone-300">Knockout round</span>
-              <span className="tabular-nums text-stone-100">×{b.multiplier}</span>
-            </div>
-          )}
-          <div className="mt-1 flex items-center justify-between border-stone-600/60 pt-1">
-            <span className="text-[11px] font-black uppercase tracking-wide text-stone-200">
-              {row.provisional ? "If it ends now" : "Total"}
-            </span>
-            <span
-              className={`text-sm font-black tabular-nums ${
-                row.provisional ? LIVE_TEXT : RESULT_TEXT
-              }`}
-            >
-              <CountUp value={b.total} /> pt{b.total === 1 ? "" : "s"}
-            </span>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -145,6 +169,62 @@ function UpsetBadge() {
   );
 }
 
+/** One ranked row: rank + name on the main line, the call/points trigger on the
+ *  right, and — when a scored row is tapped open — the points breakdown dropped
+ *  full-width underneath. Holds its own open state; rendered as a flex COLUMN so
+ *  the breakdown sits below the row rather than inside the horizontal cluster. */
+function MatchRow({
+  row,
+  code,
+  rank,
+  revealed,
+}: {
+  row: MatchBoardRow;
+  code: string;
+  rank: number | null;
+  revealed: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const scored = revealed && isScored(row);
+
+  return (
+    <li
+      className={`flex flex-col rounded-2xl px-4 py-2.5 transition hover:scale-[1.01] ${
+        row.isViewer ? "glass ring-2 ring-violet-300/40" : "glass"
+      }`}
+    >
+      <div className="flex items-center gap-3">
+        {revealed && (
+          <span className="w-6 shrink-0 text-center font-black text-stone-400 tabular-nums">
+            {rank ?? "—"}
+          </span>
+        )}
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <PlayerName row={row} code={code} />
+          {row.isViewer && (
+            <span className="shrink-0 text-[10px] font-bold text-stone-400">
+              (you)
+            </span>
+          )}
+        </div>
+        {/* Right side: the upset flag sits beside the score, so the name keeps
+            the whole left side and wraps clear of both. */}
+        <div className="flex shrink-0 items-center gap-2">
+          {row.upset && <UpsetBadge />}
+          {revealed ? (
+            <ScoreTrigger row={row} open={open} onToggle={() => setOpen((o) => !o)} />
+          ) : row.hasPrediction ? (
+            <span className="text-xs font-bold text-emerald-400">✓ Entered</span>
+          ) : (
+            <span className="text-xs font-bold text-stone-400">Not entered</span>
+          )}
+        </div>
+      </div>
+      {scored && open && <ScoreBreakdown row={row} />}
+    </li>
+  );
+}
+
 /** The ranked picks for ONE group's board (heading + summary + the list), with
  *  no match card. Presentational — the caller drives any live refresh. Reused by
  *  the single-group page and by each collapsible group in the cross-group hub. */
@@ -179,44 +259,13 @@ export function MatchBoardRows({ board }: { board: MatchBoard }) {
               lastPoints = r.points;
             }
             return (
-              <li
+              <MatchRow
                 key={r.userId}
-                className={`flex items-center gap-3 rounded-2xl px-4 py-2.5 transition hover:scale-[1.01] ${
-                  r.isViewer
-                    ? "glass ring-2 ring-violet-300/40"
-                    : "glass"
-                }`}
-              >
-                {revealed && (
-                  <span className="w-6 shrink-0 text-center font-black text-stone-400 tabular-nums">
-                    {rank ?? "—"}
-                  </span>
-                )}
-                <div className="flex min-w-0 flex-1 items-center gap-2">
-                  <PlayerName row={r} code={group.code} />
-                  {r.isViewer && (
-                    <span className="shrink-0 text-[10px] font-bold text-stone-400">
-                      (you)
-                    </span>
-                  )}
-                </div>
-                {/* Right side: the upset flag sits beside the score, so the name
-                    keeps the whole left side and truncates clear of both. */}
-                <div className="flex shrink-0 items-center gap-2">
-                  {r.upset && <UpsetBadge />}
-                  {revealed ? (
-                    <RevealedScore row={r} />
-                  ) : r.hasPrediction ? (
-                    <span className="text-xs font-bold text-emerald-400">
-                      ✓ Entered
-                    </span>
-                  ) : (
-                    <span className="text-xs font-bold text-stone-400">
-                      Not entered
-                    </span>
-                  )}
-                </div>
-              </li>
+                row={r}
+                code={group.code}
+                rank={rank}
+                revealed={revealed}
+              />
             );
           })}
         </ol>
