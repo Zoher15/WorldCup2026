@@ -31,7 +31,7 @@ export function CrossGroupMatchHub({
           <details
             key={board.group.code}
             open={i === 0}
-            className="rounded-3xl glass p-2.5 sm:p-3 [&_summary::-webkit-details-marker]:hidden"
+            className="rounded-3xl glass p-4 [&_summary::-webkit-details-marker]:hidden"
           >
             <summary className="flex cursor-pointer list-none items-center gap-3">
               <Link

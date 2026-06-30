@@ -152,7 +152,7 @@ export function MatchBoardRows({ board }: { board: MatchBoard }) {
   let lastRank = 0;
 
   return (
-    <div className="rounded-3xl glass p-4 sm:p-5">
+    <div className="rounded-3xl glass p-5">
         <h2 className="mb-1 text-center text-xl font-black">
           {revealed && "🏅 "}
           <span className="gradient-text">
@@ -176,18 +176,18 @@ export function MatchBoardRows({ board }: { board: MatchBoard }) {
             return (
               <li
                 key={r.userId}
-                className={`flex items-center gap-2 rounded-2xl px-3 py-2.5 transition hover:scale-[1.01] sm:gap-3 sm:px-4 ${
+                className={`flex items-center gap-3 rounded-2xl px-4 py-2.5 transition hover:scale-[1.01] ${
                   r.isViewer
                     ? "glass ring-2 ring-violet-300/40"
                     : "glass"
                 }`}
               >
                 {revealed && (
-                  <span className="w-5 shrink-0 text-center font-black text-stone-400 tabular-nums sm:w-6">
+                  <span className="w-6 shrink-0 text-center font-black text-stone-400 tabular-nums">
                     {rank ?? "—"}
                   </span>
                 )}
-                <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                <div className="flex min-w-0 flex-1 items-center gap-2">
                   <PlayerName row={r} code={group.code} />
                   {r.isViewer && (
                     <span className="shrink-0 text-[10px] font-bold text-stone-400">
@@ -197,7 +197,7 @@ export function MatchBoardRows({ board }: { board: MatchBoard }) {
                 </div>
                 {/* Right side: the upset flag sits beside the score, so the name
                     keeps the whole left side and truncates clear of both. */}
-                <div className="flex shrink-0 items-center gap-1.5">
+                <div className="flex shrink-0 items-center gap-2">
                   {r.upset && <UpsetBadge />}
                   {revealed ? (
                     <RevealedScore row={r} />
