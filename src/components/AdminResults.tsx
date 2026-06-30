@@ -40,7 +40,7 @@ function Row({ m }: { m: AdminMatch }) {
         matchId: m.id,
         homeGoals: h,
         awayGoals: a,
-        advancedCode: knockout ? adv.trim().toUpperCase() || null : null,
+        advancedCode: knockout ? adv || null : null,
       });
       setMsg(res.ok ? "Saved ✓" : res.error ?? "Failed");
     });
@@ -108,12 +108,43 @@ function Row({ m }: { m: AdminMatch }) {
         </div>
       </div>
       {knockout && (
-        <input
-          value={adv}
-          onChange={(e) => setAdv(e.target.value)}
-          placeholder="Advanced team code (e.g. ARG)"
-          className={`mt-2 w-full px-2 py-1.5 text-sm ${inputCompactGrape}`}
-        />
+        <div className="mt-2">
+          <div className="mb-1 text-xs font-bold text-stone-400">
+            Who advanced?{" "}
+            <span className="font-medium text-stone-500">
+              tap the team that went through (counts even on penalties)
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { code: m.homeCode, label: teamLabel(m.homeCode, m.homeLabel) },
+              { code: m.awayCode, label: teamLabel(m.awayCode, m.awayLabel) },
+            ].map(({ code, label }) => {
+              // A knockout has exactly two sides, so a picker beats typing a code
+              // (a mistyped code silently denies everyone their advance bonus).
+              // Tapping the selected team again clears it. A side with no resolved
+              // team yet (unfilled bracket) can't be picked.
+              const selected = code != null && adv === code;
+              return (
+                <button
+                  key={code ?? label}
+                  type="button"
+                  disabled={code == null}
+                  aria-pressed={selected}
+                  onClick={() => setAdv(selected ? "" : (code ?? ""))}
+                  className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-bold transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${
+                    selected
+                      ? "bg-pitch/30 text-emerald-300 ring-1 ring-emerald-400/50"
+                      : "glass text-stone-200"
+                  }`}
+                >
+                  <Flag code={code} size="sm" />
+                  <span className="truncate">{label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
       )}
       <div className="mt-2 flex items-center justify-end gap-2">
         {msg && <span className="mr-auto text-xs font-bold text-stone-300">{msg}</span>}
