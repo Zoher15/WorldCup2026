@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Icon } from "@/components/Icon";
 import { HowToPlayDemo } from "@/components/HowToPlayDemo";
+import { KnockoutAdvanceDemo } from "@/components/KnockoutAdvanceDemo";
 import { MAX_MATCH_POINTS, SCORE_MULTIPLIER } from "@/lib/scoring";
 import { BORINGBOT_NAME } from "@/lib/standings";
 import { PageShell } from "@/components/PageShell";
@@ -246,6 +247,21 @@ export default function HowToPlayPage() {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* Interactive knockout example — its own walkthrough, mirroring the
+          group-stage "Try it yourself" one, but for the draw-then-pick-who-
+          advances twist that only knockouts have. */}
+      <section className="mb-10">
+        <h2 className="gradient-text mb-1 text-center text-xl font-black">
+          Try a knockout tie
+        </h2>
+        <p className="mx-auto mb-4 max-w-md text-center text-sm font-medium text-stone-300">
+          A knockout can&apos;t end level. Call this one a <strong>draw</strong> and
+          a <strong>who-goes-through</strong> picker appears — back a side and your
+          pick is graded like calling the winner. Tap the teams to see it land.
+        </p>
+        <KnockoutAdvanceDemo />
       </section>
 
       {/* BoringBot */}
