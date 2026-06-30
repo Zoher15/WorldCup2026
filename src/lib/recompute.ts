@@ -64,6 +64,31 @@ export function actualWinnerDirection(match: ScorableMatch): Direction {
 }
 
 /**
+ * The direction the player's OUTCOME should be graded as — the mirror of
+ * `actualWinnerDirection` for the prediction side. Normally just the predicted
+ * scoreline's direction, but a knockout draw prediction can carry an `advancePick`
+ * naming who the player thinks goes through. That pick IS their winner call, so we
+ * map it to HOME/AWAY and grade it like backing that team to win (penalties or
+ * not). Decisive predictions, group games, and a draw with no advance pick fall
+ * through to the scoreline's own direction.
+ */
+export function predictedWinnerDirection(
+  prediction: Pick<Prediction, "predHome" | "predAway" | "advancePick">,
+  match: Pick<Match, "stage" | "homeCode" | "awayCode">,
+): Direction {
+  const score = { homeGoals: prediction.predHome, awayGoals: prediction.predAway };
+  if (
+    isKnockoutStage(match.stage) &&
+    score.homeGoals === score.awayGoals &&
+    prediction.advancePick
+  ) {
+    if (prediction.advancePick === match.homeCode) return "HOME";
+    if (prediction.advancePick === match.awayCode) return "AWAY";
+  }
+  return direction(score);
+}
+
+/**
  * A match counts toward scores only once an admin has confirmed the result and
  * both goal counts are set. This is the gate that stops a bad live API value
  * from awarding points before a human has signed off.
@@ -89,6 +114,7 @@ export function scorePrediction(
     { homeGoals: match.homeGoals!, awayGoals: match.awayGoals! },
     actualWinnerDirection(match),
     match.stage,
+    predictedWinnerDirection(prediction, match),
   );
 
   return {

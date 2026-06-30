@@ -101,19 +101,64 @@ test("a knockout decided on penalties is graded as a win, not the drawn scorelin
   assert.equal(backedWinner.closenessPoints, 4); // |2-1| + |1-1| = 1 off
   assert.equal(backedWinner.totalPoints, 36); // (5 + 4) × 4  (quarter-final)
 
-  // Predicted the literal 1-1 draw: nails closeness, but a draw was not the
-  // outcome of the tie, so the outcome is one step off.
-  const predictedDraw = scorePrediction(
-    pred({ predHome: 1, predAway: 1, advancePick: "ARG" }),
+  // Predicted the literal 1-1 draw with NO advance pick: nails closeness, but a
+  // draw was not the outcome of the tie, so the outcome is one step off.
+  const bareDraw = scorePrediction(
+    pred({ predHome: 1, predAway: 1, advancePick: null }),
     ko,
   )!;
-  assert.equal(predictedDraw.outcomePoints, 2);
-  assert.equal(predictedDraw.closenessPoints, 5);
-  assert.equal(predictedDraw.totalPoints, 28); // (2 + 5) × 4
+  assert.equal(bareDraw.outcomePoints, 2);
+  assert.equal(bareDraw.closenessPoints, 5);
+  assert.equal(bareDraw.totalPoints, 28); // (2 + 5) × 4
 
   // The SAME 1-1 in a group game is a genuine draw — full outcome credit.
   const groupDraw = scorePrediction(
     pred({ predHome: 1, predAway: 1 }),
+    match({ stage: "group", homeGoals: 1, awayGoals: 1 }),
+  )!;
+  assert.equal(groupDraw.outcomePoints, 5);
+});
+
+test("a draw prediction's advance pick is graded like backing that team to win", () => {
+  // 1-1 after extra time; ARG (home) win the shootout and advance.
+  const ko = match({
+    stage: "quarter_final",
+    homeGoals: 1,
+    awayGoals: 1,
+    advancedCode: "ARG", // homeCode in the factory
+  });
+
+  // Predicted 1-1 AND called ARG to go through — exactly who advanced. The
+  // advance pick is their winner call, so it earns full outcome, like a clean win.
+  const calledIt = scorePrediction(
+    pred({ predHome: 1, predAway: 1, advancePick: "ARG" }),
+    ko,
+  )!;
+  assert.equal(calledIt.outcomePoints, 5); // right team through
+  assert.equal(calledIt.closenessPoints, 5); // 1-1 nails the scoreline
+  assert.equal(calledIt.totalPoints, 40); // (5 + 5) × 4
+
+  // Predicted 1-1 but backed BRA (the side that went OUT): a real, wrong winner
+  // call now — no outcome, only the closeness from the spot-on scoreline.
+  const backedLoser = scorePrediction(
+    pred({ predHome: 1, predAway: 1, advancePick: "BRA" }),
+    ko,
+  )!;
+  assert.equal(backedLoser.outcomePoints, 0); // backed the wrong side
+  assert.equal(backedLoser.closenessPoints, 5);
+  assert.equal(backedLoser.totalPoints, 20); // (0 + 5) × 4
+
+  // An advance pick on a NON-draw prediction is irrelevant: the scoreline already
+  // names the winner, so the pick can't override a decisive call.
+  const decisive = scorePrediction(
+    pred({ predHome: 2, predAway: 1, advancePick: "BRA" }),
+    match({ stage: "quarter_final", homeGoals: 2, awayGoals: 1, advancedCode: "ARG" }),
+  )!;
+  assert.equal(decisive.outcomePoints, 5); // predicted ARG to win, ARG won
+
+  // A group draw ignores any stray advance pick — a draw is a genuine result.
+  const groupDraw = scorePrediction(
+    pred({ predHome: 1, predAway: 1, advancePick: "ARG" }),
     match({ stage: "group", homeGoals: 1, awayGoals: 1 }),
   )!;
   assert.equal(groupDraw.outcomePoints, 5);

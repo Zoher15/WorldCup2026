@@ -6,7 +6,7 @@
  */
 
 import { scoreMatch } from "./scoring.ts";
-import { actualWinnerDirection } from "./recompute.ts";
+import { actualWinnerDirection, predictedWinnerDirection } from "./recompute.ts";
 import { isKnockoutStage } from "./polling.ts";
 import type { Stage } from "./types.ts";
 
@@ -40,11 +40,20 @@ export function computeBreakdown(opts: {
     homeCode: opts.homeCode ?? null,
     awayCode: opts.awayCode ?? null,
   });
+  const predictedWinner = predictedWinnerDirection(
+    {
+      predHome: opts.pick.home,
+      predAway: opts.pick.away,
+      advancePick: opts.pick.advancePick ?? null,
+    },
+    { stage: opts.stage, homeCode: opts.homeCode ?? null, awayCode: opts.awayCode ?? null },
+  );
   const { outcome, closeness, multiplier, total } = scoreMatch(
     { homeGoals: opts.pick.home, awayGoals: opts.pick.away },
     { homeGoals: opts.result.home, awayGoals: opts.result.away },
     actualWinner,
     opts.stage,
+    predictedWinner,
   );
   return {
     outcome,
