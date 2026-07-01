@@ -105,9 +105,18 @@ export function GroupMatches({
       <h2 className="mb-1 text-center text-xl font-black">
         ⚽ <span className="gradient-text">Matches</span>
       </h2>
-      <p className="mb-4 text-center text-xs font-medium text-stone-300">
+      <p className="mb-3 text-center text-xs font-medium text-stone-300">
         See everyone&apos;s predictions, match by match
       </p>
+      <div className="mb-4 flex justify-center">
+        <Link
+          href="/t"
+          prefetch={false}
+          className={`rounded-full chrome px-4 py-1.5 text-xs font-bold text-violet-300 transition active:scale-95 ${FOCUS_RING}`}
+        >
+          🌐 Browse teams →
+        </Link>
+      </div>
 
       {current.length > 0 ? (
         <ul className="space-y-2">

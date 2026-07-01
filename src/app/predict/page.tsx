@@ -46,6 +46,12 @@ export default async function PredictPage() {
           className={`rounded-md font-bold text-violet-300 underline-offset-2 hover:underline ${FOCUS_RING}`}
         >
           Past results →
+        </Link>{" "}
+        <Link
+          href="/t"
+          className={`rounded-md font-bold text-violet-300 underline-offset-2 hover:underline ${FOCUS_RING}`}
+        >
+          Browse teams →
         </Link>
       </p>
 

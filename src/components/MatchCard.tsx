@@ -133,6 +133,9 @@ export interface MatchCardProps {
    *  them. Owned here so the ring hugs the card and never wraps the "Next up"
    *  flag that sits above it. */
   nag?: boolean;
+  /** Link each known team's name bar to that country's schedule (/t/[code]).
+   *  Off by default; the score-entry page keeps names as plain labels. */
+  linkTeams?: boolean;
 }
 
 /** Frosted liquid-glass surface for every text panel floating over the flags.
@@ -234,14 +237,34 @@ function StatusPill({
   }
 }
 
-/** A team's name on a solid bar — the flags carry identity, this keeps it legible. */
-function TeamName({ code, label }: { code: string | null; label?: string | null }) {
+/** A team's name on a solid bar — the flags carry identity, this keeps it
+ *  legible. When `href` is set (a known team, outside score-entry) the bar links
+ *  to that country's schedule; otherwise it's a plain, non-interactive label. */
+function TeamName({
+  code,
+  label,
+  href,
+}: {
+  code: string | null;
+  label?: string | null;
+  href?: string;
+}) {
   const name = teamLabel(code, label);
+  const shared = `block truncate rounded-lg px-2.5 py-1 text-center text-sm font-extrabold ${GLASS} text-stone-50`;
+  if (href) {
+    return (
+      <Link
+        href={href}
+        prefetch={false}
+        title={`${name} — see their games`}
+        className={`${shared} transition active:scale-[0.98] ${FOCUS_RING}`}
+      >
+        {name}
+      </Link>
+    );
+  }
   return (
-    <span
-      title={name}
-      className={`truncate rounded-lg px-2.5 py-1 text-center text-sm font-extrabold ${GLASS} text-stone-50`}
-    >
+    <span title={name} className={shared}>
       {name}
     </span>
   );
@@ -467,8 +490,13 @@ function FlagHalf({ code, side }: { code: string | null; side: "left" | "right" 
   );
 }
 
-export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, footer, detailHref, onExpire, revealOnHover, hero, nag }: MatchCardProps) {
+export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, footer, detailHref, onExpire, revealOnHover, hero, nag, linkTeams }: MatchCardProps) {
   const editing = data.state === "open" && entry != null;
+  // Names link to a country's schedule only when asked, never mid score-entry,
+  // and only for a known team (knockout placeholders aren't a real country yet).
+  const canLinkTeams = Boolean(linkTeams) && !editing;
+  const homeHref = canLinkTeams && teamByCode(data.homeCode) ? `/t/${data.homeCode}` : undefined;
+  const awayHref = canLinkTeams && teamByCode(data.awayCode) ? `/t/${data.awayCode}` : undefined;
   const hasResult =
     (data.state === "live" || data.state === "final") &&
     data.homeGoals != null &&
@@ -709,8 +737,8 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
 
         <div className="flex flex-col gap-2">
           <div className="grid grid-cols-2 gap-2">
-            <TeamName code={data.homeCode} label={data.homeLabel} />
-            <TeamName code={data.awayCode} label={data.awayLabel} />
+            <TeamName code={data.homeCode} label={data.homeLabel} href={homeHref} />
+            <TeamName code={data.awayCode} label={data.awayLabel} href={awayHref} />
           </div>
           {advancePicker}
           {footer && (
