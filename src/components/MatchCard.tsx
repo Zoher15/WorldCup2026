@@ -136,6 +136,10 @@ export interface MatchCardProps {
   /** Link each known team's name bar to that country's schedule (/t/[code]).
    *  Off by default; the score-entry page keeps names as plain labels. */
   linkTeams?: boolean;
+  /** A finished match's result from the viewing team's side (the country
+   *  schedule): tints the flag frost and rims the card — green for a win, red for
+   *  a loss, a neutral grey rim for a draw. */
+  outcome?: "W" | "D" | "L";
 }
 
 /** Frosted liquid-glass surface for every text panel floating over the flags.
@@ -490,7 +494,7 @@ function FlagHalf({ code, side }: { code: string | null; side: "left" | "right" 
   );
 }
 
-export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, footer, detailHref, onExpire, revealOnHover, hero, nag, linkTeams }: MatchCardProps) {
+export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, footer, detailHref, onExpire, revealOnHover, hero, nag, linkTeams, outcome }: MatchCardProps) {
   const editing = data.state === "open" && entry != null;
   // Names link to a country's schedule only when asked, never mid score-entry,
   // and only for a known team (knockout placeholders aren't a real country yet).
@@ -688,13 +692,17 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
       <div
         aria-hidden
         className={`glass glass-flag absolute inset-0 rounded-2xl ${
-          data.state === "live"
-            ? "glass-live"
-            : data.state === "open" || hero
-              ? "glass-vivid"
-              : data.state === "locked"
-                ? "glass-muted"
-                : ""
+          outcome === "W"
+            ? "glass-won"
+            : outcome === "L"
+              ? "glass-lost"
+              : data.state === "live"
+                ? "glass-live"
+                : data.state === "open" || hero
+                  ? "glass-vivid"
+                  : data.state === "locked"
+                    ? "glass-muted"
+                    : ""
         }`}
       />
 
@@ -785,6 +793,11 @@ export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, foote
     );
   } else if (hero) {
     framed = <div className="gradient-accent rounded-[21px] p-[5px]">{card}</div>;
+  } else if (outcome) {
+    // A finished country-schedule card wears a result rim (and its win/loss
+    // tint): green won, red lost, neutral grey drawn.
+    const rim = outcome === "W" ? "rim-won" : outcome === "L" ? "rim-lost" : "rim-draw";
+    framed = <div className={`rounded-[21px] p-[5px] ${rim}`}>{card}</div>;
   } else {
     framed = card;
   }

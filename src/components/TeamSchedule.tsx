@@ -27,6 +27,7 @@ function TeamCard({ row }: { row: TeamMatchRow }) {
     <MatchCard
       data={toMatchCardData(row)}
       linkTeams
+      outcome={row.outcome ?? undefined}
       status={row.outcome ? <OutcomeChip outcome={row.outcome} /> : undefined}
       detailHref={`/m/${row.matchId}`}
     />

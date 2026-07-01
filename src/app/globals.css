@@ -269,6 +269,19 @@ body {
   background-image: linear-gradient(to right, var(--wave-stops));
 }
 
+/* Outcome rim: the 5px frame a finished country-schedule card wears in place of
+   the hero's brand sweep — green for a win, neutral grey for a draw, red for a
+   loss. A soft diagonal gradient so the rim reads as lit glass, not a flat border. */
+.rim-won {
+  background-image: linear-gradient(160deg, rgba(16, 185, 129, 0.7), rgba(16, 185, 129, 0.32));
+}
+.rim-draw {
+  background-image: linear-gradient(160deg, rgba(168, 162, 158, 0.55), rgba(168, 162, 158, 0.25));
+}
+.rim-lost {
+  background-image: linear-gradient(160deg, rgba(239, 68, 68, 0.7), rgba(239, 68, 68, 0.32));
+}
+
 /* Let the brand sweep breathe: a slow drift across a double-wide gradient so the
    home hero title (.title-wave) and the hero card's accent ring
    (.gradient-accent) feel alive rather than printed. Slow enough (14s) to read
@@ -484,6 +497,35 @@ body {
   backdrop-filter: blur(28px) saturate(90%);
   -webkit-backdrop-filter: blur(28px) saturate(90%);
 }
+/* Outcome glass: a finished match on a country's schedule, tinted from that
+   team's side — a green cast for a win, red for a loss (a draw keeps the neutral
+   frost). The same thin, saturated frost as a live/open card so the result reads
+   clearly through the flags rather than hiding behind the heavy done-match frost. */
+.glass.glass-won,
+.glass.glass-lost {
+  backdrop-filter: blur(9px) saturate(190%);
+  -webkit-backdrop-filter: blur(9px) saturate(190%);
+}
+.glass.glass-won {
+  background:
+    radial-gradient(
+      circle 3rem at var(--gx, 50%) var(--gy, 50%),
+      rgba(255, 255, 255, calc(0.16 * var(--g-on, 0))),
+      transparent 72%
+    ),
+    linear-gradient(rgba(16, 185, 129, 0.16), rgba(16, 185, 129, 0.05)),
+    rgba(40, 36, 32, 0.34);
+}
+.glass.glass-lost {
+  background:
+    radial-gradient(
+      circle 3rem at var(--gx, 50%) var(--gy, 50%),
+      rgba(255, 255, 255, calc(0.16 * var(--g-on, 0))),
+      transparent 72%
+    ),
+    linear-gradient(rgba(239, 68, 68, 0.16), rgba(239, 68, 68, 0.05)),
+    rgba(40, 36, 32, 0.34);
+}
 /* Solid "chrome" — the second material. Buttons, tabs and pills wear this
    instead of glass: a near-opaque dark fill with a crisp edge and the same
    tactile press as glass, but no backdrop blur — so controls read as solid
@@ -547,6 +589,16 @@ body {
       rgba(30, 24, 22, 0.92);
   }
   .glass.glass-muted { background: rgba(28, 25, 23, 0.94); }
+  .glass.glass-won {
+    background:
+      linear-gradient(rgba(16, 185, 129, 0.14), rgba(16, 185, 129, 0.06)),
+      rgba(22, 30, 26, 0.92);
+  }
+  .glass.glass-lost {
+    background:
+      linear-gradient(rgba(239, 68, 68, 0.14), rgba(239, 68, 68, 0.06)),
+      rgba(32, 22, 22, 0.92);
+  }
   .glass.glass-frost { background: rgba(20, 18, 16, 0.96); }
 }
 
