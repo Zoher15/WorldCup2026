@@ -279,7 +279,7 @@ export function MatchLeaderboard({ board }: { board: MatchBoard }) {
 
   return (
     <div>
-      <MatchCard data={toMatchCardData(board.match)} pick={null} />
+      <MatchCard data={toMatchCardData(board.match)} pick={null} linkTeams />
       <div className="mt-6">
         <MatchBoardRows board={board} />
       </div>

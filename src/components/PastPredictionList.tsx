@@ -129,6 +129,7 @@ export function PastPredictionList({ matches }: { matches: PastPrediction[] }) {
                 }}
                 pick={m.pick}
                 detailHref={`/m/${m.id}`}
+                linkTeams
               />
             ))}
           </div>

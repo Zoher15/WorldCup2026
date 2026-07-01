@@ -270,6 +270,7 @@ export function PredictionList({
                   }}
                   opensAt={m.opensAt}
                   detailHref={`/m/${m.id}`}
+                  linkTeams
                   entry={{
                     home: pick.home,
                     away: pick.away,

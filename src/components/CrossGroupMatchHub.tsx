@@ -24,7 +24,7 @@ export function CrossGroupMatchHub({
 
   return (
     <div>
-      <MatchCard data={toMatchCardData(match)} pick={null} />
+      <MatchCard data={toMatchCardData(match)} pick={null} linkTeams />
 
       <div className="mt-6 space-y-3">
         {boards.map((board, i) => (
