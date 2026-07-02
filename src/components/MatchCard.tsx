@@ -496,9 +496,11 @@ function FlagHalf({ code, side }: { code: string | null; side: "left" | "right" 
 
 export function MatchCard({ data, opensAt, entry, pick, pickLabel, status, footer, detailHref, onExpire, revealOnHover, hero, nag, linkTeams, outcome }: MatchCardProps) {
   const editing = data.state === "open" && entry != null;
-  // Names link to a country's schedule only when asked, never mid score-entry,
-  // and only for a known team (knockout placeholders aren't a real country yet).
-  const canLinkTeams = Boolean(linkTeams) && !editing;
+  // Names link to a country's schedule whenever asked — each name is its own
+  // glass pill, a distinct tap target from the score steppers, so linking one
+  // even mid score-entry never collides with a stepper tap. Only a known team
+  // links (knockout placeholders aren't a real country yet).
+  const canLinkTeams = Boolean(linkTeams);
   const homeHref = canLinkTeams && teamByCode(data.homeCode) ? `/t/${data.homeCode}` : undefined;
   const awayHref = canLinkTeams && teamByCode(data.awayCode) ? `/t/${data.awayCode}` : undefined;
   const hasResult =
