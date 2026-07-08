@@ -1,5 +1,6 @@
 import { createAdminClient } from "./supabase/admin";
 import { isValidAdvanceCode } from "./prediction-rules";
+import { teamByCode } from "./fifa";
 import type { Stage } from "./types";
 
 export interface AdminMatch {
@@ -52,16 +53,17 @@ export async function setMatchResult(opts: {
   advancedCode?: string | null;
 }): Promise<void> {
   const db = createAdminClient();
+  const { data: match } = await db
+    .from("matches")
+    .select("stage, home_code, away_code, home_team, away_team")
+    .eq("id", opts.matchId)
+    .single();
+  if (!match) throw new Error("Match not found.");
+
   // A confirmed result is never overwritten by the feed sync, so a mistyped
   // advanced-team code would be locked in — and silently cost everyone who
   // picked the real team their advance bonus. Check it against the match.
   if (opts.advancedCode != null) {
-    const { data: match } = await db
-      .from("matches")
-      .select("stage, home_code, away_code")
-      .eq("id", opts.matchId)
-      .single();
-    if (!match) throw new Error("Match not found.");
     const m = {
       stage: match.stage,
       homeCode: match.home_code,
@@ -73,16 +75,28 @@ export async function setMatchResult(opts: {
       );
     }
   }
+
+  const update: Record<string, unknown> = {
+    home_goals: opts.homeGoals,
+    away_goals: opts.awayGoals,
+    advanced_code: opts.advancedCode ?? null,
+    status: "finished",
+    result_confirmed: true,
+    last_synced_at: new Date().toISOString(),
+  };
+  // Keep the stored team names in lockstep with the codes as we lock the result:
+  // the feed fills a knockout's codes but leaves the seed's "Winner of Match N"
+  // placeholder in home_team/away_team, so refresh them from the codes here so a
+  // confirmed match never carries a stale label. (Confirmed matches are skipped
+  // by the sync, so this is the last chance to tidy them.)
+  const homeName = teamByCode(match.home_code)?.name;
+  const awayName = teamByCode(match.away_code)?.name;
+  if (homeName && homeName !== match.home_team) update.home_team = homeName;
+  if (awayName && awayName !== match.away_team) update.away_team = awayName;
+
   const { error } = await db
     .from("matches")
-    .update({
-      home_goals: opts.homeGoals,
-      away_goals: opts.awayGoals,
-      advanced_code: opts.advancedCode ?? null,
-      status: "finished",
-      result_confirmed: true,
-      last_synced_at: new Date().toISOString(),
-    })
+    .update(update)
     .eq("id", opts.matchId);
   if (error) throw new Error(`Could not save result: ${error.message}`);
 }

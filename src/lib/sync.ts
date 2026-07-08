@@ -1,6 +1,6 @@
 import { createAdminClient } from "./supabase/admin";
 import { fetchWorldCupMatches } from "./footballdata";
-import { resolveFdTeam } from "./fifa";
+import { resolveFdTeam, teamByCode } from "./fifa";
 import { expectedMatchWindow, isKnockoutStage, mergeWindows } from "./polling";
 import {
   deriveFdUpdate,
@@ -20,6 +20,30 @@ export interface SyncSummary {
   /** How many upcoming knockout fixtures got a real team filled in this sync as
    *  the bracket resolved (e.g. "Winner Group A" -> ARG), before they kick off. */
   bracketFilled: number;
+}
+
+/**
+ * Keep a knockout slot's stored team name in lockstep with its code. The feed
+ * resolves the code but never a display name, and it fills the code without
+ * touching the seed's "Winner of Match N" placeholder in home_team/away_team —
+ * so the label would otherwise linger, stale, once the bracket resolves. Given
+ * the local slot and the feed's resolved code, returns the fields to patch: the
+ * code when newly known, and the team name whenever the stored label no longer
+ * matches the resolved team. A slot with no code yet keeps its placeholder.
+ */
+function knockoutSlotPatch(
+  side: "home" | "away",
+  localCode: string | null,
+  localTeam: string | null,
+  resolvedCode: string | null | undefined,
+): Record<string, unknown> {
+  const patch: Record<string, unknown> = {};
+  const code = localCode || resolvedCode || null;
+  if (!code) return patch;
+  if (!localCode && resolvedCode) patch[`${side}_code`] = resolvedCode;
+  const name = teamByCode(code)?.name;
+  if (name && localTeam !== name) patch[`${side}_team`] = name;
+  return patch;
 }
 
 /**
@@ -44,7 +68,7 @@ export async function syncDay(_date?: string): Promise<SyncSummary> {
   const { data: localRows } = await db
     .from("matches")
     .select(
-      "id, external_ref, kickoff_at, stage, home_code, away_code, result_confirmed, status, home_goals, away_goals",
+      "id, external_ref, kickoff_at, stage, home_code, away_code, home_team, away_team, result_confirmed, status, home_goals, away_goals",
     );
   const locals = localRows ?? [];
   const byId = new Map(locals.map((l) => [l.id, l]));
@@ -103,13 +127,15 @@ export async function syncDay(_date?: string): Promise<SyncSummary> {
     // else to do until it goes live.
     if (!live && !finished) {
       if (!isKnockout) continue;
-      const patch: Record<string, unknown> = {};
-      if (!local.home_code && u.homeCode) patch.home_code = u.homeCode;
-      if (!local.away_code && u.awayCode) patch.away_code = u.awayCode;
+      const patch: Record<string, unknown> = {
+        ...knockoutSlotPatch("home", local.home_code, local.home_team, u.homeCode),
+        ...knockoutSlotPatch("away", local.away_code, local.away_team, u.awayCode),
+      };
       if (Object.keys(patch).length === 0) continue; // nothing new yet
       patch.external_ref = refId;
       patch.last_synced_at = syncedAt;
-      summary.bracketFilled++;
+      // Count only fixtures that gained a real team, not label-only tidy-ups.
+      if ("home_code" in patch || "away_code" in patch) summary.bracketFilled++;
       patches.push({ id: local.id, patch });
       continue;
     }
@@ -134,8 +160,11 @@ export async function syncDay(_date?: string): Promise<SyncSummary> {
       last_synced_at: syncedAt,
     };
     if (isKnockout) {
-      if (!local.home_code && u.homeCode) patch.home_code = u.homeCode;
-      if (!local.away_code && u.awayCode) patch.away_code = u.awayCode;
+      Object.assign(
+        patch,
+        knockoutSlotPatch("home", local.home_code, local.home_team, u.homeCode),
+        knockoutSlotPatch("away", local.away_code, local.away_team, u.awayCode),
+      );
     }
     if (u.resultConfirmed) {
       patch.result_confirmed = true;
